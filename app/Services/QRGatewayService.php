@@ -66,6 +66,40 @@ class QRGatewayService
     }
 
     /**
+     * Đọc QR code từ UploadedFile object
+     */
+    public function readQRCodeFromUpload($uploadedFile)
+    {
+        try {
+            // Lưu file tạm thời
+            $tempPath = $uploadedFile->getRealPath();
+            
+            if (!$tempPath || !file_exists($tempPath)) {
+                Log::error('Uploaded file not found or invalid');
+                return null;
+            }
+
+            // Đọc QR code sử dụng ZXing
+            $qrcode = new QrReader($tempPath);
+            $text = $qrcode->text();
+
+            if ($text) {
+                Log::info('QR Code read successfully: ' . $text);
+                return [
+                    'success' => true,
+                    'data' => $text
+                ];
+            } else {
+                Log::error('No QR code found in uploaded image');
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error('QR Code Read Error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Tạo tracking code ngẫu nhiên
      */
     public function generateTrackingCode()

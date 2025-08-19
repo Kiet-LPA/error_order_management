@@ -82,20 +82,20 @@ class TaskController extends Controller
         
         if ($r->hasFile('qr_code')) {
             $qrFile = $r->file('qr_code');
-            $qrFileName = time() . '_qr_' . $qrFile->getClientOriginalName();
-            $qrFile->storeAs('public/qr_codes', $qrFileName);
-            $qrFilePath = storage_path('app/public/qr_codes/' . $qrFileName);
             
-            // Đọc QR code từ ảnh
-            $qrResult = $qrGatewayService->readQRCode($qrFilePath);
+            // Đọc QR code từ file upload trước khi lưu
+            $qrResult = $qrGatewayService->readQRCodeFromUpload($qrFile);
             
             if ($qrResult && isset($qrResult['data'])) {
                 $data['tracking_code'] = $qrResult['data'];
+                
+                // Lưu file sau khi đọc thành công
+                $qrFileName = time() . '_qr_' . $qrFile->getClientOriginalName();
+                $qrFile->storeAs('public/qr_codes', $qrFileName);
+                $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
             } else {
                 return back()->withErrors(['qr_code' => 'Không thể đọc được mã QR. Vui lòng kiểm tra lại ảnh.']);
             }
-            
-            $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
         } else {
             return back()->withErrors(['qr_code' => 'Vui lòng tải lên ảnh QR code.']);
         }
