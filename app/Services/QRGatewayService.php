@@ -2,43 +2,33 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Zxing\QrReader;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class QRGatewayService
 {
-    private $apiKey;
-    private $baseUrl = 'https://api.qrgateway.com';
-
-    public function __construct()
-    {
-        $this->apiKey = 'f4QvdX2lsvgUUwn0YcyHs5WS';
-    }
-
     /**
      * Tạo QR code mới
      */
     public function createQRCode($data)
     {
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type' => 'application/json',
-            ])->post($this->baseUrl . '/qr-codes', [
-                'name' => $data['name'] ?? 'Tracking Code',
-                'data' => $data['tracking_code'],
-                'size' => $data['size'] ?? 300,
-                'format' => $data['format'] ?? 'png',
-            ]);
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-
-            Log::error('QR Gateway API Error: ' . $response->body());
-            return null;
+            $trackingCode = $data['tracking_code'] ?? $this->generateTrackingCode();
+            $size = $data['size'] ?? 300;
+            
+            // Tạo QR code sử dụng thư viện local
+            $qrCode = QrCode::size($size)
+                           ->format('png')
+                           ->generate($trackingCode);
+            
+            return [
+                'success' => true,
+                'data' => $trackingCode,
+                'qr_code' => $qrCode
+            ];
         } catch (\Exception $e) {
-            Log::error('QR Gateway Service Error: ' . $e->getMessage());
+            Log::error('QR Code Generation Error: ' . $e->getMessage());
             return null;
         }
     }
@@ -49,19 +39,28 @@ class QRGatewayService
     public function readQRCode($imagePath)
     {
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ])->attach('file', file_get_contents($imagePath), 'qr_code.png')
-              ->post($this->baseUrl . '/qr-codes/read');
-
-            if ($response->successful()) {
-                return $response->json();
+            // Kiểm tra file có tồn tại không
+            if (!file_exists($imagePath)) {
+                Log::error('QR Code file not found: ' . $imagePath);
+                return null;
             }
 
-            Log::error('QR Gateway Read Error: ' . $response->body());
-            return null;
+            // Đọc QR code sử dụng ZXing
+            $qrcode = new QrReader($imagePath);
+            $text = $qrcode->text();
+
+            if ($text) {
+                Log::info('QR Code read successfully: ' . $text);
+                return [
+                    'success' => true,
+                    'data' => $text
+                ];
+            } else {
+                Log::error('No QR code found in image: ' . $imagePath);
+                return null;
+            }
         } catch (\Exception $e) {
-            Log::error('QR Gateway Read Service Error: ' . $e->getMessage());
+            Log::error('QR Code Read Error: ' . $e->getMessage());
             return null;
         }
     }

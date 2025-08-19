@@ -12,6 +12,21 @@ use App\Http\Controllers\ReportController;
 |--------------------------------------------------------------------------
 */
 
+// Test route để kiểm tra
+Route::get('/test', function() {
+    return 'Laravel is working!';
+});
+
+// Test QR code reading
+Route::get('/test-qr', function() {
+    $qrService = new \App\Services\QRGatewayService();
+    $testCode = $qrService->generateTrackingCode();
+    return response()->json([
+        'tracking_code' => $testCode,
+        'message' => 'QR service is working!'
+    ]);
+});
+
 // Vào root thì chuyển sang dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
