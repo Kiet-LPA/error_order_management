@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Task;
+use App\Services\QRGatewayService;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -46,6 +47,7 @@ class TaskController extends Controller
             'deadline'    => 'nullable|date',
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
+            'qr_code'     => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // Kiểm tra quyền theo phòng ban
@@ -73,6 +75,30 @@ class TaskController extends Controller
             }
         }
         $data['attachments'] = $attachments;
+
+        // Xử lý QR code
+        $qrGatewayService = new QRGatewayService();
+        $trackingCode = $qrGatewayService->generateTrackingCode();
+        
+        if ($r->hasFile('qr_code')) {
+            $qrFile = $r->file('qr_code');
+            $qrFileName = time() . '_qr_' . $qrFile->getClientOriginalName();
+            $qrFile->storeAs('public/qr_codes', $qrFileName);
+            $qrFilePath = storage_path('app/public/qr_codes/' . $qrFileName);
+            
+            // Đọc QR code từ ảnh
+            $qrResult = $qrGatewayService->readQRCode($qrFilePath);
+            
+            if ($qrResult && isset($qrResult['data'])) {
+                $data['tracking_code'] = $qrResult['data'];
+            } else {
+                return back()->withErrors(['qr_code' => 'Không thể đọc được mã QR. Vui lòng kiểm tra lại ảnh.']);
+            }
+            
+            $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
+        } else {
+            return back()->withErrors(['qr_code' => 'Vui lòng tải lên ảnh QR code.']);
+        }
 
         $task = Task::create($data);
 

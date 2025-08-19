@@ -198,6 +198,17 @@
                         Từ chối
                     @elseif($task->status == 'overdue')
                         Trễ hạn
+                </div>
+                @if($task->tracking_code)
+                <div class="col-md-6 mb-2">
+                    <i class="bi bi-qr-code me-1"></i> 
+                    <strong>Mã Tracking:</strong> 
+                    <span class="text-primary fw-bold">{{ $task->tracking_code }}</span>
+                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyToClipboard('{{ $task->tracking_code }}')">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                </div>
+                @endif
                     @elseif($task->status == 'finished')
                         Kết thúc
                     @else
@@ -542,4 +553,26 @@ function removeFile(fileIndex, fileName) {
 
     </div>
 </div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Hiển thị thông báo thành công
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-success');
+        
+        setTimeout(function() {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-primary');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        alert('Không thể copy mã tracking. Vui lòng copy thủ công.');
+    });
+}
+</script>
 @endsection

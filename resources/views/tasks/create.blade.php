@@ -118,6 +118,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               </div>
               <input type="file" name="files[]" id="fileInput" class="d-none" multiple>
             </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                Ảnh QR Code <span class="text-danger">*</span>
+              </label>
+              <div class="file-drop-zone border-2 border-dashed rounded-3 p-4 text-center" 
+                   id="qrDropZone" 
+                   style="border-color: #dee2e6; background-color: #f8f9fa; cursor: pointer; transition: all 0.3s ease;">
+                <i class="fas fa-qrcode fa-2x text-muted mb-2"></i>
+                <p class="mb-1 fw-medium">Tải lên ảnh QR Code</p>
+                <small class="text-muted">click để chọn ảnh QR</small>
+                <div class="mt-2">
+                  <small class="text-muted">Hỗ trợ: JPG, PNG, GIF (Tối đa 2MB)</small>
+                </div>
+                <div id="qrPreview" class="mt-3"></div>
+              </div>
+              <input type="file" name="qr_code" id="qrInput" class="d-none" accept="image/*">
+              @error('qr_code')
+                <div class="text-danger mt-2">
+                  <i class="fas fa-exclamation-circle me-1"></i>
+                  {{ $message }}
+                </div>
+              @enderror
+            </div>
           </div>
 
           {{-- Cột bên phải --}}
@@ -285,6 +309,39 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.files = dt.files;
         showFiles();
     };
+
+    // QR Code upload handling
+    const qrDropZone = document.getElementById('qrDropZone');
+    const qrInput = document.getElementById('qrInput');
+    const qrPreview = document.getElementById('qrPreview');
+
+    qrDropZone.addEventListener('click', function() {
+        qrInput.click();
+    });
+
+    qrInput.addEventListener('change', function() {
+        if (qrInput.files.length > 0) {
+            const file = qrInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                qrPreview.innerHTML = `
+                    <div class="alert alert-success d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-qrcode me-2"></i>
+                            <span class="fw-medium">${file.name}</span>
+                            <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
+                        </div>
+                        <img src="${e.target.result}" alt="QR Preview" style="max-width: 50px; max-height: 50px; border-radius: 4px;">
+                    </div>
+                `;
+                qrDropZone.style.borderColor = '#28a745';
+                qrDropZone.style.backgroundColor = '#f8fff9';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
 });
 </script>
 @endpush
