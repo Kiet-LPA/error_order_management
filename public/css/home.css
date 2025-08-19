@@ -1,0 +1,358 @@
+body {
+  background-color: #f5f7fa;
+}
+
+/* Sidebar dark mode */
+.sidebar {
+    background: #23272f !important;
+    min-height: 100vh;
+    border-right: 1.5px solid #23272f;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+}
+.sidebar .list-group-item {
+    background: transparent;
+    color: #e5e7eb;
+    border: none;
+    border-bottom: 1px solid #2d323c;
+    transition: background 0.2s, color 0.2s;
+}
+.sidebar .list-group-item.active, .sidebar .list-group-item:active {
+    background: #2563eb !important;
+    color: #fff !important;
+    border: none;
+}
+.sidebar .list-group-item:hover {
+    background: #2d323c;
+    color: #fff;
+}
+.sidebar .list-group-item:last-child {
+    border-bottom: none;
+}
+.sidebar .list-group {
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+.sidebar .navbar-brand, .sidebar .navbar-brand * {
+    color: #60a5fa !important;
+}
+
+.card-stat {
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.table thead {
+  background-color: #f1f3f5;
+}
+
+/* Styles cho nút tạo công việc nổi */
+.position-fixed {
+  transition: all 0.3s ease;
+}
+
+.position-fixed:hover {
+  transform: translateY(-2px);
+}
+
+/* Styles cho form */
+.form-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  padding: 2rem;
+}
+
+/* Styles cho file drop zone */
+.file-drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-drop-zone:hover {
+  border-color: #0d6efd;
+  background-color: #f8f9fa;
+}
+
+/* Styles cho priority */
+.priority-high { color: #dc3545; }
+.priority-medium { color: #fd7e14; }
+.priority-low { color: #198754; }
+
+/* Styles cho task detail */
+.task-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.progress-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.comment-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.comment-item {
+  border-left: 3px solid #0d6efd;
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+.file-attachment {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.priority-badge {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+}
+
+/* Styles cho báo cáo */
+.report-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: 1rem 0;
+}
+
+.metric-item {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.metric-number {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.metric-label {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+/* ========== Reset nhẹ & nền ========== */
+html, body {
+  height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  color: #212529;
+  background: #f8f9fa;
+}
+
+/* ========== Navbar ========== */
+.navbar .navbar-brand {
+  letter-spacing: .2px;
+}
+.navbar .fw-semibold {
+  font-weight: 600;
+}
+
+/* ========== Cards thống kê ========== */
+.card-stat {
+  border: 1px solid #e9ecef;
+  border-radius: .75rem;
+  background: #fff;
+  transition: box-shadow .2s ease;
+}
+.card-stat:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,.06);
+}
+.card-stat h5 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+.card-stat p {
+  margin: .25rem 0 0;
+  color: #6c757d;
+}
+
+/* ========== Bảng danh sách ========== */
+.table thead th {
+  font-weight: 600;
+  background: #f1f3f5;
+  border-bottom: 1px solid #dee2e6;
+}
+.table td, .table th {
+  vertical-align: middle;
+}
+
+/* ========== Badge màu (khớp status) ========== */
+.badge.bg-warning { background-color: #f59f00 !important; }   /* todo */
+.badge.bg-primary { background-color: #1c7ed6 !important; }   /* in_progress */
+.badge.bg-success { background-color: #2f9e44 !important; }   /* done */
+.badge.bg-danger  { background-color: #e03131 !important; }   /* overdue */
+
+/* ========== Nút hành động nhỏ ========== */
+.btn.btn-sm {
+  padding: .25rem .5rem;
+  border-radius: .5rem;
+}
+
+/* ========== Card container ========== */
+.card {
+  border-radius: .75rem;
+  border: 1px solid #e9ecef;
+}
+
+/* ========== Footer trong card (phân trang) ========== */
+.card-footer {
+  background: #fff;
+  border-top: 1px solid #e9ecef;
+}
+
+/* ========== Khoảng cách tổng thể ========== */
+.container > .row + .card,
+.container > .card + .card {
+  margin-top: .75rem;
+}
+
+/* Task detail modern UI */
+.task-header-gradient {
+    background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+    color: #fff;
+    border-radius: 18px;
+    padding: 32px 32px 24px 32px;
+    margin-bottom: 24px;
+    position: relative;
+    box-shadow: 0 4px 24px rgba(106,17,203,0.08);
+}
+.task-header-gradient h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+.badge-priority {
+    font-size: 1rem;
+    padding: 6px 16px;
+    border-radius: 12px;
+    margin-right: 8px;
+}
+.card-custom {
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+}
+.file-attachment {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+.file-attachment i {
+    color: #e83e8c;
+    margin-right: 8px;
+}
+.action-btn {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    padding: 10px 0;
+}
+.action-btn-green { background: #22c55e; color: #fff; }
+.action-btn-blue { background: #2563eb; color: #fff; }
+.action-btn-yellow { background: #facc15; color: #fff; }
+.action-btn-outline { border: 1px solid #2563eb; color: #2563eb; background: #fff; }
+.action-btn:hover { opacity: 0.9; }
+.comment-section {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    padding: 24px;
+}
+.comment-item {
+    border-left: 4px solid #6a11cb;
+    margin-bottom: 18px;
+    padding-left: 12px;
+}
+.comment-item strong { color: #2563eb; }
+
+/* Report modern UI */
+.report-card {
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    background: #fff;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.stat-card {
+    border-radius: 16px;
+    background: #f8fafc;
+    text-align: center;
+    padding: 18px 0 10px 0;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.stat-card h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 4px; }
+.stat-card .stat-label { font-size: 1rem; color: #888; }
+.stat-blue { color: #2563eb; }
+.stat-green { color: #22c55e; }
+.stat-yellow { color: #facc15; }
+.stat-red { color: #ef4444; }
+.top-employee-avatar {
+    width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; margin-right: 8px;
+}
+.efficiency-badge { border-radius: 8px; padding: 2px 10px; color: #fff; font-weight: 500; }
+.eff-green { background: #22c55e; }
+.eff-yellow { background: #facc15; color: #333; }
+.eff-orange { background: #f59e42; }
+.eff-red { background: #ef4444; }
+.table-report th, .table-report td { vertical-align: middle; }
+.table-report { border-radius: 12px; overflow: hidden; background: #fff; }
+
+/* Ensure navbar stays on top */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background: white;
+}
+
+/* Sidebar positioning */
+.sidebar {
+  background: #23272f !important;
+  min-height: calc(100vh - 56px);
+  border-right: 1.5px solid #23272f;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+}
+
+/* Fix layout for edit/create forms */
+.form-container {
+  position: relative;
+  z-index: 1;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
