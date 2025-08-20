@@ -66,6 +66,89 @@
     .sidebar {
       transition: all 0.3s ease;
       position: relative;
+      background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .sidebar .list-group {
+      background: transparent;
+      border: none;
+    }
+    
+    .sidebar .list-group-item {
+      background: transparent;
+      border: none;
+      color: #ecf0f1;
+      padding: 12px 20px;
+      transition: all 0.3s ease;
+      border-radius: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .sidebar .list-group-item:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transform: translateX(5px);
+    }
+    
+    .sidebar .list-group-item.active {
+      background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+    }
+    
+    .sidebar .list-group-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #e74c3c;
+    }
+    
+    /* Section header styling */
+    .sidebar-section-header {
+      background: rgba(255,255,255,0.05) !important;
+      color: #bdc3c7 !important;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 15px 20px 10px 20px !important;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .sidebar-section-header:hover {
+      background: rgba(255,255,255,0.05) !important;
+      transform: none !important;
+    }
+    
+    /* Sub-item styling */
+    .sidebar-sub-item {
+      padding-left: 35px !important;
+      font-size: 0.9rem;
+      position: relative;
+    }
+    
+    .sidebar-sub-item::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      width: 8px;
+      height: 2px;
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-50%);
+    }
+    
+    .sidebar-sub-item:hover::before {
+      background: rgba(255,255,255,0.6);
+    }
+    
+    .sidebar-sub-item.active::before {
+      background: #e74c3c;
     }
     
     .sidebar.collapsed {
@@ -90,6 +173,19 @@
     .sidebar.collapsed .list-group-item i {
       margin-right: 0 !important;
       font-size: 1.1rem;
+    }
+    
+    .sidebar.collapsed .sidebar-section-header {
+      padding: 15px 8px 10px 8px !important;
+      font-size: 0.7rem;
+    }
+    
+    .sidebar.collapsed .sidebar-sub-item {
+      padding-left: 8px !important;
+    }
+    
+    .sidebar.collapsed .sidebar-sub-item::before {
+      display: none;
     }
     
     .sidebar-toggle {
@@ -368,30 +464,26 @@
 
           @auth
           @if(Auth::user()->isAdmin())
-            <div class="list-group-item p-0">
-              <a href="#" class="list-group-item d-flex justify-content-between align-items-center {{ request()->routeIs('users.*') || request()->routeIs('employees.*')?'active':'' }}" 
-                 data-bs-toggle="collapse" data-bs-target="#employeeSubmenu"
-                 aria-expanded="{{ request()->routeIs('users.*') || request()->routeIs('employees.*')?'true':'false' }}" aria-controls="employeeSubmenu">
-                <div>
-                  <i class="bi bi-people me-2"></i> <span>Quản lý nhân viên</span>
-                </div>
-                <i class="bi bi-chevron-down"></i>
-              </a>
-              <div class="collapse {{ request()->routeIs('users.*') || request()->routeIs('employees.*')?'show':'' }}" id="employeeSubmenu">
-                <div class="list-group list-group-flush">
-                  <a href="{{ route('users.index') }}" 
-                     class="list-group-item {{ request()->routeIs('users.*')?'active':'' }}"
-                     data-title="Nhân viên chính thức">
-                    <i class="bi bi-person-check me-2"></i> <span>Nhân viên chính thức</span>
-                  </a>
-                  <a href="{{ route('employees.new.index') }}" 
-                     class="list-group-item {{ request()->routeIs('employees.new.*')?'active':'' }}"
-                     data-title="Nhân viên mới">
-                    <i class="bi bi-person-plus me-2"></i> <span>Nhân viên mới</span>
-                  </a>
-                </div>
-              </div>
+            <!-- Quản lý nhân viên - Header -->
+            <div class="list-group-item sidebar-section-header">
+              <i class="bi bi-people me-2"></i> <span>Quản lý nhân viên</span>
             </div>
+            
+            <!-- Nhân viên chính thức -->
+            <a href="{{ route('users.index') }}" 
+               class="list-group-item sidebar-sub-item {{ request()->routeIs('users.*')?'active':'' }}"
+               data-title="Nhân viên chính thức">
+              <i class="bi bi-person-check me-2"></i> <span>Nhân viên chính thức</span>
+            </a>
+            
+            <!-- Nhân viên mới -->
+            <a href="{{ route('employees.new.index') }}" 
+               class="list-group-item sidebar-sub-item {{ request()->routeIs('employees.new.*')?'active':'' }}"
+               data-title="Nhân viên mới">
+              <i class="bi bi-person-plus me-2"></i> <span>Nhân viên mới</span>
+            </a>
+            
+            <!-- Phòng ban -->
             <a href="{{ route('departments.index') }}"
                class="list-group-item {{ request()->routeIs('departments.*')?'active':'' }}"
                data-title="Phòng ban">
@@ -449,8 +541,15 @@
           <div class="col nav-item">
             <a href="{{ route('users.index') }}" 
                class="nav-link {{ request()->routeIs('users.*')?'active':'' }}">
-              <i class="bi bi-people"></i>
+              <i class="bi bi-person-check"></i>
               <span>Nhân viên</span>
+            </a>
+          </div>
+          <div class="col nav-item">
+            <a href="{{ route('employees.new.index') }}" 
+               class="nav-link {{ request()->routeIs('employees.new.*')?'active':'' }}">
+              <i class="bi bi-person-plus"></i>
+              <span>Nhân viên mới</span>
             </a>
           </div>
           <div class="col nav-item">

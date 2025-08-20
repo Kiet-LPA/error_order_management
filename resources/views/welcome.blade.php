@@ -73,6 +73,8 @@
     transition: all 0.2s ease;
 }
 
+
+
 .badge {
     font-size: 0.8rem;
     font-weight: 500;
@@ -428,19 +430,16 @@
               <tr class="border-bottom">
                 <td class="px-4 py-3">
                   <div class="fw-medium text-dark">{{ $task->title }}</div>
-                  @if($task->description)
-                    <small class="text-muted">{{ Str::limit($task->description, 50) }}</small>
-                  @endif
                 </td>
                 <td class="px-4 py-3">
                   @if($task->tracking_code)
                     <div class="d-flex align-items-center">
                       <span class="badge bg-primary bg-opacity-10 text-primary border border-primary me-2">
-                        <i class="fas fa-qr-code me-1"></i>
+                        <i class="bi bi-qr-code me-1"></i>
                         {{ $task->tracking_code }}
                       </span>
                       <button class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ $task->tracking_code }}')" title="Copy mã tracking">
-                        <i class="fas fa-copy"></i>
+                        <i class="bi bi-copy"></i>
                       </button>
                     </div>
                   @else
@@ -449,7 +448,7 @@
                 </td>
                 <td class="px-4 py-3">
                   <span class="badge bg-light text-dark border">
-                    <i class="fas fa-user me-1"></i>
+                    <i class="bi bi-person me-1"></i>
                     {{ $task->assignee?->name ?? '—' }}
                   </span>
                 </td>
@@ -459,7 +458,7 @@
                 <td class="px-4 py-3">
                   @if($task->deadline)
                     <span class="badge bg-info bg-opacity-10 text-info border border-info">
-                      <i class="fas fa-calendar me-1"></i>
+                      <i class="bi bi-calendar me-1"></i>
                       {{ $task->deadline->format('d/m/Y') }}
                     </span>
                   @else
@@ -469,15 +468,15 @@
                 <td class="px-4 py-3">
                   <span class="badge rounded-pill px-3 py-2 fw-medium bg-{{ $badge }} bg-opacity-10 text-dark border border-{{ $badge }}">
                     @if($st == 'in_progress')
-                      <i class="fas fa-play me-1"></i>Đang làm
+                      <i class="bi bi-play me-1"></i>Đang làm
                     @elseif($st == 'completed')
-                      <i class="fas fa-hourglass-half me-1"></i>Chờ duyệt
+                      <i class="bi bi-hourglass-split me-1"></i>Chờ duyệt
                     @elseif($st == 'rejected')
-                      <i class="fas fa-times me-1"></i>Từ chối
+                      <i class="bi bi-x me-1"></i>Từ chối
                     @elseif($st == 'overdue')
-                      <i class="fas fa-exclamation-triangle me-1"></i>Trễ hạn
+                      <i class="bi bi-exclamation-triangle me-1"></i>Trễ hạn
                     @elseif($st == 'finished')
-                      <i class="fas fa-flag-checkered me-1"></i>Kết thúc
+                      <i class="bi bi-flag-checkered me-1"></i>Kết thúc
                     @else
                       {{ strtoupper($st) }}
                     @endif
@@ -486,16 +485,16 @@
                 <td class="px-4 py-3 text-end">
                   <div class="btn-group" role="group">
                     <a href="{{ route('task-detail',$task) }}" class="btn btn-sm btn-outline-primary border-0 rounded-start">
-                      <i class="fas fa-eye me-1"></i>Xem
+                      <i class="bi bi-eye me-1"></i>Xem
                     </a>
                     @if(auth()->user()->isAdmin() || auth()->user()->isManager())
                       <a href="{{ route('tasks.edit',$task) }}" class="btn btn-sm btn-outline-warning border-0">
-                        <i class="fas fa-edit me-1"></i>Sửa
+                        <i class="bi bi-pencil me-1"></i>Sửa
                       </a>
                       <form action="{{ route('tasks.destroy',$task) }}" method="POST" class="d-inline" data-confirm="Xoá công việc này?">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-danger border-0 rounded-end">
-                          <i class="fas fa-trash me-1"></i>Xoá
+                          <i class="bi bi-trash me-1"></i>Xoá
                         </button>
                       </form>
                     @endif
@@ -506,7 +505,7 @@
               <tr>
                 <td colspan="7" class="text-center py-5">
                   <div class="text-muted">
-                    <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                    <i class="bi bi-inbox fa-3x mb-3 opacity-50"></i>
                     <h6 class="mb-2">Chưa có công việc nào</h6>
                     <p class="mb-0">Hãy tạo công việc mới để bắt đầu</p>
                   </div>

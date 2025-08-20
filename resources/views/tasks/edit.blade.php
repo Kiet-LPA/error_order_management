@@ -247,7 +247,11 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                         <i class="bi bi-text-paragraph me-1"></i>Mô tả
                     </label>
                     <textarea name="description" id="description" rows="4" class="form-control @error('description') is-invalid @enderror" 
-                              placeholder="Mô tả chi tiết công việc...">{{ old('description', $task->description) }}</textarea>
+                              placeholder="Mô tả chi tiết công việc..." maxlength="1000">{{ old('description', $task->description) }}</textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Tối đa 1000 ký tự</small>
+                        <small class="text-muted" id="descriptionCounter">0/1000</small>
+                    </div>
                     @error('description')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -381,7 +385,11 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     </label>
                     <textarea name="rejection_reason" id="rejection_reason" rows="3" 
                               class="form-control @error('rejection_reason') is-invalid @enderror" 
-                              placeholder="Nhập lý do từ chối công việc...">{{ old('rejection_reason', $task->rejection_reason) }}</textarea>
+                              placeholder="Nhập lý do từ chối công việc..." maxlength="500">{{ old('rejection_reason', $task->rejection_reason) }}</textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Tối đa 500 ký tự</small>
+                        <small class="text-muted" id="rejectionReasonCounter">0/500</small>
+                    </div>
                     @error('rejection_reason')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -443,7 +451,76 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('rejection_reason').value = '';
         }
     });
+
+    // Validation for long words
+    validateTextarea('description', 'descriptionCounter', 1000);
+    validateTextarea('rejection_reason', 'rejectionReasonCounter', 500);
 });
+
+// Function to validate textarea and prevent long words
+function validateTextarea(textareaId, counterId, maxLength) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    const submitBtn = document.querySelector('.btn-submit');
+    
+    if (textarea && counter) {
+        // Update counter on input
+        textarea.addEventListener('input', function() {
+            const text = this.value;
+            const words = text.split(/\s+/);
+            let hasLongWord = false;
+            
+            // Check each word
+            for (let word of words) {
+                if (word.length > 45) {
+                    hasLongWord = true;
+                    break;
+                }
+            }
+            
+            // Update counter
+            counter.textContent = `${text.length}/${maxLength}`;
+            
+            // Visual feedback for long words
+            if (hasLongWord) {
+                this.style.borderColor = '#dc3545';
+                this.style.backgroundColor = '#fff5f5';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Từ quá dài (>45 ký tự)';
+                    submitBtn.classList.remove('btn-submit');
+                    submitBtn.classList.add('btn-danger');
+                }
+            } else {
+                this.style.borderColor = '';
+                this.style.backgroundColor = '';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Cập nhật công việc';
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.classList.add('btn-submit');
+                }
+            }
+        });
+        
+        // Form validation
+        textarea.closest('form').addEventListener('submit', function(e) {
+            const text = textarea.value;
+            const words = text.split(/\s+/);
+            
+            for (let word of words) {
+                if (word.length > 45) {
+                    e.preventDefault();
+                    alert('Không được phép nhập từ dài hơn 45 ký tự!');
+                    return false;
+                }
+            }
+        });
+        
+        // Initialize counter
+        counter.textContent = `${textarea.value.length}/${maxLength}`;
+    }
+}
 
 function handleFileSelect(input) {
     const files = input.files;

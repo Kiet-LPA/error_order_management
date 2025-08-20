@@ -509,7 +509,11 @@ function removeFile(fileIndex, fileName) {
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Ghi chú kết thúc <span class="text-muted">(tùy chọn)</span></label>
-                                <textarea name="finish_note" class="form-control" rows="3" placeholder="Nhập ghi chú khi kết thúc công việc..."></textarea>
+                                <textarea name="finish_note" id="finishNoteTextarea" class="form-control" rows="3" placeholder="Nhập ghi chú khi kết thúc công việc..." maxlength="500"></textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <small class="text-muted">Tối đa 500 ký tự</small>
+                                    <small class="text-muted" id="finishNoteCounter">0/500</small>
+                                </div>
                             </div>
                             <div class="alert" style="background:#dbeafe; border-color:#5DA444; color:#166534;">
                                 <i class="bi bi-info-circle me-2"></i>
@@ -538,7 +542,11 @@ function removeFile(fileIndex, fileName) {
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Lý do từ chối <span class="text-danger">*</span></label>
-                                <textarea name="rejection_reason" class="form-control" rows="3" required placeholder="Nhập lý do từ chối..."></textarea>
+                                <textarea name="rejection_reason" id="rejectReasonTextarea" class="form-control" rows="3" required placeholder="Nhập lý do từ chối..." maxlength="500"></textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <small class="text-muted">Tối đa 500 ký tự</small>
+                                    <small class="text-muted" id="rejectReasonCounter">0/500</small>
+                                </div>
                             </div>
                             <div class="alert" style="background:#fef3c7; border-color:#558EC1; color:#1e40af;">
                                 <i class="bi bi-exclamation-triangle me-2"></i>
@@ -577,6 +585,99 @@ function copyToClipboard(text) {
         console.error('Could not copy text: ', err);
         alert('Không thể copy mã tracking. Vui lòng copy thủ công.');
     });
+}
+
+// Validation for modal textareas
+document.addEventListener('DOMContentLoaded', function() {
+    // Validation for finish note modal
+    const finishNoteTextarea = document.getElementById('finishNoteTextarea');
+    const finishNoteCounter = document.getElementById('finishNoteCounter');
+    const finishModal = document.getElementById('finishModal');
+    
+    if (finishNoteTextarea && finishNoteCounter) {
+        validateModalTextarea(finishNoteTextarea, finishNoteCounter, 500, 'finishModal');
+    }
+    
+    // Validation for rejection reason modal
+    const rejectReasonTextarea = document.getElementById('rejectReasonTextarea');
+    const rejectReasonCounter = document.getElementById('rejectReasonCounter');
+    const rejectModal = document.getElementById('rejectModal');
+    
+    if (rejectReasonTextarea && rejectReasonCounter) {
+        validateModalTextarea(rejectReasonTextarea, rejectReasonCounter, 500, 'rejectModal');
+    }
+});
+
+// Function to validate modal textarea
+function validateModalTextarea(textarea, counter, maxLength, modalId) {
+    textarea.addEventListener('input', function() {
+        const text = this.value;
+        const words = text.split(/\s+/);
+        let hasLongWord = false;
+        
+        // Check each word
+        for (let word of words) {
+            if (word.length > 45) {
+                hasLongWord = true;
+                break;
+            }
+        }
+        
+        // Update counter
+        counter.textContent = `${text.length}/${maxLength}`;
+        
+        // Visual feedback for long words
+        if (hasLongWord) {
+            this.style.borderColor = '#dc3545';
+            this.style.backgroundColor = '#fff5f5';
+            
+            // Disable submit button in modal
+            const modal = document.getElementById(modalId);
+            const submitBtn = modal.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Từ quá dài (>45 ký tự)';
+                submitBtn.classList.add('btn-danger');
+                submitBtn.classList.remove('btn-success');
+            }
+        } else {
+            this.style.borderColor = '';
+            this.style.backgroundColor = '';
+            
+            // Enable submit button in modal
+            const modal = document.getElementById(modalId);
+            const submitBtn = modal.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                if (modalId === 'finishModal') {
+                    submitBtn.innerHTML = 'Kết thúc';
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.style.background = '#5DA444';
+                } else if (modalId === 'rejectModal') {
+                    submitBtn.innerHTML = 'Từ chối';
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.style.background = '#dc2626';
+                }
+            }
+        }
+    });
+    
+    // Form validation
+    textarea.closest('form').addEventListener('submit', function(e) {
+        const text = textarea.value;
+        const words = text.split(/\s+/);
+        
+        for (let word of words) {
+            if (word.length > 45) {
+                e.preventDefault();
+                alert('Không được phép nhập từ dài hơn 45 ký tự!');
+                return false;
+            }
+        }
+    });
+    
+    // Initialize counter
+    counter.textContent = `${textarea.value.length}/${maxLength}`;
 }
 </script>
 @endsection

@@ -77,6 +77,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/employees/salary/{salary}', [App\Http\Controllers\EmployeeController::class, 'salaryUpdate'])->name('employees.salary.update');
 });
 
+// Profile routes
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
 // Chỉ require auth.php nếu đã cài Breeze/Jetstream (tránh lỗi file không tồn tại)
 if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
