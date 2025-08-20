@@ -272,6 +272,28 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     @enderror
                 </div>
 
+                {{-- Tracking Code --}}
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-qr-code me-1"></i>Mã Tracking
+                    </label>
+                    <input type="text" name="tracking_code" class="form-control @error('tracking_code') is-invalid @enderror" 
+                           value="{{ old('tracking_code', $task->tracking_code) }}" 
+                           placeholder="Nhập mã tracking từ QR code... (không bắt buộc)">
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <a href="https://qrscanner.net/" target="_blank" class="text-primary text-decoration-none">
+                                <i class="bi bi-qrcode me-1"></i>Quét mã QR
+                            </a> 
+                            - Nếu bạn có ảnh QR code, hãy quét tại đây và copy mã về
+                        </small>
+                    </div>
+                    @error('tracking_code')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 {{-- Assignee --}}
                 <div class="form-group">
                     <label for="assignee_id" class="form-label">
@@ -398,27 +420,6 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         this.classList.add('dragover');
     });
-
-    dropZone.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-    });
-
-    dropZone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        fileInput.files = files;
-        handleFileSelect(fileInput);
-    });
-
-    // Deadline input
-    const deadlineInput = document.querySelector('input[name="deadline"]');
-    if (deadlineInput) {
-        deadlineInput.addEventListener('click', function() {
-            this.showPicker && this.showPicker();
-        });
-    }
 
     // Status change handler
     const statusSelect = document.getElementById('status');

@@ -12,23 +12,10 @@ use App\Http\Controllers\ReportController;
 |--------------------------------------------------------------------------
 */
 
-// Test route để kiểm tra
-Route::get('/test', function() {
-    return 'Laravel is working!';
-});
-
-// Test QR code reading
-Route::get('/test-qr', function() {
-    $qrService = new \App\Services\QRGatewayService();
-    $testCode = $qrService->generateTrackingCode();
-    return response()->json([
-        'tracking_code' => $testCode,
-        'message' => 'QR service is working!'
-    ]);
-});
-
 // Vào root thì chuyển sang dashboard
-Route::get('/', fn () => redirect()->route('dashboard'));
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+});
 
 // Các route yêu cầu đăng nhập (KHÔNG dùng verified)
 Route::middleware(['auth'])->group(function () {
@@ -38,7 +25,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Chỉ Admin: quản lý user
     Route::middleware('role:admin')->group(function () {
-        Route::resource('users', UserController::class)->except(['show']);
+        Route::resource('users', UserController::class);
         Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except(['show']);
         // Nếu có DepartmentController thì thêm ở đây
         // Route::resource('departments', DepartmentController::class);
@@ -75,7 +62,24 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Quản lý nhân viên mới
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesIndex'])->name('employees.new.index');
+    Route::get('/employees/new/create', [App\Http\Controllers\EmployeeController::class, 'newEmployeesCreate'])->name('employees.new.create');
+    Route::post('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesStore'])->name('employees.new.store');
+    Route::post('/employees/{user}/convert', [App\Http\Controllers\EmployeeController::class, 'convertToOfficial'])->name('employees.convert');
+});
+
+// Quản lý lương
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/employees/salary', [App\Http\Controllers\EmployeeController::class, 'salaryIndex'])->name('employees.salary.index');
+    Route::get('/employees/salary/{salary}/edit', [App\Http\Controllers\EmployeeController::class, 'salaryEdit'])->name('employees.salary.edit');
+    Route::put('/employees/salary/{salary}', [App\Http\Controllers\EmployeeController::class, 'salaryUpdate'])->name('employees.salary.update');
+});
+
 // Chỉ require auth.php nếu đã cài Breeze/Jetstream (tránh lỗi file không tồn tại)
 if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
+
+

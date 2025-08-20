@@ -3,107 +3,63 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
-use Zxing\QrReader;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 
 class QRGatewayService
 {
-    /**
-     * Tạo QR code mới
-     */
-    public function createQRCode($data)
+    public function generateQRCode($data, $size = 200)
     {
         try {
-            $trackingCode = $data['tracking_code'] ?? $this->generateTrackingCode();
-            $size = $data['size'] ?? 300;
+            $options = new QROptions([
+                'version'             => 7,
+                'outputType'          => QRCode::OUTPUT_IMAGE_PNG,
+                'eccLevel'            => QRCode::ECC_L,
+                'scale'               => 5,
+                'imageBase64'         => false,
+                'imageTransparent'    => false,
+            ]);
+
+            $qrcode = new QRCode($options);
+            $qrImage = $qrcode->render($data);
             
-            // Tạo QR code sử dụng thư viện local
-            $qrCode = QrCode::size($size)
-                           ->format('png')
-                           ->generate($trackingCode);
-            
-            return [
-                'success' => true,
-                'data' => $trackingCode,
-                'qr_code' => $qrCode
-            ];
+            return $qrImage;
         } catch (\Exception $e) {
             Log::error('QR Code Generation Error: ' . $e->getMessage());
             return null;
         }
     }
 
-    /**
-     * Đọc QR code từ file ảnh
-     */
-    public function readQRCode($imagePath)
-    {
-        try {
-            // Kiểm tra file có tồn tại không
-            if (!file_exists($imagePath)) {
-                Log::error('QR Code file not found: ' . $imagePath);
-                return null;
-            }
-
-            // Đọc QR code sử dụng ZXing
-            $qrcode = new QrReader($imagePath);
-            $text = $qrcode->text();
-
-            if ($text) {
-                Log::info('QR Code read successfully: ' . $text);
-                return [
-                    'success' => true,
-                    'data' => $text
-                ];
-            } else {
-                Log::error('No QR code found in image: ' . $imagePath);
-                return null;
-            }
-        } catch (\Exception $e) {
-            Log::error('QR Code Read Error: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Đọc QR code từ UploadedFile object
-     */
-    public function readQRCodeFromUpload($uploadedFile)
-    {
-        try {
-            // Lưu file tạm thời
-            $tempPath = $uploadedFile->getRealPath();
-            
-            if (!$tempPath || !file_exists($tempPath)) {
-                Log::error('Uploaded file not found or invalid');
-                return null;
-            }
-
-            // Đọc QR code sử dụng ZXing
-            $qrcode = new QrReader($tempPath);
-            $text = $qrcode->text();
-
-            if ($text) {
-                Log::info('QR Code read successfully: ' . $text);
-                return [
-                    'success' => true,
-                    'data' => $text
-                ];
-            } else {
-                Log::error('No QR code found in uploaded image');
-                return null;
-            }
-        } catch (\Exception $e) {
-            Log::error('QR Code Read Error: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Tạo tracking code ngẫu nhiên
-     */
     public function generateTrackingCode()
     {
-        return 'TRK' . date('Ymd') . strtoupper(substr(md5(uniqid()), 0, 8));
+        return 'TRK-' . strtoupper(substr(md5(uniqid()), 0, 8));
+    }
+
+    // Phương thức test để kiểm tra service
+    public function testService()
+    {
+        try {
+            Log::info('Testing QR Gateway Service');
+            
+            // Test tạo QR code
+            $qrCode = $this->generateQRCode('TEST-123');
+            if ($qrCode) {
+                Log::info('QR Code generation: SUCCESS');
+            } else {
+                Log::error('QR Code generation: FAILED');
+            }
+            
+            return [
+                'qr_generation' => !empty($qrCode),
+                'service_status' => 'OK'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Service test failed: ' . $e->getMessage());
+            return [
+                'qr_generation' => false,
+                'service_status' => 'ERROR: ' . $e->getMessage()
+            ];
+        }
     }
 }

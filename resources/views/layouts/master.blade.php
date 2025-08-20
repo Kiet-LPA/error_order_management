@@ -368,11 +368,30 @@
 
           @auth
           @if(Auth::user()->isAdmin())
-            <a href="{{ route('users.index') }}"
-               class="list-group-item {{ request()->routeIs('users.*')?'active':'' }}"
-               data-title="Nhân viên">
-              <i class="bi bi-people me-2"></i> <span>Nhân viên</span>
-            </a>
+            <div class="list-group-item p-0">
+              <a href="#" class="list-group-item d-flex justify-content-between align-items-center {{ request()->routeIs('users.*') || request()->routeIs('employees.*')?'active':'' }}" 
+                 data-bs-toggle="collapse" data-bs-target="#employeeSubmenu"
+                 aria-expanded="{{ request()->routeIs('users.*') || request()->routeIs('employees.*')?'true':'false' }}" aria-controls="employeeSubmenu">
+                <div>
+                  <i class="bi bi-people me-2"></i> <span>Quản lý nhân viên</span>
+                </div>
+                <i class="bi bi-chevron-down"></i>
+              </a>
+              <div class="collapse {{ request()->routeIs('users.*') || request()->routeIs('employees.*')?'show':'' }}" id="employeeSubmenu">
+                <div class="list-group list-group-flush">
+                  <a href="{{ route('users.index') }}" 
+                     class="list-group-item {{ request()->routeIs('users.*')?'active':'' }}"
+                     data-title="Nhân viên chính thức">
+                    <i class="bi bi-person-check me-2"></i> <span>Nhân viên chính thức</span>
+                  </a>
+                  <a href="{{ route('employees.new.index') }}" 
+                     class="list-group-item {{ request()->routeIs('employees.new.*')?'active':'' }}"
+                     data-title="Nhân viên mới">
+                    <i class="bi bi-person-plus me-2"></i> <span>Nhân viên mới</span>
+                  </a>
+                </div>
+              </div>
+            </div>
             <a href="{{ route('departments.index') }}"
                class="list-group-item {{ request()->routeIs('departments.*')?'active':'' }}"
                data-title="Phòng ban">
@@ -406,13 +425,6 @@
   </div>
 
   @auth
-  @if(Auth::user()->isAdmin() || Auth::user()->isManager())
-    <a href="{{ route('create-task') }}"
-       class="btn btn-success position-fixed"
-       style="right:24px; bottom:24px; z-index:1050;">
-       ➕ Tạo công việc
-    </a>
-  @endif
   @endauth
 
   {{-- Scroll to top button --}}

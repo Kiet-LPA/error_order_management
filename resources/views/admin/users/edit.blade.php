@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Cập nhật nhân viên')
+@section('title', 'Cập nhật thông tin nhân viên')
 
 @section('content')
 <style>
@@ -28,11 +28,11 @@
 }
 </style>
 <div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Cập nhật nhân viên</h5>
-    </div>
+                    <div class="card-header">
+                    <h5 class="mb-0">Cập nhật thông tin nhân viên</h5>
+                </div>
     <div class="card-body">
-        <form action="{{ route('users.update', $user) }}" method="POST">
+        <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             <div class="mb-3">
@@ -78,9 +78,121 @@
                 </select>
                 @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
+            
+            <!-- Thông tin bổ sung cho nhân viên -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="position" class="form-label">Chức vụ</label>
+                        <input type="text" name="position" id="position" class="form-control @error('position') is-invalid @enderror" value="{{ old('position', $user->position) }}">
+                        @error('position')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="social_insurance_number" class="form-label">Mã số BHXH</label>
+                        <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}">
+                        @error('social_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="health_insurance_number" class="form-label">Mã số BHYT</label>
+                        <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}">
+                        @error('health_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="personal_identification_number" class="form-label">Mã số định danh cá nhân</label>
+                        <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}">
+                        @error('personal_identification_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hình ảnh hợp đồng (chỉ cho nhân viên chính thức) -->
+            @if($user->employee_type == 'official')
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h6 class="text-info mb-3">
+                        <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
+                    </h6>
+                    
+                    <div class="mb-3">
+                        <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
+                        <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
+                               id="contract_images" name="contract_images[]" multiple 
+                               accept="image/*">
+                        <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF</div>
+                        @error('contract_images.*')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div id="imagePreview" class="row g-2"></div>
+                    
+                    <!-- Hiển thị hình ảnh hiện có -->
+                    @if($user->contracts && $user->contracts->where('status', 'active')->first() && $user->contracts->where('status', 'active')->first()->images->count() > 0)
+                    <div class="mt-3">
+                        <h6>Hình ảnh hợp đồng hiện tại:</h6>
+                        <div class="row g-2">
+                            @foreach($user->contracts->where('status', 'active')->first()->images as $image)
+                            <div class="col-md-3 col-sm-4 col-6">
+                                <div class="card">
+                                    <img src="{{ $image->image_path }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <small class="text-muted">Trang {{ $image->page_number }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
             <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">Cập nhật</button>
             <a href="{{ route('users.index') }}" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">Quay lại</a>
         </form>
+    </div>
+</div>
+
+@if($user->employee_type == 'official')
+@push('scripts')
+<script>
+document.getElementById('contract_images').addEventListener('change', function(e) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    for (let i = 0; i < e.target.files.length; i++) {
+        const file = e.target.files[i];
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const col = document.createElement('div');
+                col.className = 'col-md-3 col-sm-4 col-6';
+                col.innerHTML = `
+                    <div class="card">
+                        <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <small class="text-muted">Trang ${i + 1}</small>
+                        </div>
+                    </div>
+                `;
+                preview.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+</script>
+@endpush
+@endif
     </div>
 </div>
 @endsection

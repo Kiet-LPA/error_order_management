@@ -21,6 +21,7 @@
                 <tr>
                     <th>#</th>
                     <th>Tiêu đề</th>
+                    <th>Mã Tracking</th>
                     <th>Người giao</th>
                     <th>Người nhận</th>
                     <th>Deadline</th>
@@ -33,6 +34,16 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>{{ $task->title }}</td>
+                        <td>
+                            @if($task->tracking_code)
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                                    <i class="fas fa-qr-code me-1"></i>
+                                    {{ $task->tracking_code }}
+                                </span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td>{{ $task->creator->name ?? '-' }}</td>
                         <td>{{ $task->assignee->name ?? '-' }}</td>
                         <td>{{ $task->deadline ? $task->deadline->format('d/m/Y') : '-' }}</td>
@@ -43,7 +54,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center">Chưa có công việc nào.</td>
+                        <td colspan="8" class="text-center">Chưa có công việc nào.</td>
                     </tr>
                 @endforelse
             </tbody>

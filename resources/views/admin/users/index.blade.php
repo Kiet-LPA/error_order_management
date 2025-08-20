@@ -52,7 +52,10 @@
                         <td>{{ $user->role }}</td>
                         <td>{{ $user->department->name ?? '-' }}</td>
                         <td>
-                            <a href="{{ route('users.edit', $user) }}" class="btn btn-sm" style="background:#facc15; color:#333; border-color:#facc15;">Sửa</a>
+                            <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-info me-1">
+                                <i class="bi bi-eye"></i> Xem
+                            </a>
+                            <a href="{{ route('users.edit', $user) }}" class="btn btn-sm" style="background:#facc15; color:#333; border-color:#facc15;">Cập nhật</a>
                             <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?');">
                                 @csrf
                                 @method('DELETE')

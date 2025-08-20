@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Task;
 use App\Services\QRGatewayService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
 {
@@ -47,7 +49,7 @@ class TaskController extends Controller
             'deadline'    => 'nullable|date',
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
-            'qr_code'     => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'tracking_code' => 'nullable|string|max:255',
         ]);
 
         // Kiểm tra quyền theo phòng ban
@@ -76,28 +78,20 @@ class TaskController extends Controller
         }
         $data['attachments'] = $attachments;
 
-        // Xử lý QR code
-        $qrGatewayService = new QRGatewayService();
-        $trackingCode = $qrGatewayService->generateTrackingCode();
-        
-        if ($r->hasFile('qr_code')) {
-            $qrFile = $r->file('qr_code');
+        // Xử lý tracking code
+        if ($r->filled('tracking_code')) {
+            $data['tracking_code'] = $r->input('tracking_code');
             
-            // Đọc QR code từ file upload trước khi lưu
-            $qrResult = $qrGatewayService->readQRCodeFromUpload($qrFile);
+            // Tạo QR code từ tracking code đã nhập
+            $qrGatewayService = new QRGatewayService();
+            $qrCode = $qrGatewayService->generateQRCode($data['tracking_code']);
             
-            if ($qrResult && isset($qrResult['data'])) {
-                $data['tracking_code'] = $qrResult['data'];
-                
-                // Lưu file sau khi đọc thành công
-                $qrFileName = time() . '_qr_' . $qrFile->getClientOriginalName();
-                $qrFile->storeAs('public/qr_codes', $qrFileName);
+            if ($qrCode) {
+                // Lưu QR code vào storage
+                $qrFileName = time() . '_qr_' . $data['tracking_code'] . '.png';
+                Storage::put('public/qr_codes/' . $qrFileName, $qrCode);
                 $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
-            } else {
-                return back()->withErrors(['qr_code' => 'Không thể đọc được mã QR. Vui lòng kiểm tra lại ảnh.']);
             }
-        } else {
-            return back()->withErrors(['qr_code' => 'Vui lòng tải lên ảnh QR code.']);
         }
 
         $task = Task::create($data);
@@ -195,6 +189,7 @@ class TaskController extends Controller
             'priority'    => 'nullable|in:low,medium,high',
             'status'      => 'required|in:in_progress,completed,rejected,overdue,finished',
             'rejection_reason' => 'nullable|string|max:1000',
+            'tracking_code' => 'nullable|string|max:255',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
         ]);
 
@@ -230,6 +225,22 @@ class TaskController extends Controller
             }
         }
         $data['attachments'] = $attachments;
+
+        // Cập nhật tracking code và tạo QR code mới
+        if ($request->has('tracking_code') && $request->tracking_code !== $task->tracking_code) {
+            $data['tracking_code'] = $request->tracking_code;
+            
+            // Tạo QR code mới từ tracking code
+            $qrGatewayService = new QRGatewayService();
+            $qrCode = $qrGatewayService->generateQRCode($data['tracking_code']);
+            
+            if ($qrCode) {
+                // Lưu QR code mới vào storage
+                $qrFileName = time() . '_qr_' . $data['tracking_code'] . '.png';
+                Storage::put('public/qr_codes/' . $qrFileName, $qrCode);
+                $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
+            }
+        }
 
         $task->update($data);
 

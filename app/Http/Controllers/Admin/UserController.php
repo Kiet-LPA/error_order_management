@@ -15,12 +15,16 @@ class UserController extends Controller
         $user = auth()->user();
         
         if ($user->isAdmin()) {
-            // Admin có thể xem tất cả users
-            $users = User::with('department')->latest()->paginate(15);
+            // Admin có thể xem tất cả users (chỉ nhân viên chính thức)
+            $users = User::with('department')
+                        ->where('employee_type', 'official')
+                        ->latest()
+                        ->paginate(15);
         } elseif ($user->isManager()) {
-            // Manager chỉ có thể xem users cùng phòng ban
+            // Manager chỉ có thể xem users cùng phòng ban (chỉ nhân viên chính thức)
             $users = User::with('department')
                         ->where('department_id', $user->department_id)
+                        ->where('employee_type', 'official')
                         ->latest()
                         ->paginate(15);
         } else {
@@ -63,6 +67,10 @@ class UserController extends Controller
             'password'=>'required|min:8|confirmed',
             'role'=>'required|in:admin,manager,employee',
             'department_id'=>'nullable|exists:departments,id',
+            'position'=>'nullable|string|max:255',
+            'social_insurance_number'=>'nullable|string|max:50',
+            'health_insurance_number'=>'nullable|string|max:50',
+            'personal_identification_number'=>'nullable|string|max:50',
         ]);
         
         // Kiểm tra ít nhất phải có email hoặc số điện thoại
@@ -104,15 +112,28 @@ class UserController extends Controller
             abort(403, 'Bạn chỉ có thể chỉnh sửa người dùng cùng phòng ban.');
         }
         
-        if ($currentUser->isAdmin()) {
-            // Admin có thể chỉnh sửa user cho bất kỳ phòng ban nào
-            $departments = Department::orderBy('name')->get();
-        } else {
-            // Manager chỉ có thể chỉnh sửa user cho phòng ban của mình
-            $departments = Department::where('id', $currentUser->department_id)->get();
+        $departments = Department::orderBy('name')->get();
+        return view('admin.users.edit', compact('user', 'departments'));
+    }
+
+    public function show(User $user)
+    {
+        $currentUser = auth()->user();
+        
+        // Kiểm tra quyền xem user
+        if (!$currentUser->isAdmin() && !$currentUser->isManager()) {
+            abort(403, 'Bạn không có quyền xem thông tin người dùng.');
         }
         
-        return view('admin.users.edit', compact('user','departments'));
+        // Manager chỉ có thể xem user cùng phòng ban
+        if ($currentUser->isManager() && $user->department_id !== $currentUser->department_id) {
+            abort(403, 'Bạn chỉ có thể xem thông tin người dùng cùng phòng ban.');
+        }
+        
+        // Load các relationship cần thiết
+        $user->load(['department', 'contracts.images', 'salary']);
+        
+        return view('admin.users.show', compact('user'));
     }
 
     public function update(Request $request, User $user)
@@ -136,6 +157,11 @@ class UserController extends Controller
             'password'=>'nullable|min:8|confirmed',
             'role'=>'required|in:admin,manager,employee',
             'department_id'=>'nullable|exists:departments,id',
+            'position'=>'nullable|string|max:255',
+            'social_insurance_number'=>'nullable|string|max:50',
+            'health_insurance_number'=>'nullable|string|max:50',
+            'personal_identification_number'=>'nullable|string|max:50',
+            'contract_images.*'=>'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
         
         // Kiểm tra ít nhất phải có email hoặc số điện thoại
@@ -158,6 +184,24 @@ class UserController extends Controller
         }
         
         if (!empty($data['password'])) $data['password'] = bcrypt($data['password']); else unset($data['password']);
+        
+        // Xử lý upload hình ảnh hợp đồng (chỉ cho nhân viên chính thức)
+        if ($user->employee_type == 'official' && $request->hasFile('contract_images')) {
+            $activeContract = $user->contracts()->where('status', 'active')->first();
+            
+            if ($activeContract) {
+                foreach ($request->file('contract_images') as $index => $image) {
+                    $fileName = time() . '_contract_' . $user->id . '_' . ($index + 1) . '.' . $image->getClientOriginalExtension();
+                    $image->storeAs('public/contracts', $fileName);
+                    
+                    $activeContract->images()->create([
+                        'image_path' => asset('storage/contracts/' . $fileName),
+                        'page_number' => $activeContract->images()->count() + $index + 1,
+                    ]);
+                }
+            }
+        }
+        
         $user->update($data);
         return redirect()->route('users.index')->with('success','Cập nhật thành công.');
     }

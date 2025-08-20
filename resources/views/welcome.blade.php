@@ -405,6 +405,7 @@
           <thead class="table-light">
             <tr>
               <th class="px-4 py-3 fw-semibold">Tiêu đề</th>
+              <th class="px-4 py-3 fw-semibold">Mã Tracking</th>
               <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
               <th class="px-4 py-3 fw-semibold">Ngày giao</th>
               <th class="px-4 py-3 fw-semibold">Deadline</th>
@@ -429,6 +430,21 @@
                   <div class="fw-medium text-dark">{{ $task->title }}</div>
                   @if($task->description)
                     <small class="text-muted">{{ Str::limit($task->description, 50) }}</small>
+                  @endif
+                </td>
+                <td class="px-4 py-3">
+                  @if($task->tracking_code)
+                    <div class="d-flex align-items-center">
+                      <span class="badge bg-primary bg-opacity-10 text-primary border border-primary me-2">
+                        <i class="fas fa-qr-code me-1"></i>
+                        {{ $task->tracking_code }}
+                      </span>
+                      <button class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ $task->tracking_code }}')" title="Copy mã tracking">
+                        <i class="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  @else
+                    <span class="text-muted">—</span>
                   @endif
                 </td>
                 <td class="px-4 py-3">
@@ -488,7 +504,7 @@
               </tr>
             @empty
               <tr>
-                <td colspan="6" class="text-center py-5">
+                <td colspan="7" class="text-center py-5">
                   <div class="text-muted">
                     <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
                     <h6 class="mb-2">Chưa có công việc nào</h6>
@@ -731,6 +747,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Khôi phục thứ tự khi load trang
     restoreDepartmentOrder();
+
+    // Function để copy tracking code
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            // Hiển thị thông báo thành công
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            button.classList.remove('btn-outline-primary');
+            button.classList.add('btn-success');
+            
+            setTimeout(function() {
+                button.innerHTML = originalHTML;
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-primary');
+            }, 2000);
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+            alert('Không thể copy mã tracking. Vui lòng copy thủ công.');
+        });
+    }
 });
 </script>
 @endpush

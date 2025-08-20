@@ -83,30 +83,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               <label class="form-label fw-bold text-dark">
                 Tiêu đề <span class="text-danger">*</span>
               </label>
-              <input 
-                type="text" 
-                name="title" 
-                class="form-control form-control-lg border-2" 
+              <input
+                type="text"
+                name="title"
+                class="form-control form-control-lg border-2"
                 placeholder="Nhập tiêu đề công việc"
-                required 
+                required
                 value="{{ old('title') }}"
               >
             </div>
 
             <div class="mb-4">
               <label class="form-label fw-bold text-dark">Mô tả</label>
-              <textarea 
-                name="description" 
-                rows="6" 
-                class="form-control border-2" 
+              <textarea
+                name="description"
+                rows="6"
+                class="form-control border-2"
                 placeholder="Mô tả chi tiết công việc..."
               >{{ old('description') }}</textarea>
             </div>
 
             <div class="mb-4">
               <label class="form-label fw-bold text-dark">File đính kèm</label>
-              <div class="file-drop-zone border-2 border-dashed rounded-3 p-4 text-center" 
-                   id="fileDropZone" 
+              <div class="file-drop-zone border-2 border-dashed rounded-3 p-4 text-center"
+                   id="fileDropZone"
                    style="border-color: #dee2e6; background-color: #f8f9fa; cursor: pointer; transition: all 0.3s ease;">
                 <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
                 <p class="mb-1 fw-medium">Kéo & thả file vào đây</p>
@@ -119,29 +119,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               <input type="file" name="files[]" id="fileInput" class="d-none" multiple>
             </div>
 
-            <div class="mb-4">
-              <label class="form-label fw-bold text-dark">
-                Ảnh QR Code <span class="text-danger">*</span>
-              </label>
-              <div class="file-drop-zone border-2 border-dashed rounded-3 p-4 text-center" 
-                   id="qrDropZone" 
-                   style="border-color: #dee2e6; background-color: #f8f9fa; cursor: pointer; transition: all 0.3s ease;">
-                <i class="fas fa-qrcode fa-2x text-muted mb-2"></i>
-                <p class="mb-1 fw-medium">Tải lên ảnh QR Code</p>
-                <small class="text-muted">click để chọn ảnh QR</small>
-                <div class="mt-2">
-                  <small class="text-muted">Hỗ trợ: JPG, PNG, GIF (Tối đa 2MB)</small>
-                </div>
-                <div id="qrPreview" class="mt-3"></div>
-              </div>
-              <input type="file" name="qr_code" id="qrInput" class="d-none" accept="image/*">
-              @error('qr_code')
-                <div class="text-danger mt-2">
-                  <i class="fas fa-exclamation-circle me-1"></i>
-                  {{ $message }}
-                </div>
-              @enderror
-            </div>
           </div>
 
           {{-- Cột bên phải --}}
@@ -152,7 +129,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 <option value="">Chọn người nhận</option>
                 @foreach($users as $u)
                   <option value="{{ $u->id }}" @selected(old('assignee_id')==$u->id)>
-                    {{ $u->name }} 
+                    {{ $u->name }}
                     @if($u->department_id)
                       <span class="text-muted">({{ \App\Models\Department::find($u->department_id)->name ?? 'N/A' }})</span>
                     @endif
@@ -169,10 +146,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
             <div class="mb-4">
               <label class="form-label fw-bold text-dark">Deadline</label>
-              <input 
-                type="datetime-local" 
-                name="deadline" 
-                class="form-control form-control-lg border-2" 
+              <input
+                type="datetime-local"
+                name="deadline"
+                class="form-control form-control-lg border-2"
                 value="{{ old('deadline') }}"
                 style="z-index: 9999; position: relative; background-color: white; cursor: pointer;"
               >
@@ -200,6 +177,33 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                   </label>
                 </div>
               </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                Mã Tracking
+              </label>
+              <input 
+                type="text" 
+                name="tracking_code" 
+                class="form-control form-control-lg border-2" 
+                placeholder="Nhập mã tracking từ QR code... (không bắt buộc)"
+                value="{{ old('tracking_code') }}"
+              >
+              <div class="mt-2">
+                <small class="text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  <a href="https://qrscanner.net/" target="_blank" class="text-primary text-decoration-none">
+                    <i class="fas fa-qrcode me-1"></i>Quét mã QR
+                  </a> 
+                  - Nếu bạn có ảnh QR code, hãy quét tại đây và copy mã về
+                </small>
+              </div>
+              @error('tracking_code')
+                <div class="text-danger mt-2">
+                  <i class="fas fa-exclamation-circle me-1"></i>
+                  {{ $message }}
+                </div>
+              @enderror
             </div>
           </div>
         </div>
@@ -234,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Create: Deadline input focused');
         });
     }
-    
+
     // File upload handling
     const dropZone = document.getElementById('fileDropZone');
     const fileInput = document.getElementById('fileInput');
@@ -299,49 +303,16 @@ document.addEventListener('DOMContentLoaded', function() {
     window.removeFile = function(index) {
         const dt = new DataTransfer();
         const { files } = fileInput;
-        
+
         for (let i = 0; i < files.length; i++) {
             if (i !== index) {
                 dt.items.add(files[i]);
             }
         }
-        
+
         fileInput.files = dt.files;
         showFiles();
     };
-
-    // QR Code upload handling
-    const qrDropZone = document.getElementById('qrDropZone');
-    const qrInput = document.getElementById('qrInput');
-    const qrPreview = document.getElementById('qrPreview');
-
-    qrDropZone.addEventListener('click', function() {
-        qrInput.click();
-    });
-
-    qrInput.addEventListener('change', function() {
-        if (qrInput.files.length > 0) {
-            const file = qrInput.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                qrPreview.innerHTML = `
-                    <div class="alert alert-success d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-qrcode me-2"></i>
-                            <span class="fw-medium">${file.name}</span>
-                            <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
-                        </div>
-                        <img src="${e.target.result}" alt="QR Preview" style="max-width: 50px; max-height: 50px; border-radius: 4px;">
-                    </div>
-                `;
-                qrDropZone.style.borderColor = '#28a745';
-                qrDropZone.style.backgroundColor = '#f8fff9';
-            };
-            
-            reader.readAsDataURL(file);
-        }
-    });
 });
 </script>
 @endpush
