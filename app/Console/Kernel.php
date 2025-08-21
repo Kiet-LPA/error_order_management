@@ -13,6 +13,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+        
+        // Reset recurring tasks every day at 7:00 AM
+        $schedule->command('tasks:reset-recurring')->dailyAt('07:00');
     }
 
     /**

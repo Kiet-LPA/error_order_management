@@ -1,5 +1,5 @@
 @extends('layouts.edit')
-@section('title','Chỉnh sửa công việc')
+@section('title','Cập nhật công việc')
 
 @push('styles')
 <style>
@@ -212,7 +212,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
             <div class="d-flex justify-content-between align-items-center">
                 <h2 class="mb-0">
                     <i class="bi bi-pencil-square me-2"></i>
-                    Chỉnh sửa công việc
+                    Cập nhật công việc
                 </h2>
                 <a href="{{ route('task-detail', $task) }}" class="btn btn-outline-light">
                     <i class="bi bi-arrow-left me-2"></i>
@@ -274,6 +274,30 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     @error('files.*')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
+                </div>
+
+                {{-- Recurring Task --}}
+                <div class="form-group">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_recurring" id="is_recurring" value="1" 
+                               {{ old('is_recurring', $task->is_recurring) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="is_recurring">
+                            <i class="bi bi-arrow-repeat me-1"></i>Lặp lại công việc
+                        </label>
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Công việc sẽ được tự động tạo lại với deadline mới mỗi khi hoàn thành
+                    </small>
+                    @if($task->is_recurring)
+                        <div class="alert alert-info mt-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Công việc hiện tại:</strong> Lặp lại mỗi {{ $task->recurring_days }} ngày
+                            @if($task->recurring_start_date)
+                                <br><small>Bắt đầu từ: {{ $task->recurring_start_date->format('d/m/Y') }}</small>
+                            @endif
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Tracking Code --}}

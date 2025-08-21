@@ -50,6 +50,7 @@ class TaskController extends Controller
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
             'tracking_code' => 'nullable|string|max:255',
+            'is_recurring' => 'nullable|boolean',
         ]);
 
         // Kiểm tra quyền theo phòng ban
@@ -62,6 +63,26 @@ class TaskController extends Controller
 
         $data['creator_id'] = $user->id;
         $data['status']     = 'in_progress';
+        
+        // Xử lý recurring task
+        if ($r->boolean('is_recurring') && $r->filled('deadline')) {
+            $data['is_recurring'] = true;
+            $data['recurring_start_date'] = $r->input('deadline');
+            
+            // Tính recurring_days từ deadline gốc
+            $deadline = \Carbon\Carbon::parse($r->input('deadline'));
+            $today = now();
+            $data['recurring_days'] = $deadline->diffInDays($today);
+            
+            // Đảm bảo recurring_days ít nhất là 1
+            if ($data['recurring_days'] < 1) {
+                $data['recurring_days'] = 1;
+            }
+        } else {
+            $data['is_recurring'] = false;
+            $data['recurring_start_date'] = null;
+            $data['recurring_days'] = null;
+        }
 
         // Xử lý upload file
         $attachments = [];
@@ -317,6 +338,11 @@ class TaskController extends Controller
         }
         if ($status === 'finished' && $finishNote) {
             $updateData['finish_note'] = $finishNote;
+        }
+        
+        // Set completed_at khi status = 'completed'
+        if ($status === 'completed') {
+            $updateData['completed_at'] = now();
         }
         
         $task->update($updateData);
@@ -594,5 +620,48 @@ class TaskController extends Controller
         ]);
         
         return response()->json(['success' => true, 'message' => 'Đã xóa file thành công.']);
+    }
+    
+    /**
+     * Hoàn tác công việc đã hoàn thành
+     */
+    public function undoCompletion(Task $task)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền hoàn tác
+        if ($user->isAdmin()) {
+            // Admin có thể hoàn tác mọi task
+        } elseif ($user->isManager()) {
+            // Manager chỉ có thể hoàn tác task của phòng ban mình
+            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
+                $task->creator && $task->creator->department_id !== $user->department_id) {
+                abort(403, 'Bạn chỉ có thể hoàn tác task của phòng ban mình.');
+            }
+        } else {
+            // Employee chỉ có thể hoàn tác task của mình
+            if ($task->assignee_id !== $user->id) {
+                abort(403, 'Bạn chỉ có thể hoàn tác task của mình.');
+            }
+        }
+        
+        // Kiểm tra xem có thể hoàn tác không
+        if (!$task->canUndo()) {
+            return back()->withErrors(['undo' => 'Không thể hoàn tác công việc này. Chỉ có thể hoàn tác trong vòng 3 tiếng sau khi hoàn thành.']);
+        }
+        
+        // Thực hiện hoàn tác
+        if ($task->undoCompletion()) {
+            // Ghi log hoạt động
+            $task->activities()->create([
+                'user_id' => $user->id,
+                'action'  => 'undo_completion',
+                'meta'    => 'Đã hoàn tác công việc hoàn thành',
+            ]);
+            
+            return back()->with('ok', 'Đã hoàn tác công việc thành công. Công việc đã được chuyển về trạng thái "Đang làm".');
+        }
+        
+        return back()->withErrors(['undo' => 'Không thể hoàn tác công việc. Vui lòng thử lại.']);
     }
 }

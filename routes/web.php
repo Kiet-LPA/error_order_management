@@ -49,6 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::get('/tasks/{task}/history', [TaskController::class, 'history'])->name('tasks.history');
     Route::post('/tasks/{task}/remove-file', [TaskController::class, 'removeFile'])->name('tasks.removeFile');
+    Route::post('/tasks/{task}/undo-completion', [TaskController::class, 'undoCompletion'])->name('tasks.undo-completion');
     
     // Employee/Manager/Admin: trang "my tasks" & comment trên task
     Route::middleware('role:employee,manager,admin')->group(function () {

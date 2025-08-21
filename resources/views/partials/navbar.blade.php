@@ -9,7 +9,7 @@
       <!-- Navigation Links -->
       <div class="navbar-nav me-3">
         <a class="nav-link {{ request()->routeIs('dashboard') ? 'active fw-bold' : '' }}" href="{{ route('dashboard') }}">
-          <i class="bi bi-speedometer2 me-1"></i>Dashboard
+          <i class="bi bi-speedometer2 me-1"></i>Bảng điều khiển
         </a>
       </div>
       

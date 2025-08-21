@@ -62,6 +62,9 @@
                                         <i class="bi bi-lock text-muted"></i>
                                     </span>
                                     <x-text-input id="password" class="form-control border-start-0 ps-0" type="password" name="password" required autocomplete="new-password" placeholder="Nhập mật khẩu" />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
+                                        <i class="fas fa-eye" id="passwordIcon"></i>
+                                    </button>
                                 </div>
                                 <x-input-error :messages="$errors->get('password')" class="mt-2" />
                             </div>
@@ -74,6 +77,9 @@
                                         <i class="bi bi-shield-lock text-muted"></i>
                                     </span>
                                     <x-text-input id="password_confirmation" class="form-control border-start-0 ps-0" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
+                                        <i class="fas fa-eye" id="passwordConfirmIcon"></i>
+                                    </button>
                                 </div>
                                 <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
                             </div>
@@ -110,6 +116,28 @@
         </div>
     </div>
 </div>
+
+<script>
+function togglePasswordVisibility(inputId, buttonId, iconId) {
+    const input = document.getElementById(inputId);
+    const button = document.getElementById(buttonId);
+    const icon = document.getElementById(iconId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-secondary');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-outline-secondary');
+    }
+}
+</script>
 
 <style>
 .bg-gradient-primary {

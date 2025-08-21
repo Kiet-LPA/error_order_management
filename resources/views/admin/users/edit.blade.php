@@ -77,13 +77,23 @@
                                 
                                 <div class="mb-3">
                                     <label for="password" class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
-                                    <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror">
+                                    <div class="input-group">
+                                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
+                                            <i class="fas fa-eye" id="passwordIcon"></i>
+                                        </button>
+                                    </div>
                                     @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
-                                    <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
+                                    <div class="input-group">
+                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
+                                            <i class="fas fa-eye" id="passwordConfirmIcon"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -238,3 +248,25 @@ document.getElementById('contract_images').addEventListener('change', function(e
 @endpush
 @endif
 @endsection
+
+<script>
+function togglePasswordVisibility(inputId, buttonId, iconId) {
+    const input = document.getElementById(inputId);
+    const button = document.getElementById(buttonId);
+    const icon = document.getElementById(iconId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-secondary');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-outline-secondary');
+    }
+}
+</script>

@@ -34,7 +34,12 @@
 
                         <div class="mb-3">
                             <label for="password" class="form-label">Mật khẩu xác nhận</label>
-                            <input type="password" name="password" id="password" class="form-control @error('password', 'userDeletion') is-invalid @enderror" placeholder="Nhập mật khẩu của bạn" required>
+                            <div class="input-group">
+                                <input type="password" name="password" id="password" class="form-control @error('password', 'userDeletion') is-invalid @enderror" placeholder="Nhập mật khẩu của bạn" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'deletePasswordToggle', 'deletePasswordIcon')">
+                                    <i class="fas fa-eye" id="deletePasswordIcon"></i>
+                                </button>
+                            </div>
                             @error('password', 'userDeletion')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -50,7 +55,29 @@
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+                    </div>
     </div>
+</div>
+
+<script>
+function togglePasswordVisibility(inputId, buttonId, iconId) {
+    const input = document.getElementById(inputId);
+    const button = document.getElementById(buttonId);
+    const icon = document.getElementById(iconId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-secondary');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-outline-secondary');
+    }
+}
+</script>
 </section>

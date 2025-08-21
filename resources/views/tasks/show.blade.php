@@ -220,6 +220,21 @@
                     @endif
                 </span></div>
                 
+                {{-- Thông báo task lặp lại --}}
+                @if($task->is_recurring)
+                <div class="col-12 mb-3">
+                    <div class="recurring-notification">
+                        <div class="recurring-content">
+                            <i class="bi bi-arrow-repeat recurring-icon"></i>
+                            <div class="recurring-text">
+                                <strong>Lặp lại:</strong> 
+                                <span>Công việc sẽ lặp lại mỗi {{ $task->recurring_days }} ngày từ ngày {{ $task->recurring_start_date ? $task->recurring_start_date->format('d/m/Y') : 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
                 {{-- Hiển thị lý do từ chối nếu có --}}
                 @if($task->status == 'rejected' && $task->rejection_reason)
                     <div class="col-12 mb-2">
@@ -494,6 +509,16 @@ function removeFile(fileIndex, fileName) {
             @endif
             
             <a href="{{ route('tasks.history',$task) }}" class="btn action-btn action-btn-outline w-100">👁 Xem lịch sử</a>
+            
+            {{-- Nút hoàn tác chỉ hiển thị khi có thể hoàn tác và cho người được giao việc --}}
+            @if($task->canUndo() && $task->assignee_id == auth()->id())
+                <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn hoàn tác công việc này?')">
+                    @csrf
+                    <button type="submit" class="btn btn-undo w-100">
+                        <i class="fas fa-undo me-2"></i>Hoàn tác
+                    </button>
+                </form>
+            @endif
         </div>
         
         {{-- Modal kết thúc --}}
@@ -680,4 +705,99 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
     counter.textContent = `${textarea.value.length}/${maxLength}`;
 }
 </script>
+
+<style>
+/* Button undo styling */
+.btn-undo {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-undo:hover {
+    background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-undo:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* Task recurring notification styling - giống hệt như trong ảnh */
+.recurring-notification {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.recurring-notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(16, 185, 129, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
+    pointer-events: none;
+}
+
+.recurring-content {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.recurring-icon {
+    font-size: 1.8rem;
+    color: #10b981;
+    margin-right: 16px;
+    animation: pulse 2s infinite;
+    filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
+}
+
+.recurring-text {
+    flex: 1;
+    color: #1e40af;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.recurring-text strong {
+    color: #10b981;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.recurring-text span {
+    color: #374151;
+    font-weight: 400;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Hover effect */
+.recurring-notification:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+    transition: all 0.3s ease;
+}
+</style>
 @endsection

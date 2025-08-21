@@ -149,10 +149,24 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               <input
                 type="datetime-local"
                 name="deadline"
+                id="deadline"
                 class="form-control form-control-lg border-2"
                 value="{{ old('deadline') }}"
                 style="z-index: 9999; position: relative; background-color: white; cursor: pointer;"
               >
+            </div>
+            
+            <div class="mb-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_recurring" id="is_recurring" value="1" {{ old('is_recurring') ? 'checked' : '' }}>
+                <label class="form-check-label fw-bold text-dark" for="is_recurring">
+                  <i class="fas fa-redo me-2"></i>Lặp lại công việc
+                </label>
+              </div>
+              <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Công việc sẽ được tự động tạo lại với deadline mới mỗi khi hoàn thành
+              </small>
             </div>
 
             <div class="mb-4">
