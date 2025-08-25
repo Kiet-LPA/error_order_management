@@ -121,11 +121,30 @@
 
     <div class="comment-section">
       <h6 class="mb-3">Thảo luận</h6>
-      <form class="mb-3" action="{{ route('tasks.comment',$task) }}" method="POST">
+      <form class="mb-3" action="{{ route('tasks.comment',$task) }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <textarea name="content" id="commentTextarea" class="form-control mb-2" rows="3" placeholder="Viết bình luận..." maxlength="500"></textarea>
+        <textarea name="content" id="commentTextarea" class="form-control mb-2" rows="3" placeholder="Viết bình luận..." maxlength="1000"></textarea>
+        
+        <!-- File upload section -->
+        <div class="file-upload-section mb-3">
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-content">
+              <i class="bi bi-cloud-upload fs-1 text-muted mb-2"></i>
+              <p class="mb-1">Kéo thả file vào đây hoặc <span class="text-primary">chọn file</span></p>
+              <small class="text-muted">Hỗ trợ: Ảnh, Video, PDF, Word, Excel, PowerPoint (Tối đa 1GB)</small>
+            </div>
+            <input type="file" name="attachments[]" id="fileInput" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display: none;">
+          </div>
+          
+          <!-- File preview -->
+          <div id="filePreview" class="mt-2" style="display: none;">
+            <h6 class="mb-2">File đã chọn:</h6>
+            <div id="fileList" class="d-flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+        
         <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Tối đa 500 ký tự</small>
+          <small class="text-muted">Tối đa 1000 ký tự | File tối đa 1GB</small>
           <button type="submit" class="btn btn-primary btn-sm" id="submitComment">Gửi bình luận</button>
         </div>
       </form>
@@ -136,7 +155,59 @@
             <strong>{{ $act->user->name }}</strong>
             <small class="text-muted ms-2">{{ $act->created_at->diffForHumans() }}</small>
           </div>
-          <div class="comment-content">{{ $act->meta }}</div>
+          <div class="comment-content">
+            @php
+              $meta = json_decode($act->meta, true);
+              $content = is_array($meta) ? ($meta['content'] ?? $act->meta) : $act->meta;
+              $attachments = is_array($meta) ? ($meta['attachments'] ?? []) : [];
+            @endphp
+            {{ $content }}
+            
+            @if(!empty($attachments))
+              <div class="comment-attachments mt-2">
+                <h6 class="text-muted mb-2"><i class="bi bi-paperclip me-1"></i>File đính kèm:</h6>
+                <div class="d-flex flex-wrap gap-2">
+                  @foreach($attachments as $attachment)
+                    <div class="attachment-item">
+                      @if(str_starts_with($attachment['type'], 'image/'))
+                        <a href="{{ $attachment['url'] }}" target="_blank" class="attachment-link">
+                          <img src="{{ $attachment['url'] }}" alt="{{ $attachment['name'] }}" class="attachment-preview" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                        </a>
+                      @elseif(str_starts_with($attachment['type'], 'video/'))
+                        <a href="{{ $attachment['url'] }}" target="_blank" class="attachment-link">
+                          <div class="attachment-preview bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
+                            <i class="bi bi-play-circle fs-4 text-primary"></i>
+                          </div>
+                        </a>
+                      @else
+                        <a href="{{ $attachment['url'] }}" target="_blank" class="attachment-link">
+                          <div class="attachment-preview bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
+                            @php
+                              $iconMap = [
+                                'application/pdf' => 'bi-file-pdf text-danger',
+                                'application/msword' => 'bi-file-word text-primary',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'bi-file-word text-primary',
+                                'application/vnd.ms-excel' => 'bi-file-excel text-success',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'bi-file-excel text-success',
+                                'application/vnd.ms-powerpoint' => 'bi-file-ppt text-warning',
+                                'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'bi-file-ppt text-warning'
+                              ];
+                              $icon = $iconMap[$attachment['type']] ?? 'bi-file-earmark text-muted';
+                            @endphp
+                            <i class="bi {{ $icon }} fs-4"></i>
+                          </div>
+                        </a>
+                      @endif
+                      <div class="attachment-info mt-1">
+                        <small class="text-muted d-block">{{ $attachment['name'] }}</small>
+                        <small class="text-muted">{{ number_format($attachment['size'] / 1024, 1) }} KB</small>
+                      </div>
+                    </div>
+                  @endforeach
+                </div>
+              </div>
+            @endif
+          </div>
         </div>
       @empty
         <div class="text-muted">Chưa có bình luận.</div>
@@ -209,6 +280,132 @@ html, body {
   max-width: 100% !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
+}
+
+/* File upload styling */
+.upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+.upload-area:hover {
+  border-color: #558EC1;
+  background: #f0f8ff;
+}
+
+.upload-area.dragover {
+  border-color: #558EC1;
+  background: #e3f2fd;
+  transform: scale(1.02);
+}
+
+.upload-content {
+  pointer-events: none;
+}
+
+.upload-content span {
+  pointer-events: auto;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.file-preview-item {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 200px;
+}
+
+.file-preview-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.file-preview-item video {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.file-preview-item .file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-preview-item .file-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-item .file-size {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.file-preview-item .remove-file {
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.file-preview-item .remove-file:hover {
+  background: #f8d7da;
+  border-radius: 4px;
+}
+
+/* Comment attachments styling */
+.attachment-item {
+  display: inline-block;
+  text-align: center;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+}
+
+.attachment-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.attachment-link:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+.attachment-preview {
+  border: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.attachment-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.attachment-info {
+  max-width: 80px;
+  overflow: hidden;
+}
+
+.attachment-info small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Button undo styling */
@@ -701,6 +898,186 @@ const observer = new MutationObserver(function(mutations) {
 observer.observe(document.body, {
     childList: true,
     subtree: true
+});
+
+// File upload functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+    const fileList = document.getElementById('fileList');
+    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
+    const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB total
+    
+    let selectedFiles = [];
+    let totalSize = 0;
+    
+    // Click to select files
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Handle file selection
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(e.target.files);
+    });
+    
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+    
+    function handleFiles(files) {
+        for (let file of files) {
+            // Check file size
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File "${file.name}" quá lớn. Kích thước tối đa là 1GB.`);
+                continue;
+            }
+            
+            // Check total size
+            if (totalSize + file.size > MAX_TOTAL_SIZE) {
+                alert(`Tổng kích thước file vượt quá 1GB.`);
+                continue;
+            }
+            
+            // Check file type
+            const allowedTypes = [
+                'image/', 'video/', 
+                'application/pdf', 
+                'application/msword', 
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            ];
+            
+            let isValidType = false;
+            for (let type of allowedTypes) {
+                if (file.type.startsWith(type)) {
+                    isValidType = true;
+                    break;
+                }
+            }
+            
+            if (!isValidType) {
+                alert(`File "${file.name}" không được hỗ trợ.`);
+                continue;
+            }
+            
+            // Add file to list
+            selectedFiles.push(file);
+            totalSize += file.size;
+            addFilePreview(file);
+        }
+        
+        updateFileInput();
+        updateFilePreviewVisibility();
+    }
+    
+    function addFilePreview(file) {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-preview-item';
+        fileItem.dataset.fileName = file.name;
+        
+        let previewContent = '';
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fileItem.querySelector('img').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            previewContent = '<img src="" alt="Preview">';
+        } else if (file.type.startsWith('video/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fileItem.querySelector('video').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            previewContent = '<video src="" muted></video>';
+        } else {
+            // Document files
+            const iconMap = {
+                'application/pdf': 'bi-file-pdf',
+                'application/msword': 'bi-file-word',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'bi-file-word',
+                'application/vnd.ms-excel': 'bi-file-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'bi-file-excel',
+                'application/vnd.ms-powerpoint': 'bi-file-ppt',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'bi-file-ppt'
+            };
+            const icon = iconMap[file.type] || 'bi-file-earmark';
+            previewContent = `<i class="bi ${icon} fs-4 text-primary"></i>`;
+        }
+        
+        fileItem.innerHTML = `
+            ${previewContent}
+            <div class="file-info">
+                <div class="file-name">${file.name}</div>
+                <div class="file-size">${formatFileSize(file.size)}</div>
+            </div>
+            <div class="remove-file" onclick="removeFile('${file.name}')">
+                <i class="bi bi-x"></i>
+            </div>
+        `;
+        
+        fileList.appendChild(fileItem);
+    }
+    
+    function removeFile(fileName) {
+        const fileIndex = selectedFiles.findIndex(f => f.name === fileName);
+        if (fileIndex > -1) {
+            totalSize -= selectedFiles[fileIndex].size;
+            selectedFiles.splice(fileIndex, 1);
+            
+            const fileItem = fileList.querySelector(`[data-file-name="${fileName}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+            
+            updateFileInput();
+            updateFilePreviewVisibility();
+        }
+    }
+    
+    function updateFileInput() {
+        // Create new FileList-like object
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+    
+    function updateFilePreviewVisibility() {
+        if (selectedFiles.length > 0) {
+            filePreview.style.display = 'block';
+        } else {
+            filePreview.style.display = 'none';
+        }
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Make removeFile function global
+    window.removeFile = removeFile;
 });
 </script>
 @endpush

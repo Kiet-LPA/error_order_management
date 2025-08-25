@@ -11,7 +11,8 @@
 
 .department-card.dragging {
   opacity: 0.8;
-  transform: rotate(2deg) scale(1.02);
+  transform: rotate(2deg) scale(1.02
+  );
   z-index: 1000;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   pointer-events: none;
@@ -206,7 +207,35 @@
   </div>
 </div>
 
-<div class="mb-3 filter-section">
+@if(auth()->user()->isAdmin())
+  <div class="mb-3 filter-section">
+    {{-- Filter theo phòng ban (chỉ Admin) --}}
+    <div class="mb-3">
+      <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Lọc theo phòng ban:</small>
+      <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
+        <input type="hidden" name="status" value="{{ request('status') }}">
+        <input type="hidden" name="sort" value="{{ request('sort') }}">
+        <input type="hidden" name="date_from" value="{{ request('date_from') }}">
+        <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+        @if(request('statuses'))
+          @foreach(request('statuses') as $status)
+            <input type="hidden" name="statuses[]" value="{{ $status }}">
+          @endforeach
+        @endif
+        <select name="department_filter" class="form-select form-select-sm d-inline-block w-auto me-2" onchange="this.form.submit()">
+          <option value="">Tất cả phòng ban</option>
+          @foreach($departments as $dept)
+            <option value="{{ $dept->id }}" {{ request('department_filter') == $dept->id ? 'selected' : '' }}>
+              {{ $dept->name }}
+            </option>
+          @endforeach
+        </select>
+      </form>
+    </div>
+  </div>
+@else
+  <div class="mb-3 filter-section">
+
   {{-- Filter theo trạng thái --}}
   <div class="mb-2">
     <small class="text-muted mb-2 d-block"><i class="bi bi-funnel me-1"></i>Lọc theo trạng thái:</small>
@@ -214,6 +243,9 @@
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+      @if(auth()->user()->isAdmin())
+        <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
+      @endif
       <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('status') && !request('statuses') ? ' active' : '' }}">Tất cả</button>
     </form>
 
@@ -222,6 +254,9 @@
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+      @if(auth()->user()->isAdmin())
+        <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
+      @endif
       <div class="btn-group me-2" role="group" aria-label="Statuses">
         @php
           $selected = collect(request('statuses', []));
@@ -255,6 +290,14 @@
           <input type="hidden" name="sort" value="newest">
           <input type="hidden" name="date_from" value="{{ request('date_from') }}">
           <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+          @if(auth()->user()->isAdmin())
+            <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
+          @endif
+          @if(request('statuses'))
+            @foreach(request('statuses') as $status)
+              <input type="hidden" name="statuses[]" value="{{ $status }}">
+            @endforeach
+          @endif
           <button type="submit" class="btn btn-sm btn-outline-info{{ request('sort')=='newest' ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
             <i class="bi bi-sort-down me-1"></i>Mới nhất
           </button>
@@ -264,6 +307,14 @@
           <input type="hidden" name="sort" value="oldest">
           <input type="hidden" name="date_from" value="{{ request('date_from') }}">
           <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+          @if(auth()->user()->isAdmin())
+            <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
+          @endif
+          @if(request('statuses'))
+            @foreach(request('statuses') as $status)
+              <input type="hidden" name="statuses[]" value="{{ $status }}">
+            @endforeach
+          @endif
           <button type="submit" class="btn btn-sm btn-outline-info{{ request('sort')=='oldest' ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
             <i class="bi bi-sort-up me-1"></i>Cũ nhất
           </button>
@@ -276,6 +327,14 @@
       <form method="GET" action="{{ route('dashboard') }}" class="row g-2">
         <input type="hidden" name="status" value="{{ request('status') }}">
         <input type="hidden" name="sort" value="{{ request('sort') }}">
+        @if(auth()->user()->isAdmin())
+          <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
+        @endif
+        @if(request('statuses'))
+          @foreach(request('statuses') as $status)
+            <input type="hidden" name="statuses[]" value="{{ $status }}">
+          @endforeach
+        @endif
         <div class="col-5">
           <input type="date" name="date_from" value="{{ request('date_from') }}" 
                  class="form-control form-control-sm" placeholder="Từ ngày">
@@ -294,7 +353,7 @@
   </div>
 
   {{-- Nút xóa filter --}}
-  @if(request('status') || request('sort') || request('date_from') || request('date_to') || request('date_to'))
+  @if(request('status') || request('sort') || request('date_from') || request('date_to') || request('department_filter') || request('statuses'))
     <div class="mt-2">
       <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
@@ -302,112 +361,28 @@
     </div>
   @endif
 </div>
+@endif
 
-@if(auth()->user()->isAdmin() && isset($departments))
-  {{-- Giao diện Admin: Hiển thị theo từng phòng ban --}}
-  <div class="row g-4" id="sortable-departments">
-    @foreach($departments as $department)
-      <div class="col-12 department-card" data-department-id="{{ $department->id }}">
-        <div class="card">
-          <div class="card-header text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%);">
-            <h5 class="mb-0">
-              <i class="bi bi-grip-vertical me-2 drag-handle" style="cursor: grab; opacity: 0.7;"></i>
-              🏢 {{ $department->name }}
-              <span class="badge bg-light text-dark ms-2">
-                {{ $departmentTasks[$department->id]->count() }} công việc
-              </span>
-            </h5>
-            <div class="drag-indicator">
-              <i class="bi bi-arrows-move text-white-50"></i>
-            </div>
-          </div>
-          <div class="card-body">
-            @if($departmentTasks[$department->id]->count() > 0)
-              <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Tiêu đề</th>
-                      <th>Người phụ trách</th>
-                      <th>Ngày giao</th>
-                      <th>Deadline</th>
-                      <th>Trạng thái</th>
-                      <th class="text-end">Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @foreach($departmentTasks[$department->id] as $task)
-                      @php
-                        $st = $task->status;
-                        $badge = [
-                          'in_progress' => 'primary',
-                          'completed'   => 'warning',
-                          'rejected'    => 'danger',
-                          'overdue'     => 'danger',
-                          'finished'    => 'success',
-                        ][$st] ?? 'secondary';
-                      @endphp
-                      <tr>
-                        <td>{{ $task->title }}</td>
-                        <td>{{ $task->assignee?->name ?? '—' }}</td>
-                        <td>{{ $task->created_at?->format('d/m/Y') }}</td>
-                        <td>{{ $task->deadline?->format('d/m/Y') ?? '—' }}</td>
-                        <td>
-                          <span class="badge rounded-pill px-3 py-2 fw-medium bg-{{ $badge }} bg-opacity-10 text-dark border border-{{ $badge }}">
-                            @if($st == 'in_progress')
-                              <i class="fas fa-play me-1"></i>Đang làm
-                            @elseif($st == 'completed')
-                              <i class="fas fa-hourglass-half me-1"></i>Chờ duyệt
-                            @elseif($st == 'rejected')
-                              <i class="fas fa-times me-1"></i>Từ chối
-                            @elseif($st == 'overdue')
-                              <i class="fas fa-exclamation-triangle me-1"></i>Trễ hạn
-                            @elseif($st == 'finished')
-                              <i class="fas fa-flag-checkered me-1"></i>Kết thúc
-                            @else
-                              {{ strtoupper($st) }}
-                            @endif
-                          </span>
-                        </td>
-                        <td class="text-end">
-                          <a href="{{ route('task-detail',$task) }}" class="btn btn-sm btn-outline-info">👁 Xem</a>
-                          <a href="{{ route('tasks.edit',$task) }}" class="btn btn-sm btn-outline-warning">✏️ Sửa</a>
-                          <form action="{{ route('tasks.destroy',$task) }}" method="POST" class="d-inline" data-confirm="Xoá công việc này?">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger">✖ Xoá</button>
-                          </form>
-                        </td>
-                      </tr>
-                    @endforeach
-                  </tbody>
-                </table>
-              </div>
-            @else
-              <div class="text-center py-4 text-muted">
-                <p class="mb-0">Phòng ban này chưa có công việc nào.</p>
-              </div>
-            @endif
-          </div>
-        </div>
-      </div>
-    @endforeach
+{{-- Giao diện thống nhất: Quản lý chung --}}
+<div class="card shadow-sm border-0">
+  <div class="card-header text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%);">
+    <h5 class="mb-0">
+      <i class="bi bi-list me-2"></i>
+      <i class="bi bi-file-text me-2"></i>
+      Tất cả công việc
+      <span class="badge bg-light text-dark ms-2">{{ $tasks->total() }} công việc</span>
+    </h5>
+    <button class="btn btn-success">
+      <i class="bi bi-gear me-1"></i>Quản lý thống nhất
+    </button>
   </div>
-@else
-  {{-- Giao diện Manager/Employee: Hiển thị dạng bảng đơn giản --}}
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-white border-0 py-3">
-      <h5 class="mb-0 text-primary">
-        <i class="fas fa-tasks me-2"></i>
-        Danh sách công việc
-      </h5>
-    </div>
     <div class="card-body p-0">
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead class="table-light">
             <tr>
               <th class="px-4 py-3 fw-semibold">Tiêu đề</th>
-              <th class="px-4 py-3 fw-semibold">Mã Tracking</th>
+              <th class="px-4 py-3 fw-semibold">Phòng ban</th>
               <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
               <th class="px-4 py-3 fw-semibold">Ngày giao</th>
               <th class="px-4 py-3 fw-semibold">Deadline</th>
@@ -432,25 +407,42 @@
                   <div class="fw-medium text-dark">{{ $task->title }}</div>
                 </td>
                 <td class="px-4 py-3">
-                  @if($task->tracking_code)
-                    <div class="d-flex align-items-center">
-                      <span class="badge bg-primary bg-opacity-10 text-primary border border-primary me-2">
-                        <i class="bi bi-qr-code me-1"></i>
-                        {{ $task->tracking_code }}
-                      </span>
-                      <button class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ $task->tracking_code }}')" title="Copy mã tracking">
-                        <i class="bi bi-copy"></i>
-                      </button>
-                    </div>
+                  @if($task->is_multi_department && $task->departments->count() > 0)
+                    @php
+                      $deptNames = $task->departments->pluck('name')->implode(', ');
+                    @endphp
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="Phòng ban: {{ $deptNames }}">
+                      <i class="bi bi-diagram-3 me-1"></i>Đa phòng ban
+                    </span>
+                  @elseif($task->department)
+                    <span class="badge bg-light text-dark border">
+                      <i class="bi bi-building me-1"></i>{{ $task->department->name }}
+                    </span>
                   @else
                     <span class="text-muted">—</span>
                   @endif
                 </td>
                 <td class="px-4 py-3">
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-person me-1"></i>
-                    {{ $task->assignee?->name ?? '—' }}
-                  </span>
+                  @if($task->assignees->count() > 0)
+                    @php
+                      $assigneeNames = $task->assignees->pluck('name')->implode(', ');
+                      $assigneeCount = $task->assignees->count();
+                    @endphp
+                    <span class="badge bg-light text-dark border" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="Người phụ trách: {{ $assigneeNames }}">
+                      <i class="bi bi-people me-1"></i>{{ $assigneeCount }} người
+                    </span>
+                  @else
+                    <span class="badge bg-light text-dark border">
+                      <i class="bi bi-person me-1"></i>
+                      {{ $task->assignee?->name ?? '—' }}
+                    </span>
+                  @endif
                 </td>
                 <td class="px-4 py-3">
                   <span class="text-muted">{{ $task->created_at?->format('d/m/Y') }}</span>
@@ -487,17 +479,15 @@
                     <a href="{{ route('task-detail',$task) }}" class="btn btn-sm btn-outline-primary border-0 rounded-start">
                       <i class="bi bi-eye me-1"></i>Xem
                     </a>
-                    @if(auth()->user()->isAdmin() || auth()->user()->isManager())
-                      <a href="{{ route('tasks.edit',$task) }}" class="btn btn-sm btn-outline-warning border-0">
-                        <i class="bi bi-pencil me-1"></i>Sửa
-                      </a>
-                      <form action="{{ route('tasks.destroy',$task) }}" method="POST" class="d-inline" data-confirm="Xoá công việc này?">
-                        @csrf @method('DELETE')
-                        <button class="btn btn-sm btn-outline-danger border-0 rounded-end">
-                          <i class="bi bi-trash me-1"></i>Xoá
-                        </button>
-                      </form>
-                    @endif
+                    <a href="{{ route('tasks.edit',$task) }}" class="btn btn-sm btn-outline-warning border-0">
+                      <i class="bi bi-pencil me-1"></i>Sửa
+                    </a>
+                    <form action="{{ route('tasks.destroy',$task) }}" method="POST" class="d-inline" data-confirm="Xoá công việc này?">
+                      @csrf @method('DELETE')
+                      <button class="btn btn-sm btn-outline-danger border-0 rounded-end">
+                        <i class="bi bi-trash me-1"></i>Xoá
+                      </button>
+                    </form>
                   </div>
                 </td>
               </tr>
@@ -519,17 +509,23 @@
     @if($tasks->hasPages())
       <div class="card-footer bg-light border-0">
         <div class="d-flex justify-content-center">
-          {{ $tasks->links() }}
+          {{ $tasks->appends(request()->query())->links() }}
         </div>
       </div>
     @endif
   </div>
-@endif
+
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Khởi tạo tooltip Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
     const sortableContainer = document.getElementById('sortable-departments');
     if (!sortableContainer) return;
 

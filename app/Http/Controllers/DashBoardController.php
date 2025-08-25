@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Department;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -12,179 +13,113 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->isAdmin()) {
-            // Admin thấy tasks theo từng phòng ban
-            $departments = \App\Models\Department::with(['users', 'tasks.assignee', 'tasks.creator'])->get();
-            
-            $departmentTasks = [];
-            foreach ($departments as $department) {
-                $query = Task::with(['assignee', 'creator'])
-                            ->where(function($q) use ($department) {
-                                $q->whereHas('assignee', function($subQ) use ($department) {
-                                    $subQ->where('department_id', $department->id);
-                                })
-                                ->orWhereHas('creator', function($subQ) use ($department) {
-                                    $subQ->where('department_id', $department->id);
-                                });
-                            });
-                
-                // Filter theo trạng thái (hỗ trợ nhiều trạng thái)
-                if ($req->has('statuses') && is_array($req->statuses) && count($req->statuses) > 0) {
-                    $query->whereIn('status', $req->statuses);
-                } elseif ($req->filled('status')) {
-                    $s = $req->status;
-                    if ($s === 'overdue') {
-                        $query->where('status','overdue');
-                    } else {
-                        $query->where('status',$s);
-                    }
-                }
-                
-                // Filter theo khoảng thời gian
-                if ($req->filled('date_from')) {
-                    $query->whereDate('created_at', '>=', $req->date_from);
-                }
-                if ($req->filled('date_to')) {
-                    $query->whereDate('created_at', '<=', $req->date_to);
-                }
-                
-                // Sắp xếp theo thời gian
-                if ($req->filled('sort')) {
-                    if ($req->sort === 'newest') {
-                        $query->latest();
-                    } elseif ($req->sort === 'oldest') {
-                        $query->oldest();
-                    }
-                } else {
-                    $query->latest(); // Mặc định sắp xếp mới nhất
-                }
-                
-                $departmentTasks[$department->id] = $query->get();
-            }
-            
-            $stats = [
-                'doing'   => Task::where('status','in_progress')->count(),
-                'completed' => Task::where('status','completed')->count(),
-                'rejected' => Task::where('status','rejected')->count(),
-                'overdue' => Task::where('status','overdue')->count(),
-                'finished' => Task::where('status','finished')->count(),
-            ];
-            
-            return view('welcome', compact('departments', 'departmentTasks', 'stats'));
-            
-        } elseif ($user->isManager()) {
-            // Manager chỉ thấy tasks của phòng ban mình
-            $query = Task::with(['assignee','creator'])
-                        ->where(function($q) use ($user) {
-                            $q->whereHas('assignee', function($subQ) use ($user) {
-                                $subQ->where('department_id', $user->department_id);
-                            })
-                            ->orWhereHas('creator', function($subQ) use ($user) {
-                                $subQ->where('department_id', $user->department_id);
-                            });
-                        });
-            
-            $stats = [
-                'doing'   => Task::whereHas('assignee', function($q) use ($user) {
-                                $q->where('department_id', $user->department_id);
-                            })->where('status','in_progress')->count(),
-                'completed' => Task::whereHas('assignee', function($q) use ($user) {
-                                $q->where('department_id', $user->department_id);
-                            })->where('status','completed')->count(),
-                'rejected' => Task::whereHas('assignee', function($q) use ($user) {
-                                $q->where('department_id', $user->department_id);
-                            })->where('status','rejected')->count(),
-                'overdue' => Task::whereHas('assignee', function($q) use ($user) {
-                                $q->where('department_id', $user->department_id);
-                            })->where('status','overdue')->count(),
-                'finished' => Task::whereHas('assignee', function($q) use ($user) {
-                                $q->where('department_id', $user->department_id);
-                            })->where('status','finished')->count(),
-            ];
-            
-            // Filter theo trạng thái (hỗ trợ nhiều trạng thái)
-            if ($req->has('statuses') && is_array($req->statuses) && count($req->statuses) > 0) {
-                $query->whereIn('status', $req->statuses);
-            } elseif ($req->filled('status')) {
-                $s = $req->status;
-                if ($s === 'overdue') {
-                    $query->where('status','overdue');
-                } else {
-                    $query->where('status',$s);
-                }
-            }
-            
-            // Filter theo khoảng thời gian
-            if ($req->filled('date_from')) {
-                $query->whereDate('created_at', '>=', $req->date_from);
-            }
-            if ($req->filled('date_to')) {
-                $query->whereDate('created_at', '<=', $req->date_to);
-            }
-            
-            // Sắp xếp theo thời gian
-            if ($req->filled('sort')) {
-                if ($req->sort === 'newest') {
-                    $query->latest();
-                } elseif ($req->sort === 'oldest') {
-                    $query->oldest();
-                }
-            } else {
-                $query->latest(); // Mặc định sắp xếp mới nhất
-            }
-
-            $tasks = $query->paginate(10);
-            return view('welcome', compact('tasks','stats'));
-            
-        } else {
+        // Giao diện chung cho tất cả users
+        $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department']);
+        
+        // Filter theo quyền của user
+        if ($user->isManager()) {
+            // Manager chỉ thấy tasks của phòng ban mình + multi-department tasks có tham gia
+            $query->where(function($q) use ($user) {
+                $q->where('department_id', $user->department_id)
+                  ->orWhereHas('departments', function($subQ) use ($user) {
+                      $subQ->where('department_id', $user->department_id);
+                  })
+                  ->orWhereHas('assignees', function($subQ) use ($user) {
+                      $subQ->where('user_id', $user->id);
+                  });
+            });
+        } elseif ($user->isEmployee()) {
             // Employee chỉ thấy tasks của mình
-            $query = Task::with(['assignee','creator'])
-                        ->where(function($q) use ($user) {
-                            $q->where('assignee_id', $user->id)
-                              ->orWhere('creator_id', $user->id);
-                        });
-            
-            $stats = [
-                'doing'   => Task::where('assignee_id',$user->id)->where('status','in_progress')->count(),
-                'completed' => Task::where('assignee_id',$user->id)->where('status','completed')->count(),
-                'rejected' => Task::where('assignee_id',$user->id)->where('status','rejected')->count(),
-                'overdue' => Task::where('assignee_id',$user->id)->where('status','overdue')->count(),
-                'finished' => Task::where('assignee_id',$user->id)->where('status','finished')->count(),
-            ];
-            
-            // Filter theo trạng thái (hỗ trợ nhiều trạng thái)
-            if ($req->has('statuses') && is_array($req->statuses) && count($req->statuses) > 0) {
-                $query->whereIn('status', $req->statuses);
-            } elseif ($req->filled('status')) {
-                $s = $req->status;
-                if ($s === 'overdue') {
-                    $query->where('status','overdue');
-                } else {
-                    $query->where('status',$s);
-                }
-            }
-            
-            // Filter theo khoảng thời gian
-            if ($req->filled('date_from')) {
-                $query->whereDate('created_at', '>=', $req->date_from);
-            }
-            if ($req->filled('date_to')) {
-                $query->whereDate('created_at', '<=', $req->date_to);
-            }
-            
-            // Sắp xếp theo thời gian
-            if ($req->filled('sort')) {
-                if ($req->sort === 'newest') {
-                    $query->latest();
-                } elseif ($req->sort === 'oldest') {
-                    $query->oldest();
-                }
-            } else {
-                $query->latest(); // Mặc định sắp xếp mới nhất
-            }
-
-            $tasks = $query->paginate(10);
-            return view('welcome', compact('tasks','stats'));
+            $query->where(function($q) use ($user) {
+                $q->where('assignee_id', $user->id)
+                  ->orWhere('creator_id', $user->id)
+                  ->orWhereHas('assignees', function($subQ) use ($user) {
+                      $subQ->where('user_id', $user->id);
+                  });
+            });
         }
+        // Admin thấy tất cả tasks (không cần filter)
+        
+        // Filter theo phòng ban (chỉ Admin và Manager có thể filter)
+        if (($user->isAdmin() || $user->isManager()) && $req->filled('department_filter')) {
+            $departmentId = $req->department_filter;
+            $query->where(function($q) use ($departmentId) {
+                $q->where('department_id', $departmentId)
+                  ->orWhereHas('departments', function($subQ) use ($departmentId) {
+                      $subQ->where('department_id', $departmentId);
+                  });
+            });
+        }
+        
+        // Filter theo trạng thái (hỗ trợ nhiều trạng thái)
+        if ($req->has('statuses') && is_array($req->statuses) && count($req->statuses) > 0) {
+            $query->whereIn('status', $req->statuses);
+        } elseif ($req->filled('status')) {
+            $s = $req->status;
+            if ($s === 'overdue') {
+                $query->where('status','overdue');
+            } else {
+                $query->where('status',$s);
+            }
+        }
+        
+        // Filter theo khoảng thời gian
+        if ($req->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $req->date_from);
+        }
+        if ($req->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $req->date_to);
+        }
+        
+        // Sắp xếp theo thời gian (mặc định mới nhất trước)
+        if ($req->filled('sort')) {
+            if ($req->sort === 'newest') {
+                $query->latest();
+            } elseif ($req->sort === 'oldest') {
+                $query->oldest();
+            }
+        } else {
+            $query->latest(); // Mặc định sắp xếp mới nhất
+        }
+
+        $tasks = $query->paginate(15);
+        
+        // Thống kê theo quyền của user
+        $statsQuery = Task::query();
+        
+        if ($user->isManager()) {
+            $statsQuery->where(function($q) use ($user) {
+                $q->where('department_id', $user->department_id)
+                  ->orWhereHas('departments', function($subQ) use ($user) {
+                      $subQ->where('department_id', $user->department_id);
+                  });
+            });
+        } elseif ($user->isEmployee()) {
+            $statsQuery->where(function($q) use ($user) {
+                $q->where('assignee_id', $user->id)
+                  ->orWhereHas('assignees', function($subQ) use ($user) {
+                      $subQ->where('user_id', $user->id);
+                  });
+            });
+        }
+        // Admin thấy stats của tất cả tasks
+        
+        $stats = [
+            'doing'   => (clone $statsQuery)->where('status','in_progress')->count(),
+            'completed' => (clone $statsQuery)->where('status','completed')->count(),
+            'rejected' => (clone $statsQuery)->where('status','rejected')->count(),
+            'overdue' => (clone $statsQuery)->where('status','overdue')->count(),
+            'finished' => (clone $statsQuery)->where('status','finished')->count(),
+        ];
+        
+        // Lấy danh sách phòng ban cho filter (chỉ Admin và Manager)
+        $departments = collect();
+        if ($user->isAdmin()) {
+            $departments = Department::orderBy('name')->get();
+        } elseif ($user->isManager()) {
+            $departments = Department::where('id', $user->department_id)->get();
+        }
+        
+        return view('welcome', compact('tasks', 'stats', 'departments'));
     }
 }

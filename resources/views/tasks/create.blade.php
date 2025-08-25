@@ -99,8 +99,54 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 name="description"
                 rows="6"
                 class="form-control border-2"
-                placeholder="Mô tả chi tiết công việc..."
+                placeholder="Nhập mô tả chi tiết công việc..."
               >{{ old('description') }}</textarea>
+            </div>
+
+            {{-- Multi-Department Selection --}}
+            <div class="mb-4">
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="is_multi_department" name="is_multi_department" value="1" {{ old('is_multi_department') ? 'checked' : '' }}>
+                <label class="form-check-label fw-bold text-dark" for="is_multi_department">
+                  <i class="bi bi-diagram-3 me-2"></i>Công việc đa phòng ban
+                </label>
+              </div>
+              
+              <div id="multi_department_section" style="display: none;">
+                <label class="form-label fw-bold text-dark">
+                  <i class="bi bi-building me-2"></i>Chọn phòng ban tham gia
+                </label>
+                <div class="row">
+                  @foreach($departments as $department)
+                    <div class="col-md-6 mb-2">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               name="department_ids[]" 
+                               value="{{ $department->id }}" 
+                               id="dept_{{ $department->id }}"
+                               {{ in_array($department->id, old('department_ids', [])) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="dept_{{ $department->id }}">
+                          <i class="bi bi-building me-1"></i>{{ $department->name }}
+                        </label>
+                      </div>
+                    </div>
+                  @endforeach
+                </div>
+              </div>
+              
+              <div id="single_department_section">
+                <label class="form-label fw-bold text-dark">
+                  <i class="bi bi-building me-2"></i>Phòng ban phụ trách
+                </label>
+                <select name="department_id" class="form-select border-2">
+                  <option value="">Chọn phòng ban</option>
+                  @foreach($departments as $department)
+                    <option value="{{ $department->id }}" {{ old('department_id') == $department->id ? 'selected' : '' }}>
+                      {{ $department->name }}
+                    </option>
+                  @endforeach
+                </select>
+              </div>
             </div>
 
             <div class="mb-4">
@@ -124,18 +170,53 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
           {{-- Cột bên phải --}}
           <div class="col-lg-6">
             <div class="mb-4">
-              <label class="form-label fw-bold text-dark">Người nhận</label>
-              <select name="assignee_id" class="form-select form-select-lg border-2">
-                <option value="">Chọn người nhận</option>
-                @foreach($users as $u)
-                  <option value="{{ $u->id }}" @selected(old('assignee_id')==$u->id)>
-                    {{ $u->name }}
-                    @if($u->department_id)
-                      <span class="text-muted">({{ \App\Models\Department::find($u->department_id)->name ?? 'N/A' }})</span>
-                    @endif
-                  </option>
-                @endforeach
-              </select>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="is_multi_user" name="is_multi_user" value="1" {{ old('is_multi_user') ? 'checked' : '' }}>
+                <label class="form-check-label fw-bold text-dark" for="is_multi_user">
+                  <i class="bi bi-people me-2"></i>Giao việc cho nhiều người
+                </label>
+              </div>
+              
+              <div id="multi_user_section" style="display: none;">
+                <label class="form-label fw-bold text-dark">
+                  <i class="bi bi-people me-2"></i>Chọn người nhận (có thể chọn nhiều)
+                </label>
+                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                  @foreach($users as $u)
+                    <div class="form-check mb-2 user-option" data-department="{{ $u->department_id ?? '' }}">
+                      <input class="form-check-input" type="checkbox" 
+                             name="assignee_ids[]" 
+                             value="{{ $u->id }}" 
+                             id="user_{{ $u->id }}"
+                             {{ in_array($u->id, old('assignee_ids', [])) ? 'checked' : '' }}>
+                      <label class="form-check-label" for="user_{{ $u->id }}">
+                        <strong>{{ $u->name }}</strong>
+                        @if($u->department)
+                          <span class="text-muted">({{ $u->department->name }})</span>
+                        @endif
+                      </label>
+                    </div>
+                  @endforeach
+                </div>
+              </div>
+              
+              <div id="single_user_section">
+                <label class="form-label fw-bold text-dark">Người nhận</label>
+                <select name="assignee_id" class="form-select form-select-lg border-2" id="assignee_select">
+                  <option value="">Chọn người nhận</option>
+                  @foreach($users as $u)
+                    <option value="{{ $u->id }}" 
+                            data-department="{{ $u->department_id ?? '' }}"
+                            @selected(old('assignee_id')==$u->id)>
+                      {{ $u->name }}
+                      @if($u->department)
+                        ({{ $u->department->name }})
+                      @endif
+                    </option>
+                  @endforeach
+                </select>
+              </div>
+              
               @if(auth()->user()->isManager())
                 <div class="form-text text-info">
                   <i class="fas fa-info-circle me-1"></i>
@@ -239,8 +320,105 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 @push('scripts')
 <script>
-// Fix datetime-local input
 document.addEventListener('DOMContentLoaded', function() {
+    // Multi-department toggle
+    const multiDeptCheckbox = document.getElementById('is_multi_department');
+    const multiDeptSection = document.getElementById('multi_department_section');
+    const singleDeptSection = document.getElementById('single_department_section');
+    
+    if (multiDeptCheckbox) {
+        multiDeptCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                multiDeptSection.style.display = 'block';
+                singleDeptSection.style.display = 'none';
+            } else {
+                multiDeptSection.style.display = 'none';
+                singleDeptSection.style.display = 'block';
+            }
+        });
+        
+        // Trigger on load if checked
+        if (multiDeptCheckbox.checked) {
+            multiDeptSection.style.display = 'block';
+            singleDeptSection.style.display = 'none';
+        }
+    }
+    
+    // Multi-user toggle
+    const multiUserCheckbox = document.getElementById('is_multi_user');
+    const multiUserSection = document.getElementById('multi_user_section');
+    const singleUserSection = document.getElementById('single_user_section');
+    
+    if (multiUserCheckbox) {
+        multiUserCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                multiUserSection.style.display = 'block';
+                singleUserSection.style.display = 'none';
+            } else {
+                multiUserSection.style.display = 'none';
+                singleUserSection.style.display = 'block';
+            }
+        });
+        
+        // Trigger on load if checked
+        if (multiUserCheckbox.checked) {
+            multiUserSection.style.display = 'block';
+            singleUserSection.style.display = 'none';
+        }
+    }
+
+    // Filter users by selected departments
+    function filterUsersByDepartments() {
+        const selectedDepartments = [];
+        const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
+        
+        departmentCheckboxes.forEach(checkbox => {
+            selectedDepartments.push(checkbox.value);
+        });
+
+        // Filter multi-user section
+        const userOptions = document.querySelectorAll('.user-option');
+        userOptions.forEach(option => {
+            const departmentId = option.getAttribute('data-department');
+            if (selectedDepartments.length === 0 || selectedDepartments.includes(departmentId)) {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+                // Uncheck hidden options
+                const checkbox = option.querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = false;
+            }
+        });
+
+        // Filter single user dropdown
+        const assigneeSelect = document.getElementById('assignee_select');
+        if (assigneeSelect) {
+            const options = assigneeSelect.querySelectorAll('option[data-department]');
+            options.forEach(option => {
+                const departmentId = option.getAttribute('data-department');
+                if (selectedDepartments.length === 0 || selectedDepartments.includes(departmentId)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                    // If this option was selected, clear the selection
+                    if (option.selected) {
+                        assigneeSelect.value = '';
+                    }
+                }
+            });
+        }
+    }
+
+    // Add event listeners for department checkboxes
+    const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]');
+    departmentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', filterUsersByDepartments);
+    });
+
+    // Initial filter on page load
+    filterUsersByDepartments();
+
+    // Fix datetime-local input
     const deadlineInput = document.querySelector('input[name="deadline"]');
     if (deadlineInput) {
         console.log('Create: Deadline input found');

@@ -186,7 +186,20 @@
             <div class="row mb-2">
                 <div class="col-md-6 mb-2"><i class="bi bi-person-badge me-1"></i> <strong>Người giao:</strong> {{ $task->creator->name }}</div>
                 <div class="col-md-6 mb-2"><i class="bi bi-calendar-date me-1"></i> <strong>Ngày giao:</strong> {{ $task->created_at->format('d/m/Y') }}</div>
-                <div class="col-md-6 mb-2"><i class="bi bi-person me-1"></i> <strong>Người nhận:</strong> {{ $task->assignee?->name ?? '—' }}</div>
+                <div class="col-md-6 mb-2">
+                    <i class="bi bi-person me-1"></i> <strong>Người nhận:</strong>
+                    @if($task->assignees->count() > 0)
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach($task->assignees as $assignee)
+                                <span class="badge bg-primary">{{ $assignee->name }}</span>
+                            @endforeach
+                        </div>
+                    @elseif($task->assignee)
+                        <span class="badge bg-primary">{{ $task->assignee->name }}</span>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </div>
                 <div class="col-md-6 mb-2"><i class="bi bi-calendar2-week me-1"></i> <strong>Deadline:</strong> {{ $task->deadline? $task->deadline->format('d/m/Y'):'—' }}</div>
                 <div class="col-md-6 mb-2"><i class="bi bi-exclamation-triangle me-1"></i> <strong>Độ ưu tiên:</strong> <span class="text-danger">{{ ucfirst($task->priority ?? 'Không rõ') }}</span></div>
                 <div class="col-md-6 mb-2"><i class="bi bi-check2-circle me-1"></i> <strong>Trạng thái:</strong> <span class="text-dark">
@@ -257,32 +270,75 @@
     </div>
 </div>
 
-<!-- Modal xem hình ảnh full size -->
-<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="imageModalLabel">Xem hình ảnh</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img id="modalImage" src="" alt="" class="img-fluid" style="max-height: 70vh;">
-            </div>
-            <div class="modal-footer">
-                <a id="downloadLink" href="" target="_blank" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">Tải xuống</a>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-function openImageModal(imageUrl, fileName) {
-    document.getElementById('modalImage').src = imageUrl;
-    document.getElementById('modalImage').alt = fileName;
-    document.getElementById('downloadLink').href = imageUrl;
-    document.getElementById('downloadLink').download = fileName;
-    new bootstrap.Modal(document.getElementById('imageModal')).show();
+function editComment(commentId) {
+    const contentDiv = document.getElementById(`comment-content-${commentId}`);
+    const currentContent = contentDiv.querySelector('p').textContent;
+    const commentItem = contentDiv.closest('.comment-item');
+    
+    // Add editing class to show delete buttons
+    commentItem.classList.add('editing');
+    
+    contentDiv.innerHTML = `
+        <textarea class="form-control mb-2" rows="3" id="edit-textarea-${commentId}">${currentContent}</textarea>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary" onclick="saveComment(${commentId})">Lưu</button>
+            <button class="btn btn-sm btn-secondary" onclick="cancelEdit(${commentId})">Hủy</button>
+        </div>
+    `;
+}
+
+function saveComment(commentId) {
+    const textarea = document.getElementById(`edit-textarea-${commentId}`);
+    const content = textarea.value;
+    
+    fetch(`/comments/${commentId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Có lỗi xảy ra khi cập nhật bình luận');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra khi cập nhật bình luận');
+    });
+}
+
+function cancelEdit(commentId) {
+    location.reload();
+}
+
+function deleteComment(commentId) {
+    if (confirm('Bạn có chắc muốn xóa bình luận này?')) {
+        fetch(`/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Có lỗi xảy ra khi xóa bình luận');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi xóa bình luận');
+        });
+    }
 }
 
 function removeFile(fileIndex, fileName) {
@@ -311,24 +367,183 @@ function removeFile(fileIndex, fileName) {
         });
     }
 }
+
+function deleteAttachment(attachmentId, fileName) {
+    if (confirm(`Bạn có chắc muốn xóa file "${fileName}"?`)) {
+        fetch(`/comment-attachments/${attachmentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the attachment item from DOM
+                const attachmentItem = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
+                if (attachmentItem) {
+                    attachmentItem.remove();
+                }
+                
+                // Check if no attachments left, hide the section
+                const attachmentList = attachmentItem?.closest('.attachment-list');
+                if (attachmentList && attachmentList.children.length === 0) {
+                    attachmentList.closest('.comment-attachments').remove();
+                }
+            } else {
+                alert('Có lỗi xảy ra khi xóa file: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi xóa file');
+        });
+    }
+}
 </script>
         <div class="comment-section mb-4">
             <h5 class="mb-3"><i class="bi bi-chat-dots me-2"></i>Thảo luận</h5>
-            <form class="mb-4" action="{{ route('tasks.comment',$task) }}" method="POST">
+            <form class="mb-4" action="{{ route('comments.store',$task) }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                <textarea name="content" class="form-control mb-2" rows="3" placeholder="Viết bình luận..."></textarea>
-                <button class="btn btn-sm" style="background:#558EC1; color:#fff; border-color:#558EC1;">Gửi bình luận</button>
+                <textarea name="content" class="form-control mb-2" rows="3" placeholder="Viết bình luận..." maxlength="1000" id="commentTextarea"></textarea>
+                
+                <!-- Compact file attachment section -->
+                <div class="compact-file-section mb-3">
+                  <div class="file-input-container">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="fileUploadBtn">
+                      <i class="bi bi-paperclip me-1"></i>Chọn tệp
+                    </button>
+                    <span id="fileCount" class="file-count">Không có tệp nào được chọn</span>
+                  </div>
+                  <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Hỗ trợ: PDF, Word, Excel, PowerPoint, hình ảnh, video, nén. Tối đa 1GB/file.
+                  </small>
+                  
+                  <!-- File preview -->
+                  <div id="filePreview" class="mt-2" style="display: none;">
+                    <div class="d-flex align-items-center mb-2">
+                      <i class="bi bi-file-earmark me-1"></i>
+                      <span class="small fw-medium">File đã chọn:</span>
+                    </div>
+                    <div id="fileList" class="d-flex flex-wrap gap-2"></div>
+                  </div>
+                </div>
+                
+                <input type="file" name="attachments[]" id="fileInput" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar" style="display: none;">
+                
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted">Tối đa 1000 ký tự | Ctrl+V để paste ảnh | File tối đa 1GB</small>
+                  <button type="submit" class="btn btn-sm" style="background:#558EC1; color:#fff; border-color:#558EC1;">Gửi bình luận</button>
+                </div>
             </form>
-            @forelse($task->activities as $act)
-                <div class="comment-item">
-                    <strong>{{ $act->user->name }}</strong>
-                    <small class="text-muted ms-2">{{ $act->created_at->diffForHumans() }}</small>
-                    <div>{{ $act->meta }}</div>
+            @forelse($task->comments()->topLevel()->withReplies()->get() as $comment)
+                <div class="comment-item" data-comment-id="{{ $comment->id }}">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-2" style="width: 32px; height: 32px; background: linear-gradient(135deg, #558EC1, #5DA444); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                                {{ substr($comment->user->name, 0, 1) }}
+                            </div>
+                            <div>
+                                <strong class="text-primary d-block">{{ $comment->user->name }}</strong>
+                                <small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
+                                @if($comment->is_edited)
+                                    <small class="text-muted ms-2">(đã chỉnh sửa)</small>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="ms-auto">
+                            @if($comment->canEdit(auth()->user()))
+                                <button class="btn btn-sm btn-outline-primary" onclick="editComment({{ $comment->id }})" title="Chỉnh sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            @endif
+                            @if($comment->canDelete(auth()->user()))
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteComment({{ $comment->id }})" title="Xóa">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="comment-content" id="comment-content-{{ $comment->id }}">
+                        <p class="mb-3">{{ $comment->content }}</p>
+                        
+                        @if($comment->attachments->count() > 0)
+                          <div class="comment-attachments">
+                            <div class="attachment-section">
+                              <h6 class="attachment-title mb-2">
+                                <i class="bi bi-paperclip me-1"></i>📎 File đính kèm
+                              </h6>
+                              <div class="attachment-list">
+                                @foreach($comment->attachments as $attachment)
+                                  <div class="attachment-item" data-attachment-id="{{ $attachment->id }}">
+                                    @if($attachment->isImage())
+                                      <div class="attachment-thumbnail" onclick="openImageModal('{{ $attachment->file_url }}', '{{ $attachment->original_name }}')" title="Click để xem ảnh">
+                                        <img src="{{ $attachment->file_url }}" alt="{{ $attachment->original_name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="fallback-icon d-none">
+                                          <i class="bi bi-image"></i>
+                                        </div>
+                                        <!-- Delete button for edit mode -->
+                                        <button type="button" class="attachment-delete-btn" onclick="event.stopPropagation(); deleteAttachment({{ $attachment->id }}, '{{ $attachment->original_name }}')" title="Xóa file">
+                                          <i class="bi bi-x"></i>
+                                        </button>
+                                      </div>
+                                    @else
+                                      <div class="attachment-thumbnail">
+                                        <i class="bi {{ $attachment->getIconClass() }}"></i>
+                                        <!-- Delete button for edit mode -->
+                                        <button type="button" class="attachment-delete-btn" onclick="event.stopPropagation(); deleteAttachment({{ $attachment->id }}, '{{ $attachment->original_name }}')" title="Xóa file">
+                                          <i class="bi bi-x"></i>
+                                        </button>
+                                      </div>
+                                    @endif
+                                    <div class="attachment-details">
+                                      @if($attachment->isImage())
+                                        <a href="{{ $attachment->file_url }}" target="_blank" class="file-name" title="{{ $attachment->original_name }}">
+                                          {{ $attachment->original_name }}
+                                        </a>
+                                      @else
+                                        <a href="{{ $attachment->file_url }}" download="{{ $attachment->original_name }}" class="file-name" title="{{ $attachment->original_name }}">
+                                          {{ $attachment->original_name }}
+                                        </a>
+                                      @endif
+                                      <div class="file-size">{{ $attachment->getFormattedSize() }}</div>
+                                    </div>
+                                  </div>
+                                @endforeach
+                              </div>
+                            </div>
+                          </div>
+                        @endif
+                    </div>
                 </div>
             @empty
                 <div class="text-muted">Chưa có bình luận.</div>
             @endforelse
         </div>
+    </div>
+    
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%); color: white;">
+            <h5 class="modal-title" id="imageModalLabel">
+              <i class="bi bi-image me-2"></i>Xem hình ảnh
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center p-0">
+            <img id="modalImage" src="" alt="" class="img-fluid" style="max-height: 70vh; object-fit: contain;">
+          </div>
+          <div class="modal-footer">
+            <a id="downloadLink" href="" download="" class="btn btn-primary">
+              <i class="bi bi-download me-1"></i>Tải xuống
+            </a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="col-lg-4">
         <div class="card card-custom p-4 mb-4">
@@ -799,5 +1014,598 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
     box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
     transition: all 0.3s ease;
 }
+
+/* Compact file section styling */
+.compact-file-section {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.75rem;
+  background: #f8f9fa;
+}
+
+.file-input-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.file-count {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.compact-file-section .btn-outline-primary {
+  border-color: #558EC1;
+  color: #558EC1;
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.compact-file-section .btn-outline-primary:hover {
+  background-color: #558EC1;
+  border-color: #558EC1;
+  color: white;
+}
+
+/* Compact file preview styling */
+.compact-file-preview {
+  display: inline-block;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.file-preview-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 250px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.file-preview-card:hover {
+  border-color: #558EC1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.file-thumbnail {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.file-icon {
+  width: 40px;
+  height: 40px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-icon i {
+  font-size: 1.2rem;
+}
+
+.file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-details .file-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+}
+
+.file-details .file-size {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.remove-file-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 3px;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.remove-file-btn:hover {
+  background: #f8d7da;
+  color: #dc3545;
+}
+
+.file-preview-item .file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-preview-item .file-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-item .file-size {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.file-preview-item .remove-file {
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.file-preview-item .remove-file:hover {
+  background: #f8d7da;
+  border-radius: 4px;
+}
+
+/* Comment attachments styling */
+.attachment-item {
+  display: inline-block;
+  text-align: center;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+}
+
+.attachment-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.attachment-link:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+.attachment-preview {
+  border: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.attachment-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Enhanced comment styling */
+.comment-item {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.comment-item:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.attachment-item {
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef !important;
+}
+
+.attachment-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-color: #558EC1 !important;
+}
+
+.attachment-preview img {
+  transition: all 0.3s ease;
+}
+
+.attachment-preview:hover img {
+  transform: scale(1.02);
+}
+
+.avatar {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.attachment-info {
+  max-width: 80px;
+  overflow: hidden;
+}
+
+.attachment-info small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* New attachment list styling */
+.attachment-section {
+  margin-top: 1rem;
+}
+
+.attachment-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+.attachment-list {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  min-width: 200px;
+  max-width: 300px;
+  background: white;
+  border: 1px solid #e9ecef;
+}
+
+.attachment-item:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.attachment-thumbnail {
+  width: 70px;
+  height: 70px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.attachment-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-thumbnail i {
+  font-size: 1.5rem;
+  color: #6c757d;
+}
+
+.fallback-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f8f9fa;
+}
+
+.fallback-icon i {
+  font-size: 1.5rem;
+  color: #6c757d;
+}
+
+.attachment-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #495057;
+  text-decoration: none;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-name:hover {
+  color: #558EC1;
+  text-decoration: underline;
+}
+
+.file-size {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.2;
+}
+
+/* Assignee badges styling */
+.badge.bg-primary {
+  background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%) !important;
+  border: none;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Delete button styling */
+.attachment-delete-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dc3545;
+  color: white;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.attachment-thumbnail {
+  position: relative;
+}
+
+.attachment-item:hover .attachment-delete-btn {
+  opacity: 1;
+}
+
+.attachment-delete-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+/* Show delete button when comment is in edit mode */
+.comment-item.editing .attachment-delete-btn {
+  opacity: 1;
+}
 </style>
+
+<script>
+// File upload functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const fileUploadBtn = document.getElementById('fileUploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+    const fileList = document.getElementById('fileList');
+    const commentTextarea = document.getElementById('commentTextarea');
+    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
+    const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB total
+    
+    let selectedFiles = [];
+    let totalSize = 0;
+    
+    // Click to select files
+    fileUploadBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Handle file selection
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(e.target.files);
+    });
+    
+    // Paste image from clipboard
+    commentTextarea.addEventListener('paste', function(e) {
+        const items = e.clipboardData.items;
+        for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                const file = item.getAsFile();
+                if (file) {
+                    handleFiles([file]);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+    });
+    
+    function handleFiles(files) {
+        for (let file of files) {
+            // Check file size
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File "${file.name}" quá lớn. Kích thước tối đa là 1GB.`);
+                continue;
+            }
+            
+            // Check total size
+            if (totalSize + file.size > MAX_TOTAL_SIZE) {
+                alert(`Tổng kích thước file vượt quá 1GB.`);
+                continue;
+            }
+            
+            // Check file type
+            const allowedTypes = [
+                'image/', 'video/', 
+                'application/pdf', 
+                'application/msword', 
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            ];
+            
+            let isValidType = false;
+            for (let type of allowedTypes) {
+                if (file.type.startsWith(type)) {
+                    isValidType = true;
+                    break;
+                }
+            }
+            
+            if (!isValidType) {
+                alert(`File "${file.name}" không được hỗ trợ.`);
+                continue;
+            }
+            
+            // Add file to list
+            selectedFiles.push(file);
+            totalSize += file.size;
+            addFilePreview(file);
+        }
+        
+        updateFileInput();
+        updateFilePreviewVisibility();
+    }
+    
+    function addFilePreview(file) {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'compact-file-preview';
+        fileItem.dataset.fileName = file.name;
+        
+        let previewContent = '';
+        let clickHandler = '';
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fileItem.querySelector('img').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            previewContent = '<img src="" alt="Preview" class="file-thumbnail">';
+            clickHandler = `onclick="openImageModal(this.querySelector('img').src, '${file.name}')"`;
+        } else if (file.type.startsWith('video/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fileItem.querySelector('video').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            previewContent = '<video src="" muted class="file-thumbnail"></video>';
+        } else {
+            // Document files
+            const iconMap = {
+                'application/pdf': 'bi-file-pdf text-danger',
+                'application/msword': 'bi-file-word text-primary',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'bi-file-word text-primary',
+                'application/vnd.ms-excel': 'bi-file-excel text-success',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'bi-file-excel text-success',
+                'application/vnd.ms-powerpoint': 'bi-file-ppt text-warning',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'bi-file-ppt text-warning',
+                'application/zip': 'bi-file-zip text-secondary',
+                'application/x-rar-compressed': 'bi-file-zip text-secondary'
+            };
+            const icon = iconMap[file.type] || 'bi-file-earmark text-muted';
+            previewContent = `<div class="file-icon"><i class="bi ${icon}"></i></div>`;
+        }
+        
+        fileItem.innerHTML = `
+            <div class="file-preview-card" ${clickHandler}>
+                ${previewContent}
+                <div class="file-details">
+                    <div class="file-name">${file.name.length > 30 ? file.name.substring(0, 30) + '...' : file.name}</div>
+                    <div class="file-size">${formatFileSize(file.size)}</div>
+                </div>
+                <button type="button" class="remove-file-btn" onclick="removeFile('${file.name}')" title="Xóa file">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+        
+        fileList.appendChild(fileItem);
+    }
+    
+    function removeFile(fileName) {
+        const fileIndex = selectedFiles.findIndex(f => f.name === fileName);
+        if (fileIndex > -1) {
+            totalSize -= selectedFiles[fileIndex].size;
+            selectedFiles.splice(fileIndex, 1);
+            
+            const fileItem = fileList.querySelector(`[data-file-name="${fileName}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+            
+            updateFileInput();
+            updateFilePreviewVisibility();
+        }
+    }
+    
+    function updateFileInput() {
+        // Create new FileList-like object
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+    
+    function updateFilePreviewVisibility() {
+        const fileCount = document.getElementById('fileCount');
+        if (selectedFiles.length > 0) {
+            filePreview.style.display = 'block';
+            fileCount.textContent = `${selectedFiles.length} tệp`;
+        } else {
+            filePreview.style.display = 'none';
+            fileCount.textContent = 'Không có tệp nào được chọn';
+        }
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Image modal functions
+    function openImageModal(imageUrl, fileName) {
+        const modalImage = document.getElementById('modalImage');
+        const downloadLink = document.getElementById('downloadLink');
+        
+        modalImage.src = imageUrl;
+        modalImage.alt = fileName;
+        downloadLink.href = imageUrl;
+        downloadLink.download = fileName;
+        
+        // Show modal
+        const modal = document.getElementById('imageModal');
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+    
+    // Make functions global
+    window.openImageModal = openImageModal;
+    window.removeFile = removeFile;
+});
+</script>
 @endsection

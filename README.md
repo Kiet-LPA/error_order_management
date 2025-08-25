@@ -1,73 +1,245 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Hệ Thống Quản Lý Công Việc (Task Management System)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Mô Tả Tổng Quan
 
-## About Laravel
+Hệ thống quản lý công việc với khả năng giao việc đa phòng ban và đa người dùng, tích hợp giao diện quản lý tối ưu cho từng phòng ban, hệ thống filter và sắp xếp theo thời gian, trang quản lý nhân viên hiện đại với thống kê và tìm kiếm nâng cao.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tính Năng Chính
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 🔐 Hệ Thống Phân Quyền Và Vai Trò
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Admin**: Toàn quyền quản lý hệ thống, có thể giao việc cho mọi phòng ban và nhân viên
+- **Manager**: Quản lý phòng ban và nhân viên thuộc phòng ban, chỉ giao việc cho nhân viên cùng phòng ban
+- **Employee**: Thực hiện và theo dõi công việc được giao, không thể giao việc cho người khác
 
-## Learning Laravel
+### 📋 Quản Lý Công Việc
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+#### Multi-Department Tasks
+- Tạo công việc cho nhiều phòng ban cùng lúc
+- Hiển thị riêng biệt công việc đa phòng ban trong dashboard
+- Quản lý và theo dõi tiến độ theo từng phòng ban
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+#### Multi-User Assignments
+- Giao việc cho nhiều người cùng lúc
+- Theo dõi tiến độ của từng người được giao việc
+- Hỗ trợ comment và cập nhật trạng thái
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+#### Hệ Thống Filter Và Sắp Xếp
+- Filter theo trạng thái (đang làm, chờ duyệt, từ chối, trễ hạn, kết thúc)
+- Filter theo khoảng thời gian
+- Sắp xếp theo thời gian (mới nhất/cũ nhất)
+- Filter theo phòng ban
 
-## Laravel Sponsors
+### 👥 Quản Lý Nhân Viên
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+#### Dashboard Thống Kê
+- Tổng số nhân viên
+- Phân bố theo vai trò (Admin, Manager, Employee)
+- Thống kê theo phòng ban
 
-### Premium Partners
+#### Tìm Kiếm Và Filter Nâng Cao
+- Tìm kiếm theo tên, email, số điện thoại
+- Filter theo phòng ban
+- Filter theo vai trò
+- Sắp xếp theo nhiều tiêu chí
+- Pagination linh hoạt (10, 15, 25, 50 kết quả/trang)
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### 🎯 Dashboard Theo Role
+
+#### Admin Dashboard
+- Thống kê tổng quan toàn hệ thống
+- Hiển thị tasks theo từng phòng ban riêng biệt
+- Section riêng cho multi-department tasks
+- Drag & drop để sắp xếp thứ tự phòng ban
+
+#### Manager Dashboard
+- Thống kê phòng ban
+- Bảng tasks phòng ban
+- Section multi-department tasks có tham gia
+- Filter panel tương tự Admin
+
+#### Employee Dashboard
+- Thống kê cá nhân
+- Bảng tasks được giao (bao gồm multi-assignments)
+- Filter panel đơn giản
+
+## Cấu Trúc Database
+
+### Bảng Users
+```sql
+- id, name, email, phone, password, role, department_id
+- role: enum('admin', 'manager', 'employee')
+- department_id: foreign key to departments
+- timestamps
+```
+
+### Bảng Departments
+```sql
+- id, name
+- timestamps
+```
+
+### Bảng Tasks
+```sql
+- id, title, description, status, priority, deadline
+- creator_id, department_id, is_multi_department
+- attachments, rejection_reason, finish_note
+- is_recurring, recurring_start_date, recurring_days
+- completed_at
+- timestamps
+```
+
+### Bảng Task Assignees (Many-to-Many)
+```sql
+- id, task_id, user_id
+- timestamps
+```
+
+### Bảng Department Task (Many-to-Many)
+```sql
+- id, task_id, department_id
+- timestamps
+```
+
+## Cài Đặt Và Chạy
+
+### Yêu Cầu Hệ Thống
+- PHP 8.1+
+- Laravel 10+
+- MySQL/PostgreSQL
+- Composer
+- Node.js & NPM
+
+### Cài Đặt
+
+1. **Clone repository**
+```bash
+git clone <repository-url>
+cd error_order_management
+```
+
+2. **Cài đặt dependencies**
+```bash
+composer install
+npm install
+```
+
+3. **Cấu hình môi trường**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+4. **Cấu hình database trong .env**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=your_database_name
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+```
+
+5. **Chạy migrations**
+```bash
+php artisan migrate
+```
+
+6. **Chạy seeders (tùy chọn)**
+```bash
+php artisan db:seed
+```
+
+7. **Build assets**
+```bash
+npm run build
+```
+
+8. **Khởi động server**
+```bash
+php artisan serve
+```
+
+## Sử Dụng
+
+### Tạo Công Việc Mới
+
+1. **Đăng nhập với tài khoản Admin hoặc Manager**
+2. **Truy cập trang tạo công việc**
+3. **Chọn loại công việc:**
+   - Single Department: Chọn một phòng ban
+   - Multi-Department: Chọn nhiều phòng ban tham gia
+4. **Chọn người nhận:**
+   - Single User: Chọn một người
+   - Multi-User: Chọn nhiều người cùng lúc
+5. **Điền thông tin chi tiết và lưu**
+
+### Quản Lý Nhân Viên
+
+1. **Truy cập trang quản lý nhân viên (Admin/Manager)**
+2. **Sử dụng các filter:**
+   - Tìm kiếm theo tên, email, số điện thoại
+   - Filter theo phòng ban
+   - Filter theo vai trò
+3. **Sắp xếp theo các tiêu chí khác nhau**
+4. **Thêm, sửa, xóa nhân viên**
+
+### Dashboard
+
+1. **Admin:** Xem tổng quan toàn hệ thống, sắp xếp phòng ban
+2. **Manager:** Xem tasks phòng ban và multi-department tasks có tham gia
+3. **Employee:** Xem tasks được giao và tiến độ cá nhân
+
+## Middleware
+
+### DepartmentPermissionMiddleware
+Kiểm tra quyền theo phòng ban:
+- Admin: Toàn quyền
+- Manager: Chỉ quản lý phòng ban của mình
+- Employee: Không có quyền quản lý
+
+### RoleMiddleware
+Kiểm tra vai trò người dùng cho các route cụ thể.
+
+## Validation Rules
+
+### Task Validation
+```php
+'title' => 'required|string|max:255',
+'description' => 'nullable|string',
+'status' => 'required|in:in_progress,completed,rejected,overdue,finished',
+'priority' => 'required|in:low,medium,high,urgent',
+'deadline' => 'required|date|after:now',
+'department_id' => 'required|exists:departments,id',
+'assignee_ids' => 'required|array|min:1',
+'assignee_ids.*' => 'exists:users,id',
+'is_multi_department' => 'boolean',
+'department_ids' => 'required_if:is_multi_department,true|array',
+'department_ids.*' => 'exists:departments,id'
+```
+
+### User Validation
+```php
+'name' => 'required|string|max:255',
+'email' => 'nullable|email|unique:users,email',
+'phone' => 'nullable|string|max:20|unique:users,phone',
+'password' => 'required|min:8|confirmed',
+'role' => 'required|in:admin,manager,employee',
+'department_id' => 'nullable|exists:departments,id'
+```
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-## THu tu build
-<!-- composer install
-cp .env.example .env
-php artisan key:generate
-npm install
-npm run build
-php artisan migrate --seed -->
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+Nếu bạn gặp vấn đề hoặc có câu hỏi, vui lòng tạo issue trong repository hoặc liên hệ với team phát triển.

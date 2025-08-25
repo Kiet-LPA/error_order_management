@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Task;
+use App\Models\Department;
 use App\Services\QRGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,22 +16,25 @@ class TaskController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->isAdmin()) {
-            // Admin có thể giao việc cho tất cả users
-            $users = User::orderBy('name')->get(['id','name','department_id']);
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể giao việc cho users cùng phòng ban
-            $users = User::where('department_id', $user->department_id)
-                        ->where('id', '!=', $user->id) // Không giao việc cho chính mình
-                        ->orderBy('name')
-                        ->get(['id','name','department_id']);
-        } else {
-            // Employee không thể giao việc
+        if (!$user->isAdmin() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền giao việc.');
         }
         
-        // view: resources/views/tasks/create.blade.php
-        return view('tasks.create', compact('users'));
+        if ($user->isAdmin()) {
+            // Admin có thể giao việc cho tất cả users và departments
+            $users = User::with('department')->orderBy('name')->get();
+            $departments = \App\Models\Department::orderBy('name')->get();
+        } else {
+            // Manager chỉ có thể giao việc cho users cùng phòng ban
+            $users = User::with('department')
+                        ->where('department_id', $user->department_id)
+                        ->where('id', '!=', $user->id) // Không giao việc cho chính mình
+                        ->orderBy('name')
+                        ->get();
+            $departments = \App\Models\Department::where('id', $user->department_id)->get();
+        }
+        
+        return view('tasks.create', compact('users', 'departments'));
     }
 
     public function store(Request $r)
@@ -46,6 +50,13 @@ class TaskController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'assignee_id' => 'nullable|exists:users,id',
+            'assignee_ids' => 'nullable|array',
+            'assignee_ids.*' => 'exists:users,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'department_ids' => 'nullable|array',
+            'department_ids.*' => 'exists:departments,id',
+            'is_multi_department' => 'nullable|boolean',
+            'is_multi_user' => 'nullable|boolean',
             'deadline'    => 'nullable|date',
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
@@ -54,10 +65,37 @@ class TaskController extends Controller
         ]);
 
         // Kiểm tra quyền theo phòng ban
-        if ($data['assignee_id'] && $user->isManager()) {
-            $assignee = User::find($data['assignee_id']);
-            if ($assignee->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+        if ($user->isManager()) {
+            // Kiểm tra assignee_id (single user)
+            if ($data['assignee_id']) {
+                $assignee = User::find($data['assignee_id']);
+                if ($assignee && $assignee->department_id !== $user->department_id) {
+                    abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                }
+            }
+            
+            // Kiểm tra assignee_ids (multi-user)
+            if ($data['assignee_ids']) {
+                foreach ($data['assignee_ids'] as $assigneeId) {
+                    $assignee = User::find($assigneeId);
+                    if ($assignee && $assignee->department_id !== $user->department_id) {
+                        abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                    }
+                }
+            }
+            
+            // Kiểm tra department_id (single department)
+            if ($data['department_id'] && $data['department_id'] !== $user->department_id) {
+                abort(403, 'Bạn chỉ có thể giao việc cho phòng ban của mình.');
+            }
+            
+            // Kiểm tra department_ids (multi-department)
+            if ($data['department_ids']) {
+                foreach ($data['department_ids'] as $deptId) {
+                    if ($deptId !== $user->department_id) {
+                        abort(403, 'Bạn chỉ có thể giao việc cho phòng ban của mình.');
+                    }
+                }
             }
         }
 
@@ -88,10 +126,24 @@ class TaskController extends Controller
         $attachments = [];
         if ($r->hasFile('files')) {
             foreach ($r->file('files') as $file) {
-                $fileName = time() . '_' . $file->getClientOriginalName();
+                $originalName = $file->getClientOriginalName();
+                
+                // Tạo tên file an toàn (tránh trùng lặp)
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                $safeName = $nameWithoutExt;
+                $counter = 1;
+                
+                // Kiểm tra xem file đã tồn tại chưa
+                while (file_exists(public_path('storage/attachments/' . $safeName . '.' . $extension))) {
+                    $safeName = $nameWithoutExt . '_' . $counter;
+                    $counter++;
+                }
+                
+                $fileName = $safeName . '.' . $extension;
                 $file->storeAs('public/attachments', $fileName);
                 $attachments[] = [
-                    'name' => $file->getClientOriginalName(),
+                    'name' => $originalName,
                     'url' => asset('storage/attachments/' . $fileName),
                     'size' => $file->getSize(),
                 ];
@@ -115,7 +167,33 @@ class TaskController extends Controller
             }
         }
 
+        // Xử lý multi-department
+        if ($r->boolean('is_multi_department') && $r->has('department_ids')) {
+            $data['is_multi_department'] = true;
+            $data['department_id'] = null; // Không set department_id chính nếu là multi-department
+        } else {
+            $data['is_multi_department'] = false;
+        }
+
         $task = Task::create($data);
+
+        // Xử lý user assignments
+        if ($r->boolean('is_multi_user') && $r->has('assignee_ids') && is_array($r->assignee_ids)) {
+            // Multi-user assignment
+            foreach ($r->assignee_ids as $assigneeId) {
+                $task->assignees()->attach($assigneeId);
+            }
+        } elseif ($r->filled('assignee_id')) {
+            // Single user assignment - cũng lưu vào pivot table để thống nhất
+            $task->assignees()->attach($r->assignee_id);
+        }
+
+        // Xử lý multi-department assignments
+        if ($r->boolean('is_multi_department') && $r->has('department_ids')) {
+            foreach ($r->department_ids as $departmentId) {
+                $task->departments()->attach($departmentId);
+            }
+        }
 
         return redirect()->route('task-detail', $task)->with('ok', 'Đã tạo công việc');
     }
@@ -140,7 +218,10 @@ class TaskController extends Controller
             }
         }
         
-        $task->load(['creator','assignee','activities.user']);
+        $task->load(['creator','assignee','assignees']);
+        $task->load(['activities' => function($query) {
+            $query->orderBy('created_at', 'desc');
+        }, 'activities.user']);
         return view('tasks.show', compact('task'));
     }
 
@@ -164,13 +245,17 @@ class TaskController extends Controller
             }
         }
         
+        // Load relationships
+        $task->load(['assignees', 'departments']);
+        
         // Lấy danh sách users có thể assign
         if ($user->isAdmin()) {
             // Admin có thể giao việc cho tất cả users
-            $users = User::orderBy('name')->get(['id','name','department_id']);
+            $users = User::with('department')->orderBy('name')->get(['id','name','department_id']);
         } elseif ($user->isManager()) {
             // Manager chỉ có thể giao việc cho users cùng phòng ban
-            $users = User::where('department_id', $user->department_id)
+            $users = User::with('department')
+                        ->where('department_id', $user->department_id)
                         ->where('id', '!=', $user->id) // Không giao việc cho chính mình
                         ->orderBy('name')
                         ->get(['id','name','department_id']);
@@ -179,7 +264,10 @@ class TaskController extends Controller
             $users = collect();
         }
         
-        return view('tasks.edit', compact('task', 'users'));
+        // Lấy danh sách departments
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+        
+        return view('tasks.edit', compact('task', 'users', 'departments'));
     }
 
     public function update(Request $request, Task $task)
@@ -206,6 +294,13 @@ class TaskController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'assignee_id' => 'nullable|exists:users,id',
+            'assignee_ids' => 'nullable|array',
+            'assignee_ids.*' => 'exists:users,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'department_ids' => 'nullable|array',
+            'department_ids.*' => 'exists:departments,id',
+            'is_multi_user' => 'nullable|boolean',
+            'is_multi_department' => 'nullable|boolean',
             'deadline'    => 'nullable|date',
             'priority'    => 'nullable|in:low,medium,high',
             'status'      => 'required|in:in_progress,completed,rejected,overdue,finished',
@@ -224,22 +319,83 @@ class TaskController extends Controller
             $data['rejection_reason'] = null;
         }
 
-        // Kiểm tra quyền theo phòng ban cho assignee
-        if ($data['assignee_id'] && $user->isManager()) {
-            $assignee = User::find($data['assignee_id']);
-            if ($assignee->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+        // Xử lý multi-user và multi-department assignments
+        $isMultiUser = $request->has('is_multi_user');
+        $isMultiDepartment = $request->has('is_multi_department');
+
+        // Xóa các assignments cũ
+        $task->assignees()->detach();
+        $task->departments()->detach();
+
+        if ($isMultiUser && $request->has('assignee_ids')) {
+            // Multi-user assignment
+            $assigneeIds = $request->assignee_ids;
+            
+            // Kiểm tra quyền theo phòng ban cho tất cả assignees
+            if ($user->isManager()) {
+                foreach ($assigneeIds as $assigneeId) {
+                    $assignee = User::find($assigneeId);
+                    if ($assignee->department_id !== $user->department_id) {
+                        abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                    }
+                }
             }
+            
+            // Thêm assignments mới
+            $task->assignees()->attach($assigneeIds);
+            $data['assignee_id'] = null; // Clear single assignee
+        } elseif ($request->has('assignee_id') && $request->assignee_id) {
+            // Single user assignment
+            $data['assignee_id'] = $request->assignee_id;
+            
+            // Kiểm tra quyền theo phòng ban cho assignee
+            if ($user->isManager()) {
+                $assignee = User::find($data['assignee_id']);
+                if ($assignee->department_id !== $user->department_id) {
+                    abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                }
+            }
+        } else {
+            $data['assignee_id'] = null;
+        }
+
+        if ($isMultiDepartment && $request->has('department_ids')) {
+            // Multi-department assignment
+            $departmentIds = $request->department_ids;
+            $task->departments()->attach($departmentIds);
+            $data['department_id'] = null; // Clear single department
+            $data['is_multi_department'] = true;
+        } elseif ($request->has('department_id') && $request->department_id) {
+            // Single department assignment
+            $data['department_id'] = $request->department_id;
+            $data['is_multi_department'] = false;
+        } else {
+            $data['department_id'] = null;
+            $data['is_multi_department'] = false;
         }
 
         // Xử lý upload file
         $attachments = $task->attachments ?? [];
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                $fileName = time() . '_' . $file->getClientOriginalName();
+                $originalName = $file->getClientOriginalName();
+                
+                // Tạo tên file an toàn (tránh trùng lặp)
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                $safeName = $nameWithoutExt;
+                $counter = 1;
+                
+                // Kiểm tra xem file đã tồn tại chưa
+                while (file_exists(public_path('storage/attachments/' . $safeName . '.' . $extension))) {
+                    $safeName = $nameWithoutExt . '_' . $counter;
+                    $counter++;
+                }
+                
+                $fileName = $safeName . '.' . $extension;
                 $file->storeAs('public/attachments', $fileName);
                 $attachments[] = [
-                    'name' => $file->getClientOriginalName(),
+                    'name' => $originalName,
                     'url' => asset('storage/attachments/' . $fileName),
                     'size' => $file->getSize(),
                 ];
@@ -537,13 +693,77 @@ class TaskController extends Controller
             }
         }
         
-        $r->validate(['content' => 'required|string|max:2000']);
+        $r->validate([
+            'content' => 'required|string|max:1000',
+            'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm,pdf,doc,docx,xls,xlsx,ppt,pptx|max:1073741824', // 1GB
+        ]);
+        
+        // Xử lý file upload
+        $attachments = [];
+        if ($r->hasFile('attachments')) {
+            $totalSize = 0;
+            $maxTotalSize = 1073741824; // 1GB
+            
+            foreach ($r->file('attachments') as $file) {
+                $totalSize += $file->getSize();
+                if ($totalSize > $maxTotalSize) {
+                    return back()->withErrors(['attachments' => 'Tổng kích thước file vượt quá 1GB.']);
+                }
+            }
+            
+            foreach ($r->file('attachments') as $file) {
+                $originalName = $file->getClientOriginalName();
+                
+                // Tạo tên file an toàn (tránh trùng lặp)
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                $safeName = $nameWithoutExt;
+                $counter = 1;
+                
+                // Kiểm tra xem file đã tồn tại chưa
+                while (file_exists(public_path('storage/task-comments/' . $safeName . '.' . $extension))) {
+                    $safeName = $nameWithoutExt . '_' . $counter;
+                    $counter++;
+                }
+                
+                $fileName = $safeName . '.' . $extension;
+                $filePath = $file->storeAs('public/task-comments', $fileName);
+                
+                // Đảm bảo thư mục public/storage/task-comments tồn tại
+                $publicPath = public_path('storage/task-comments');
+                if (!file_exists($publicPath)) {
+                    mkdir($publicPath, 0755, true);
+                }
+                
+                // Copy file từ storage sang public storage
+                $sourcePath = storage_path('app/public/task-comments/' . $fileName);
+                $destPath = $publicPath . '/' . $fileName;
+                if (file_exists($sourcePath)) {
+                    copy($sourcePath, $destPath);
+                }
+                
+                $attachments[] = [
+                    'name' => $originalName,
+                    'url' => asset('storage/task-comments/' . $fileName),
+                    'size' => $file->getSize(),
+                    'type' => $file->getMimeType(),
+                ];
+            }
+        }
+        
+        // Tạo comment với file đính kèm
+        $meta = [
+            'content' => $r->content,
+            'attachments' => $attachments
+        ];
+        
         $task->activities()->create([
             'user_id' => $user->id,
             'action'  => 'comment',
-            'meta'    => $r->content,
+            'meta'    => json_encode($meta),
         ]);
-        return back();
+        
+        return back()->with('success', 'Bình luận đã được gửi thành công!');
     }
 
     public function history(Task $task)
@@ -566,7 +786,9 @@ class TaskController extends Controller
             }
         }
         
-        $task->load(['activities.user']);
+        $task->load(['activities' => function($query) {
+            $query->orderBy('created_at', 'desc');
+        }, 'activities.user']);
         return view('tasks.history', compact('task'));
     }
 

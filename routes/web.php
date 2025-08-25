@@ -38,7 +38,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Lưu task (nút "Giao việc") - áp dụng middleware kiểm tra phòng ban
     Route::post('/tasks', [TaskController::class, 'store'])
-        ->middleware('role:admin,manager')
+        ->middleware(['role:admin,manager', 'department.permission'])
         ->name('tasks.store');
 
     // Alias để khớp link của giao diện cũ (mọi role đều có thể xem chi tiết)
@@ -54,7 +54,15 @@ Route::middleware(['auth'])->group(function () {
     // Employee/Manager/Admin: trang "my tasks" & comment trên task
     Route::middleware('role:employee,manager,admin')->group(function () {
         Route::get('/my-tasks', [TaskController::class, 'myTasks'])->name('tasks.mine');
-        Route::post('/tasks/{task}/comment', [TaskController::class, 'comment'])->name('tasks.comment');
+    });
+
+    // Comment routes
+    Route::middleware('role:employee,manager,admin')->group(function () {
+        Route::post('/tasks/{task}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
+        Route::put('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'update'])->name('comments.update');
+        Route::delete('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
+        Route::post('/comments/{comment}/reactions', [App\Http\Controllers\CommentController::class, 'addReaction'])->name('comments.reactions');
+        Route::delete('/comment-attachments/{attachment}', [App\Http\Controllers\CommentController::class, 'deleteAttachment'])->name('comment.attachments.delete');
     });
 
     // Báo cáo tổng quan (thường cho manager & admin)

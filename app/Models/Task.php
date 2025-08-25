@@ -7,7 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 
 class Task extends Model
 {
-    protected $fillable = ['title','description','status','priority','attachments','qr_code','tracking_code','department_id','assignee_id','creator_id','rejection_reason','finish_note','deadline','is_recurring','recurring_start_date','recurring_days','last_reset_date','completed_at'];
+    protected $fillable = [
+        'title',
+        'description', 
+        'status',
+        'priority',
+        'attachments',
+        'qr_code',
+        'tracking_code',
+        'department_id',
+        'assignee_id',
+        'creator_id',
+        'rejection_reason',
+        'finish_note',
+        'deadline',
+        'is_recurring',
+        'recurring_start_date',
+        'recurring_days',
+        'last_reset_date',
+        'completed_at',
+        'is_multi_department'
+    ];
     
     protected $casts = [
         'deadline' => 'datetime',
@@ -15,11 +35,69 @@ class Task extends Model
         'recurring_start_date' => 'date',
         'last_reset_date' => 'date',
         'completed_at' => 'datetime',
+        'is_multi_department' => 'boolean',
     ];
-    public function department(){ return $this->belongsTo(Department::class); }
-    public function assignee(){ return $this->belongsTo(User::class, 'assignee_id'); }
-    public function creator(){ return $this->belongsTo(User::class, 'creator_id'); }
-    public function activities(){ return $this->hasMany(TaskActivity::class); }
+
+    // Relationships
+    public function department()
+    { 
+        return $this->belongsTo(Department::class); 
+    }
+    
+    public function assignee()
+    { 
+        return $this->belongsTo(User::class, 'assignee_id'); 
+    }
+    
+    public function creator()
+    { 
+        return $this->belongsTo(User::class, 'creator_id'); 
+    }
+    
+    public function activities()
+    { 
+        return $this->hasMany(TaskActivity::class); 
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class)->orderBy('created_at', 'desc');
+    }
+
+    public function files()
+    {
+        return $this->hasMany(TaskFile::class);
+    }
+
+    // Multi-user assignments
+    public function assignees()
+    {
+        return $this->belongsToMany(User::class, 'task_assignees', 'task_id', 'user_id')
+                    ->withTimestamps();
+    }
+
+    public function assignedUsers()
+    {
+        return $this->hasMany(TaskAssignee::class);
+    }
+
+    // Multi-department assignments
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'department_tasks', 'task_id', 'department_id')
+                    ->withTimestamps();
+    }
+
+    public function departmentTasks()
+    {
+        return $this->hasMany(DepartmentTask::class);
+    }
+
+    // Multi-assigned tasks (for users)
+    public function multiAssignedTasks()
+    {
+        return $this->hasMany(TaskAssignee::class);
+    }
     
     /**
      * Kiểm tra xem task có cần deadline mới không
@@ -124,6 +202,45 @@ class Task extends Model
         $this->finish_note = null;
         
         return $this->save();
+    }
+
+    /**
+     * Scope để lọc task theo phòng ban
+     */
+    public function scopeByDepartment($query, $departmentId)
+    {
+        return $query->where('department_id', $departmentId)
+                    ->orWhereHas('departments', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId);
+                    });
+    }
+
+    /**
+     * Scope để lọc task theo user
+     */
+    public function scopeByUser($query, $userId)
+    {
+        return $query->where('assignee_id', $userId)
+                    ->orWhere('creator_id', $userId)
+                    ->orWhereHas('assignees', function($q) use ($userId) {
+                        $q->where('user_id', $userId);
+                    });
+    }
+
+    /**
+     * Scope để lọc multi-department tasks
+     */
+    public function scopeMultiDepartment($query)
+    {
+        return $query->where('is_multi_department', true);
+    }
+
+    /**
+     * Scope để lọc single department tasks
+     */
+    public function scopeSingleDepartment($query)
+    {
+        return $query->where('is_multi_department', false);
     }
 }
 

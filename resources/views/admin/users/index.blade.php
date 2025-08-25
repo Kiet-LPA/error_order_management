@@ -19,60 +19,391 @@
     border-bottom: 2px solid #558EC1;
     color: #374151;
     font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.table thead th:hover {
+    background: rgba(85, 142, 193, 0.2);
 }
 .table tbody tr:hover {
     background: rgba(85, 142, 193, 0.05);
 }
+
+/* Filter section */
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-section .form-control:focus {
+    border-color: #558EC1;
+    box-shadow: 0 0 0 0.2rem rgba(85, 142, 193, 0.25);
+}
+
+/* Stats cards */
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.stats-card p {
+    margin-bottom: 0;
+    opacity: 0.9;
+}
+
+/* Sort indicators */
+.sort-indicator {
+    display: inline-block;
+    margin-left: 0.5rem;
+    opacity: 0.5;
+}
+
+.sort-indicator.active {
+    opacity: 1;
+    color: #558EC1;
+}
 </style>
+
+{{-- Statistics Section --}}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3>{{ $stats['total'] }}</h3>
+            <p><i class="bi bi-people me-2"></i>Tổng nhân viên</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>{{ $stats['admin'] }}</h3>
+            <p><i class="bi bi-shield-check me-2"></i>Quản trị viên</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h3>{{ $stats['manager'] }}</h3>
+            <p><i class="bi bi-person-badge me-2"></i>Quản lý</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <h3>{{ $stats['employee'] }}</h3>
+            <p><i class="bi bi-person me-2"></i>Nhân viên</p>
+        </div>
+    </div>
+</div>
+
+{{-- Filter Section --}}
+<div class="filter-section">
+    <form method="GET" action="{{ route('users.index') }}" class="row g-3">
+        {{-- Search --}}
+        <div class="col-md-4">
+            <label for="search" class="form-label fw-semibold">
+                <i class="bi bi-search me-1"></i>Tìm kiếm
+            </label>
+            <input type="text" class="form-control" id="search" name="search" 
+                   value="{{ request('search') }}" 
+                   placeholder="Tên, email, số điện thoại...">
+        </div>
+
+        {{-- Department Filter --}}
+        <div class="col-md-3">
+            <label for="department" class="form-label fw-semibold">
+                <i class="bi bi-building me-1"></i>Phòng ban
+            </label>
+            <select class="form-select" id="department" name="department">
+                <option value="">Tất cả phòng ban</option>
+                @foreach($departments as $dept)
+                    <option value="{{ $dept->id }}" {{ request('department') == $dept->id ? 'selected' : '' }}>
+                        {{ $dept->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Role Filter --}}
+        <div class="col-md-2">
+            <label for="role" class="form-label fw-semibold">
+                <i class="bi bi-person-badge me-1"></i>Vai trò
+            </label>
+            <select class="form-select" id="role" name="role">
+                <option value="">Tất cả vai trò</option>
+                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Quản trị viên</option>
+                <option value="manager" {{ request('role') == 'manager' ? 'selected' : '' }}>Quản lý</option>
+                <option value="employee" {{ request('role') == 'employee' ? 'selected' : '' }}>Nhân viên</option>
+            </select>
+        </div>
+
+        {{-- Per Page --}}
+        <div class="col-md-2">
+            <label for="per_page" class="form-label fw-semibold">
+                <i class="bi bi-list-ul me-1"></i>Hiển thị
+            </label>
+            <select class="form-select" id="per_page" name="per_page">
+                <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                <option value="15" {{ request('per_page') == 15 || !request('per_page') ? 'selected' : '' }}>15</option>
+                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+            </select>
+        </div>
+
+        {{-- Action Buttons --}}
+        <div class="col-md-1 d-flex align-items-end">
+            <div class="d-grid gap-2 w-100">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel me-1"></i>Lọc
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {{-- Clear Filters --}}
+    @if(request('search') || request('department') || request('role') || request('per_page') != 15)
+        <div class="mt-3">
+            <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+            </a>
+        </div>
+    @endif
+</div>
+
+{{-- Users Table --}}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Danh sách nhân viên</h5>
-        <a href="{{ route('users.create') }}" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">Thêm nhân viên</a>
+        <h5 class="mb-0">
+            <i class="bi bi-people me-2"></i>Danh sách nhân viên
+            <span class="badge bg-light text-dark ms-2">{{ $users->total() }} kết quả</span>
+        </h5>
+        <a href="{{ route('users.create') }}" class="btn btn-light">
+            <i class="bi bi-plus-circle me-1"></i>Thêm nhân viên
+        </a>
     </div>
     <div class="card-body p-0">
-        <table class="table table-striped mb-0">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Tên</th>
-                    <th>Email</th>
-                    <th>Số điện thoại</th>
-                    <th>Vai trò</th>
-                    <th>Phòng ban</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($users as $user)
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $user->name }}</td>
-                        <td>{{ $user->email ?? '-' }}</td>
-                        <td>{{ $user->phone ?? '-' }}</td>
-                        <td>{{ $user->role }}</td>
-                        <td>{{ $user->department->name ?? '-' }}</td>
-                        <td>
-                            <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-info me-1">
-                                <i class="bi bi-eye"></i> Xem
+                        <th>
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'id', 'direction' => request('sort') == 'id' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
+                               class="text-decoration-none text-dark">
+                                #
+                                <span class="sort-indicator {{ request('sort') == 'id' ? 'active' : '' }}">
+                                    @if(request('sort') == 'id')
+                                        @if(request('direction') == 'asc')
+                                            <i class="bi bi-arrow-up"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down"></i>
+                                        @endif
+                                    @else
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    @endif
+                                </span>
                             </a>
-                            <a href="{{ route('users.edit', $user) }}" class="btn btn-sm" style="background:#facc15; color:#333; border-color:#facc15;">Cập nhật</a>
-                            <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?');">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm" style="background:#dc2626; color:#fff; border-color:#dc2626;">Xóa</button>
-                            </form>
-                        </td>
+                        </th>
+                        <th>
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'name', 'direction' => request('sort') == 'name' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
+                               class="text-decoration-none text-dark">
+                                Tên
+                                <span class="sort-indicator {{ request('sort') == 'name' ? 'active' : '' }}">
+                                    @if(request('sort') == 'name')
+                                        @if(request('direction') == 'asc')
+                                            <i class="bi bi-arrow-up"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down"></i>
+                                        @endif
+                                    @else
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    @endif
+                                </span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'email', 'direction' => request('sort') == 'email' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
+                               class="text-decoration-none text-dark">
+                                Email
+                                <span class="sort-indicator {{ request('sort') == 'email' ? 'active' : '' }}">
+                                    @if(request('sort') == 'email')
+                                        @if(request('direction') == 'asc')
+                                            <i class="bi bi-arrow-up"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down"></i>
+                                        @endif
+                                    @else
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    @endif
+                                </span>
+                            </a>
+                        </th>
+                        <th>Số điện thoại</th>
+                        <th>
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'role', 'direction' => request('sort') == 'role' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
+                               class="text-decoration-none text-dark">
+                                Vai trò
+                                <span class="sort-indicator {{ request('sort') == 'role' ? 'active' : '' }}">
+                                    @if(request('sort') == 'role')
+                                        @if(request('direction') == 'asc')
+                                            <i class="bi bi-arrow-up"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down"></i>
+                                        @endif
+                                    @else
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    @endif
+                                </span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'department_id', 'direction' => request('sort') == 'department_id' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
+                               class="text-decoration-none text-dark">
+                                Phòng ban
+                                <span class="sort-indicator {{ request('sort') == 'department_id' ? 'active' : '' }}">
+                                    @if(request('sort') == 'department_id')
+                                        @if(request('direction') == 'asc')
+                                            <i class="bi bi-arrow-up"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down"></i>
+                                        @endif
+                                    @else
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    @endif
+                                </span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'created_at', 'direction' => request('sort') == 'created_at' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
+                               class="text-decoration-none text-dark">
+                                Ngày tạo
+                                <span class="sort-indicator {{ request('sort') == 'created_at' ? 'active' : '' }}">
+                                    @if(request('sort') == 'created_at')
+                                        @if(request('direction') == 'asc')
+                                            <i class="bi bi-arrow-up"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down"></i>
+                                        @endif
+                                    @else
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    @endif
+                                </span>
+                            </a>
+                        </th>
+                        <th class="text-end">Hành động</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="text-center">Chưa có nhân viên nào.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse($users as $user)
+                        <tr>
+                            <td>{{ $user->id }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ $user->name }}</div>
+                                @if($user->position)
+                                    <small class="text-muted">{{ $user->position }}</small>
+                                @endif
+                            </td>
+                            <td>
+                                @if($user->email)
+                                    <a href="mailto:{{ $user->email }}" class="text-decoration-none">
+                                        {{ $user->email }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($user->phone)
+                                    <a href="tel:{{ $user->phone }}" class="text-decoration-none">
+                                        {{ $user->phone }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                @php
+                                    $roleBadges = [
+                                        'admin' => 'danger',
+                                        'manager' => 'warning',
+                                        'employee' => 'info'
+                                    ];
+                                    $roleLabels = [
+                                        'admin' => 'Quản trị viên',
+                                        'manager' => 'Quản lý',
+                                        'employee' => 'Nhân viên'
+                                    ];
+                                @endphp
+                                <span class="badge bg-{{ $roleBadges[$user->role] ?? 'secondary' }}">
+                                    {{ $roleLabels[$user->role] ?? $user->role }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($user->department)
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-building me-1"></i>{{ $user->department->name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ $user->created_at->format('d/m/Y') }}
+                                </small>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-warning" title="Chỉnh sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" 
+                                          onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên này?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-people fa-3x mb-3 opacity-50"></i>
+                                    <h6 class="mb-2">Không tìm thấy nhân viên nào</h6>
+                                    <p class="mb-0">Hãy thử thay đổi bộ lọc hoặc tạo nhân viên mới</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="card-footer">
-        {{ $users->links() }}
-    </div>
+    
+    {{-- Pagination --}}
+    @if($users->hasPages())
+        <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    Hiển thị {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
+                    trong tổng số {{ $users->total() }} kết quả
+                </div>
+                {{ $users->appends(request()->query())->links() }}
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

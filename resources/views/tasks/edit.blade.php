@@ -94,6 +94,98 @@
     color: #721c24;
 }
 
+/* Custom dropdown styling */
+.custom-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.dropdown-toggle:hover {
+    border-color: #558EC1;
+    box-shadow: 0 0 0 0.2rem rgba(85, 142, 193, 0.25);
+}
+
+.dropdown-toggle.active {
+    border-color: #558EC1;
+    box-shadow: 0 0 0 0.2rem rgba(85, 142, 193, 0.25);
+}
+
+.dropdown-toggle.active i {
+    transform: rotate(180deg);
+}
+
+.dropdown-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-item .form-check {
+    margin: 0;
+    width: 100%;
+}
+
+.dropdown-item .form-check-input {
+    margin-right: 8px;
+}
+
+.dropdown-item .form-check-label {
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.dropdown-item .badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+}
+
 /* Submit button */
 .btn-submit {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -322,22 +414,121 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     @enderror
                 </div>
 
-                {{-- Assignee --}}
+                {{-- Multi-Department Assignment --}}
                 <div class="form-group">
-                    <label for="assignee_id" class="form-label">
-                        <i class="bi bi-person me-1"></i>Người phụ trách
+                    <label class="form-label">
+                        <i class="bi bi-building me-1"></i>Phòng ban
                     </label>
-                    <select name="assignee_id" id="assignee_id" class="form-select @error('assignee_id') is-invalid @enderror">
-                        <option value="">Chọn người phụ trách</option>
-                        @foreach($users as $user)
-                            @if($user)
-                                <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
-                                    {{ $user->name ?? 'Không có tên' }} @if($user->department) ({{ $user->department->name }}) @endif
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="is_multi_department" id="is_multi_department" value="1" 
+                               {{ old('is_multi_department', $task->is_multi_department) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="is_multi_department">
+                            <i class="bi bi-diagram-3 me-1"></i>Giao việc cho nhiều phòng ban
+                        </label>
+                    </div>
+                    
+                    {{-- Single Department --}}
+                    <div id="single_department_section" class="{{ old('is_multi_department', $task->is_multi_department) ? 'd-none' : '' }}">
+                        <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror">
+                            <option value="">Chọn phòng ban</option>
+                            @foreach($departments as $department)
+                                <option value="{{ $department->id }}" {{ old('department_id', $task->department_id) == $department->id ? 'selected' : '' }}>
+                                    {{ $department->name }}
                                 </option>
-                            @endif
-                        @endforeach
-                    </select>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    {{-- Multi-Department --}}
+                    <div id="multi_department_section" class="{{ old('is_multi_department', $task->is_multi_department) ? '' : 'd-none' }}">
+                        <div class="custom-dropdown">
+                            <div class="dropdown-toggle" id="department_dropdown_toggle">
+                                <span class="selected-text">Chọn phòng ban...</span>
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                            <div class="dropdown-menu" id="department_dropdown_menu">
+                                @foreach($departments as $department)
+                                    <div class="dropdown-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="department_ids[]" 
+                                                   value="{{ $department->id }}" id="dept_{{ $department->id }}"
+                                                   {{ in_array($department->id, old('department_ids', $task->departments->pluck('id')->toArray())) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="dept_{{ $department->id }}">
+                                                {{ $department->name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    @error('department_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    @error('department_ids')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                {{-- Multi-User Assignment --}}
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-people me-1"></i>Người phụ trách
+                    </label>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="is_multi_user" id="is_multi_user" value="1" 
+                               {{ old('is_multi_user', $task->assignees->count() > 0) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="is_multi_user">
+                            <i class="bi bi-people-fill me-1"></i>Giao việc cho nhiều người
+                        </label>
+                    </div>
+                    
+                    {{-- Single User --}}
+                    <div id="single_user_section" class="{{ old('is_multi_user', $task->assignees->count() > 0) ? 'd-none' : '' }}">
+                        <select name="assignee_id" id="assignee_id" class="form-select @error('assignee_id') is-invalid @enderror">
+                            <option value="">Chọn người phụ trách</option>
+                            @foreach($users as $user)
+                                @if($user)
+                                    <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
+                                        {{ $user->name ?? 'Không có tên' }} @if($user->department) ({{ $user->department->name }}) @endif
+                                    </option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    {{-- Multi-User --}}
+                    <div id="multi_user_section" class="{{ old('is_multi_user', $task->assignees->count() > 0) ? '' : 'd-none' }}">
+                        <div class="custom-dropdown">
+                            <div class="dropdown-toggle" id="user_dropdown_toggle">
+                                <span class="selected-text">Chọn người phụ trách...</span>
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                            <div class="dropdown-menu" id="user_dropdown_menu">
+                                @foreach($users as $user)
+                                    @if($user)
+                                        <div class="dropdown-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="assignee_ids[]" 
+                                                       value="{{ $user->id }}" id="user_{{ $user->id }}"
+                                                       {{ in_array($user->id, old('assignee_ids', $task->assignees->pluck('id')->toArray())) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="user_{{ $user->id }}">
+                                                    {{ $user->name ?? 'Không có tên' }} 
+                                                    @if($user->department) 
+                                                        <span class="badge bg-secondary">{{ $user->department->name }}</span>
+                                                    @endif
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                     @error('assignee_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    @error('assignee_ids')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -479,6 +670,133 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validation for long words
     validateTextarea('description', 'descriptionCounter', 1000);
     validateTextarea('rejection_reason', 'rejectionReasonCounter', 500);
+
+    // Multi-user and multi-department toggle
+    const multiUserCheckbox = document.getElementById('is_multi_user');
+    const singleUserSection = document.getElementById('single_user_section');
+    const multiUserSection = document.getElementById('multi_user_section');
+
+    const multiDepartmentCheckbox = document.getElementById('is_multi_department');
+    const singleDepartmentSection = document.getElementById('single_department_section');
+    const multiDepartmentSection = document.getElementById('multi_department_section');
+
+    // Multi-user toggle
+    if (multiUserCheckbox) {
+        multiUserCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                singleUserSection.classList.add('d-none');
+                multiUserSection.classList.remove('d-none');
+                // Clear single user selection
+                document.getElementById('assignee_id').value = '';
+            } else {
+                singleUserSection.classList.remove('d-none');
+                multiUserSection.classList.add('d-none');
+                // Clear multi user selections
+                const checkboxes = multiUserSection.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = false);
+                updateSelectedText('user');
+            }
+        });
+    }
+
+    // Multi-department toggle
+    if (multiDepartmentCheckbox) {
+        multiDepartmentCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                singleDepartmentSection.classList.add('d-none');
+                multiDepartmentSection.classList.remove('d-none');
+                // Clear single department selection
+                document.getElementById('department_id').value = '';
+            } else {
+                singleDepartmentSection.classList.remove('d-none');
+                multiDepartmentSection.classList.add('d-none');
+                // Clear multi department selections
+                const checkboxes = multiDepartmentSection.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = false);
+                updateSelectedText('department');
+            }
+        });
+    }
+
+    // Custom dropdown functionality
+    function initDropdowns() {
+        // Department dropdown
+        const deptToggle = document.getElementById('department_dropdown_toggle');
+        const deptMenu = document.getElementById('department_dropdown_menu');
+        
+        if (deptToggle && deptMenu) {
+            deptToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                deptToggle.classList.toggle('active');
+                deptMenu.classList.toggle('show');
+            });
+
+            // Update selected text when checkboxes change
+            const deptCheckboxes = deptMenu.querySelectorAll('input[type="checkbox"]');
+            deptCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => updateSelectedText('department'));
+            });
+        }
+
+        // User dropdown
+        const userToggle = document.getElementById('user_dropdown_toggle');
+        const userMenu = document.getElementById('user_dropdown_menu');
+        
+        if (userToggle && userMenu) {
+            userToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userToggle.classList.toggle('active');
+                userMenu.classList.toggle('show');
+            });
+
+            // Update selected text when checkboxes change
+            const userCheckboxes = userMenu.querySelectorAll('input[type="checkbox"]');
+            userCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => updateSelectedText('user'));
+            });
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+                    toggle.classList.remove('active');
+                });
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+    }
+
+    function updateSelectedText(type) {
+        let toggle, checkboxes, placeholder;
+        
+        if (type === 'department') {
+            toggle = document.getElementById('department_dropdown_toggle');
+            checkboxes = document.querySelectorAll('#department_dropdown_menu input[type="checkbox"]:checked');
+            placeholder = 'Chọn phòng ban...';
+        } else if (type === 'user') {
+            toggle = document.getElementById('user_dropdown_toggle');
+            checkboxes = document.querySelectorAll('#user_dropdown_menu input[type="checkbox"]:checked');
+            placeholder = 'Chọn người phụ trách...';
+        }
+
+        if (toggle && checkboxes) {
+            const selectedText = toggle.querySelector('.selected-text');
+            if (checkboxes.length === 0) {
+                selectedText.textContent = placeholder;
+            } else if (checkboxes.length === 1) {
+                const label = checkboxes[0].nextElementSibling.textContent.trim();
+                selectedText.textContent = label;
+            } else {
+                selectedText.textContent = `Đã chọn ${checkboxes.length} mục`;
+            }
+        }
+    }
+
+    // Initialize dropdowns
+    initDropdowns();
 });
 
 // Function to validate textarea and prevent long words

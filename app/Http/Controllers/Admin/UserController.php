@@ -8,44 +8,103 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
-
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         
-        if ($user->isAdmin()) {
-            // Admin có thể xem tất cả users (chỉ nhân viên chính thức)
-            $users = User::with('department')
-                        ->where('employee_type', 'official')
-                        ->latest()
-                        ->paginate(15);
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể xem users cùng phòng ban (chỉ nhân viên chính thức)
-            $users = User::with('department')
-                        ->where('department_id', $user->department_id)
-                        ->where('employee_type', 'official')
-                        ->latest()
-                        ->paginate(15);
-        } else {
+        if (!$user->isAdmin() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền xem danh sách người dùng.');
         }
         
-        return view('admin.users.index', compact('users'));
+        // Base query
+        $query = User::with('department')->where('employee_type', 'official');
+        
+        // Manager chỉ có thể xem users cùng phòng ban
+        if ($user->isManager()) {
+            $query->where('department_id', $user->department_id);
+        }
+        
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->search($search);
+        }
+        
+        // Department filter
+        if ($request->filled('department')) {
+            $query->byDepartment($request->department);
+        }
+        
+        // Role filter
+        if ($request->filled('role')) {
+            $query->byRole($request->role);
+        }
+        
+        // Sort
+        $sortField = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        $allowedSortFields = ['name', 'email', 'role', 'created_at', 'department_id'];
+        if (in_array($sortField, $allowedSortFields)) {
+            if ($sortField === 'department_id') {
+                $query->join('departments', 'users.department_id', '=', 'departments.id')
+                      ->orderBy('departments.name', $sortDirection)
+                      ->select('users.*');
+            } else {
+                $query->orderBy($sortField, $sortDirection);
+            }
+        } else {
+            $query->latest();
+        }
+        
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $allowedPerPage = [10, 15, 25, 50];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
+        
+        $users = $query->paginate($perPage);
+        
+        // Statistics
+        $stats = [
+            'total' => User::where('employee_type', 'official')->count(),
+            'admin' => User::where('employee_type', 'official')->where('role', 'admin')->count(),
+            'manager' => User::where('employee_type', 'official')->where('role', 'manager')->count(),
+            'employee' => User::where('employee_type', 'official')->where('role', 'employee')->count(),
+        ];
+        
+        // Manager chỉ thấy stats của phòng ban mình
+        if ($user->isManager()) {
+            $stats = [
+                'total' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->count(),
+                'admin' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'admin')->count(),
+                'manager' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'manager')->count(),
+                'employee' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'employee')->count(),
+            ];
+        }
+        
+        // Get departments for filter
+        $departments = Department::orderBy('name')->get();
+        
+        return view('admin.users.index', compact('users', 'stats', 'departments'));
     }
 
     public function create()
     {
         $user = auth()->user();
         
+        if (!$user->isAdmin() && !$user->isManager()) {
+            abort(403, 'Bạn không có quyền tạo người dùng.');
+        }
+        
         if ($user->isAdmin()) {
             // Admin có thể tạo user cho bất kỳ phòng ban nào
             $departments = Department::orderBy('name')->get();
-        } elseif ($user->isManager()) {
+        } else {
             // Manager chỉ có thể tạo user cho phòng ban của mình
             $departments = Department::where('id', $user->department_id)->get();
-        } else {
-            abort(403, 'Bạn không có quyền tạo người dùng.');
         }
         
         return view('admin.users.create', compact('departments'));

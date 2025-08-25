@@ -15,6 +15,7 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'role',
         'department_id',
         'employee_type', // new, official
         'position',
@@ -22,9 +23,11 @@ class User extends Authenticatable
         'health_insurance_number',
         'personal_identification_number',
     ];
+    
     protected $hidden = ['password','remember_token'];
     protected $casts = ['email_verified_at' => 'datetime'];
     
+    // Relationships
     public function department()
     {
         return $this->belongsTo(Department::class);
@@ -45,11 +48,102 @@ class User extends Authenticatable
         return $this->hasMany(EmployeeSalary::class);
     }
 
-    public function assignedTasks(){ return $this->hasMany(Task::class, 'assignee_id'); }
-    public function createdTasks(){ return $this->hasMany(Task::class, 'creator_id'); }
+    // Task relationships
+    public function assignedTasks()
+    { 
+        return $this->hasMany(Task::class, 'assignee_id'); 
+    }
+    
+    public function createdTasks()
+    { 
+        return $this->hasMany(Task::class, 'creator_id'); 
+    }
 
-    public function isAdmin(){ return $this->role === 'admin'; }
-    public function isManager(){ return $this->role === 'manager'; }
-    public function isEmployee(){ return $this->role === 'employee'; }
+    // Multi-assignments
+    public function taskAssignments()
+    {
+        return $this->hasMany(TaskAssignee::class);
+    }
 
+    public function multiAssignedTasks()
+    {
+        return $this->belongsToMany(Task::class, 'task_assignees', 'user_id', 'task_id')
+                    ->withTimestamps();
+    }
+
+    // Role methods
+    public function isAdmin()
+    { 
+        return $this->role === 'admin'; 
+    }
+    
+    public function isManager()
+    { 
+        return $this->role === 'manager'; 
+    }
+    
+    public function isEmployee()
+    { 
+        return $this->role === 'employee'; 
+    }
+
+    /**
+     * Kiểm tra user có thể quản lý user khác không
+     */
+    public function canManageUser(User $targetUser): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isManager()) {
+            return $targetUser->department_id === $this->department_id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Kiểm tra user có thể giao việc cho user khác không
+     */
+    public function canAssignTaskTo(User $targetUser): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isManager()) {
+            return $targetUser->department_id === $this->department_id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope để lọc user theo phòng ban
+     */
+    public function scopeByDepartment($query, $departmentId)
+    {
+        return $query->where('department_id', $departmentId);
+    }
+
+    /**
+     * Scope để lọc user theo role
+     */
+    public function scopeByRole($query, $role)
+    {
+        return $query->where('role', $role);
+    }
+
+    /**
+     * Scope để tìm kiếm user
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhere('phone', 'like', "%{$search}%");
+        });
+    }
 }
