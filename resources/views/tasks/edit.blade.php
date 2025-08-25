@@ -282,16 +282,50 @@ input[type="datetime-local"] {
     pointer-events: auto !important;
 }
 
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    cursor: pointer !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+/* Đảm bảo menu dropdown luôn nằm trên các input khác */
+.custom-dropdown .dropdown-menu {
+    z-index: 2000 !important;  /* cao hơn deadline input */
+    position: absolute;
 }
+
+/* Nếu từng chỉnh datetime-local lên z-index cao, hãy reset lại */
+input[type="datetime-local"] {
+    z-index: auto !important;   /* hoặc 1, miễn thấp hơn 2000 */
+    position: relative !important;
+}
+
 
 input[type="datetime-local"]::-webkit-inner-spin-button,
 input[type="datetime-local"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+/* Ensure dropdown doesn't overlap datetime input */
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+/* Higher z-index for datetime input container */
+.form-group:has(input[type="datetime-local"]) {
+    position: relative;
+    z-index: 1001;
+}
+
+/* Ensure datetime input is always on top */
+.form-group:has(input[type="datetime-local"]) input[type="datetime-local"] {
+    z-index: 1002 !important;
 }
 </style>
 @endpush
