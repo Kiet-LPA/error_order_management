@@ -71,6 +71,12 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+    // Work Report relationships
+    public function workReports()
+    {
+        return $this->hasMany(WorkReport::class);
+    }
+
     // Role methods
     public function isAdmin()
     { 

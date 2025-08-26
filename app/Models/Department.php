@@ -32,6 +32,12 @@ class Department extends Model
                     ->withTimestamps();
     }
 
+    // Work Report relationships
+    public function workReports()
+    {
+        return $this->hasMany(WorkReport::class);
+    }
+
     /**
      * Scope để tìm kiếm department
      */

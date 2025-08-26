@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\WorkReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,21 @@ Route::middleware(['auth'])->group(function () {
     // Báo cáo tổng quan (thường cho manager & admin)
     Route::middleware('role:admin,manager')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    });
+
+    // Báo cáo công việc - cho tất cả role
+    Route::middleware('role:employee,manager,admin')->group(function () {
+        Route::get('/work-reports', [WorkReportController::class, 'index'])->name('work-reports.index');
+        Route::get('/work-reports/create', [WorkReportController::class, 'create'])->name('work-reports.create');
+        Route::post('/work-reports', [WorkReportController::class, 'store'])->name('work-reports.store');
+        Route::put('/work-reports/{workReport}', [WorkReportController::class, 'update'])->name('work-reports.update');
+        Route::delete('/work-reports/{workReport}', [WorkReportController::class, 'destroy'])->name('work-reports.destroy');
+        
+        // API routes
+        Route::get('/work-reports/week', [WorkReportController::class, 'showWeek'])->name('work-reports.show-week');
+        Route::get('/work-reports/months', [WorkReportController::class, 'getMonths'])->name('work-reports.months');
+        Route::get('/work-reports/weeks', [WorkReportController::class, 'getWeeks'])->name('work-reports.weeks');
+        Route::get('/work-reports/employees', [WorkReportController::class, 'getEmployeesByDepartment'])->name('work-reports.employees');
     });
 });
 

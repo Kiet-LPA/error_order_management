@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ asset('css/home.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/work-reports.css') }}">
   <style>
     /* Dark mode variables */
     :root {
@@ -506,6 +507,13 @@
               <i class="bi bi-bar-chart me-2"></i> <span>Báo cáo</span>
             </a>
           @endif
+
+          <!-- Báo cáo công việc - cho tất cả role -->
+          <a href="{{ route('work-reports.index') }}"
+             class="list-group-item {{ request()->routeIs('work-reports.*')?'active':'' }}"
+             data-title="Báo cáo công việc">
+            <i class="bi bi-file-earmark-text me-2"></i> <span>Báo cáo công việc</span>
+          </a>
         </div>
       </aside>
 
@@ -569,6 +577,15 @@
             </a>
           </div>
         @endif
+        
+        <!-- Báo cáo công việc -->
+        <div class="col nav-item">
+          <a href="{{ route('work-reports.index') }}" 
+             class="nav-link {{ request()->routeIs('work-reports.*')?'active':'' }}">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Báo cáo</span>
+          </a>
+        </div>
         @endauth
 
         @if(Auth::user()->isAdmin() || Auth::user()->isManager())
