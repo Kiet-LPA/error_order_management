@@ -28,15 +28,9 @@ class WorkReportController extends Controller
     private function employeeIndex()
     {
         $user = Auth::user();
-        $years = WorkReport::getAvailableYears($user->id);
         $currentYear = now()->year;
         
-        // Thêm năm hiện tại nếu chưa có
-        if (!$years->contains($currentYear)) {
-            $years->push($currentYear);
-        }
-        
-        return view('work-reports.employee.index', compact('years', 'currentYear'));
+        return view('work-reports.employee.index', compact('currentYear'));
     }
 
     // Manager view - Tạo báo cáo + Quản lý báo cáo
@@ -57,7 +51,10 @@ class WorkReportController extends Controller
                         ->orderBy('name')
                         ->get();
         
-        return view('work-reports.manager.index', compact('years', 'currentYear', 'employees'));
+        // Lấy danh sách departments (chỉ phòng ban của manager)
+        $departments = Department::where('id', $user->department_id)->get();
+        
+        return view('work-reports.manager.index', compact('years', 'currentYear', 'employees', 'departments'));
     }
 
     // Admin view - Tương tự Manager nhưng xem được đa phòng ban
@@ -77,38 +74,69 @@ class WorkReportController extends Controller
         return view('work-reports.admin.index', compact('years', 'currentYear', 'departments'));
     }
 
+    // Chọn ngày báo cáo
+    public function selectDate()
+    {
+        return view('work-reports.select-date');
+    }
+
     // Tạo báo cáo mới
     public function create(Request $request)
     {
         $user = Auth::user();
         
-        $request->validate([
-            'year' => 'required|integer|min:2020|max:2030',
-            'month' => 'required|integer|min:1|max:12',
-            'week' => 'required|integer|min:1|max:53',
-        ]);
+        // Kiểm tra nếu có selected_date từ form select-date
+        if ($request->has('selected_date')) {
+            $selectedDate = Carbon::parse($request->selected_date);
+            $year = $selectedDate->year;
+            $week = $selectedDate->weekOfYear;
+            $weekInfo = WorkReport::getWeekDates($year, $week);
+            $selectedDateFormatted = $selectedDate->format('Y-m-d');
+        } else {
+            // Lấy thông tin tuần hiện tại để hiển thị
+            $currentDate = now();
+            $year = $currentDate->year;
+            $week = $currentDate->weekOfYear;
+            $weekInfo = WorkReport::getWeekDates($year, $week);
+            $selectedDateFormatted = $currentDate->format('Y-m-d');
+        }
 
-        $year = $request->year;
-        $month = $request->month;
-        $week = $request->week;
-
-        // Kiểm tra xem đã có báo cáo cho tuần này chưa
-        $existingReports = WorkReport::getWeekReports($year, $month, $week, $user->id);
-        
-        return view('work-reports.create', compact('year', 'month', 'week', 'existingReports'));
+        return view('work-reports.create', compact('year', 'week', 'weekInfo', 'selectedDateFormatted'));
     }
+
+    // Hiển thị form chỉnh sửa báo cáo
+    public function edit(WorkReport $workReport)
+    {
+        $user = Auth::user();
+        
+        // Kiểm tra quyền
+        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isAdmin()) {
+            abort(403, 'Bạn không có quyền chỉnh sửa báo cáo này.');
+        }
+
+        // Manager chỉ có thể chỉnh sửa báo cáo của nhân viên cùng phòng ban
+        if ($user->isManager() && $workReport->department_id !== $user->department_id) {
+            abort(403, 'Bạn chỉ có thể chỉnh sửa báo cáo của nhân viên cùng phòng ban.');
+        }
+
+        return view('work-reports.edit', compact('workReport'));
+    }
+
+
 
     // Lưu báo cáo
     public function store(Request $request)
     {
         $user = Auth::user();
         
+        // Kiểm tra user có department_id không (trừ admin)
+        if (!$user->department_id && !$user->isAdmin()) {
+            return back()->withErrors(['department' => 'Bạn chưa được phân công vào phòng ban nào. Vui lòng liên hệ quản trị viên.'])->withInput();
+        }
+        
         $request->validate([
-            'year' => 'required|integer',
-            'month' => 'required|integer',
-            'week' => 'required|integer',
             'report_dates' => 'required|array',
-            'report_dates.*' => 'required|date',
+            'report_dates.*' => 'required|date_format:Y-m-d',
             'daily_works' => 'required|array',
             'daily_works.*' => 'required|string',
             'difficulties' => 'nullable|array',
@@ -119,27 +147,42 @@ class WorkReportController extends Controller
         ]);
 
         $createdCount = 0;
+        $replacedCount = 0;
         $errors = [];
 
         // Xử lý từng hàng báo cáo
         foreach ($request->report_dates as $index => $reportDate) {
+            $reportDateCarbon = Carbon::parse($reportDate);
+            
             // Kiểm tra xem đã có báo cáo cho ngày này chưa
             $existingReport = WorkReport::where('user_id', $user->id)
                                        ->where('report_date', $reportDate)
                                        ->first();
 
             if ($existingReport) {
-                $errors[] = "Đã có báo cáo cho ngày {$reportDate}.";
-                continue;
+                // Nếu có báo cáo trùng ngày, hỏi user có muốn thay thế không
+                if ($request->has('replace_existing') && $request->replace_existing) {
+                    // Xóa báo cáo cũ và tạo mới
+                    $existingReport->delete();
+                    $replacedCount++;
+                } else {
+                    $errors[] = "Đã có báo cáo cho ngày " . $reportDateCarbon->format('d/m/Y') . ". Bạn có muốn thay thế không?";
+                    continue;
+                }
             }
+
+            // Tự động tính toán năm, tháng và tuần từ ngày báo cáo
+            $year = $reportDateCarbon->year;
+            $month = $reportDateCarbon->month;
+            $week = $reportDateCarbon->weekOfYear;
 
             // Tạo báo cáo mới
             WorkReport::create([
                 'user_id' => $user->id,
-                'department_id' => $user->department_id,
-                'year' => $request->year,
-                'month' => $request->month,
-                'week' => $request->week,
+                'department_id' => $user->department_id ?? null, // Cho phép null cho admin
+                'year' => $year,
+                'month' => $month,
+                'week' => $week,
                 'report_date' => $reportDate,
                 'daily_work' => $request->daily_works[$index],
                 'difficulties' => $request->difficulties[$index] ?? null,
@@ -154,12 +197,20 @@ class WorkReportController extends Controller
             return back()->withErrors($errors)->withInput();
         }
 
-        $message = $createdCount > 1 
-            ? "Đã tạo thành công {$createdCount} báo cáo." 
-            : "Báo cáo đã được tạo thành công.";
+        $message = "";
+        if ($createdCount > 0) {
+            $message .= "Đã tạo thành công {$createdCount} báo cáo. ";
+        }
+        if ($replacedCount > 0) {
+            $message .= "Đã thay thế {$replacedCount} báo cáo cũ. ";
+        }
+        
+        if (empty($message)) {
+            $message = "Không có báo cáo nào được tạo.";
+        }
 
         return redirect()->route('work-reports.index')
-                        ->with('success', $message);
+                        ->with('success', trim($message));
     }
 
     // Cập nhật báo cáo
@@ -198,13 +249,15 @@ class WorkReportController extends Controller
             'year' => 'required|integer',
             'month' => 'required|integer',
             'week' => 'required|integer',
-            'user_id' => 'nullable|exists:users,id'
+            'user_id' => 'nullable|exists:users,id',
+            'department_id' => 'nullable|exists:departments,id'
         ]);
 
         $year = $request->year;
         $month = $request->month;
         $week = $request->week;
         $targetUserId = $request->user_id;
+        $departmentId = $request->department_id;
 
         // Kiểm tra quyền
         if ($targetUserId) {
@@ -221,14 +274,30 @@ class WorkReportController extends Controller
             $targetUserId = $user->id;
         }
 
-        $reports = WorkReport::getWeekReports($year, $month, $week, $targetUserId);
+        // Lấy thông tin tuần
+        $weekInfo = WorkReport::getWeekDates($year, $week);
+
+        // Nếu có department_id, lấy báo cáo cho department đó
+        if ($departmentId) {
+            $reports = WorkReport::with(['user', 'department'])
+                                ->where('department_id', $departmentId)
+                                ->where('year', $year)
+                                ->where('month', $month)
+                                ->where('week', $week)
+                                ->orderBy('report_date', 'desc')
+                                ->get();
+        } else {
+            $reports = WorkReport::getWeekReports($year, $week, $month, $targetUserId);
+        }
         
         return response()->json([
             'reports' => $reports,
             'week_info' => [
                 'year' => $year,
                 'month' => $month,
-                'week' => $week
+                'week' => $week,
+                'start_date' => $weekInfo['start_formatted'],
+                'end_date' => $weekInfo['end_formatted']
             ]
         ]);
     }
@@ -240,22 +309,46 @@ class WorkReportController extends Controller
         
         $user = Auth::user();
         $userId = $user->isEmployee() ? $user->id : null;
+        $departmentId = $request->department_id;
+        
+        // Nếu có department_id, lấy months cho department đó
+        if ($departmentId) {
+            $months = WorkReport::where('department_id', $departmentId)
+                              ->where('year', $request->year)
+                              ->distinct()
+                              ->pluck('month')
+                              ->sort()
+                              ->values();
+            return response()->json($months);
+        }
         
         $months = WorkReport::getAvailableMonths($request->year, $userId);
         
         return response()->json($months);
     }
 
-    // API để lấy danh sách tuần cho tháng
+    // API để lấy danh sách tuần cho năm và tháng
     public function getWeeks(Request $request)
     {
         $request->validate([
             'year' => 'required|integer',
-            'month' => 'required|integer'
+            'month' => 'nullable|integer'
         ]);
         
         $user = Auth::user();
         $userId = $user->isEmployee() ? $user->id : null;
+        $departmentId = $request->department_id;
+        
+        // Nếu có department_id, lấy weeks cho department đó
+        if ($departmentId) {
+            $query = WorkReport::where('department_id', $departmentId)
+                              ->where('year', $request->year);
+            if ($request->month) {
+                $query->where('month', $request->month);
+            }
+            $weeks = $query->distinct()->pluck('week')->sort()->values();
+            return response()->json($weeks);
+        }
         
         $weeks = WorkReport::getAvailableWeeks($request->year, $request->month, $userId);
         
@@ -280,10 +373,62 @@ class WorkReportController extends Controller
 
         $employees = User::where('department_id', $request->department_id)
                         ->where('role', 'employee')
-                        ->orderBy('name')
+                        ->orderBy('name', 'asc')
                         ->get(['id', 'name']);
 
         return response()->json($employees);
+    }
+
+    // API để lấy tất cả báo cáo của một employee
+    public function getEmployeeReports(Request $request)
+    {
+        $user = Auth::user();
+        
+        if ($user->isEmployee()) {
+            abort(403, 'Bạn không có quyền truy cập.');
+        }
+
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        
+        $targetUser = User::find($request->user_id);
+        
+        // Manager chỉ có thể xem báo cáo của nhân viên cùng phòng ban
+        if ($user->isManager() && $targetUser->department_id !== $user->department_id) {
+            abort(403, 'Bạn chỉ có thể xem báo cáo của nhân viên cùng phòng ban.');
+        }
+
+        $reports = WorkReport::with(['user', 'department'])
+                            ->where('user_id', $request->user_id)
+                            ->orderBy('year', 'desc')
+                            ->orderBy('month', 'desc')
+                            ->orderBy('week', 'desc')
+                            ->orderBy('report_date', 'desc')
+                            ->get();
+
+        return response()->json([
+            'reports' => $reports,
+            'total' => $reports->count()
+        ]);
+    }
+
+    // API để lấy thông tin tuần từ ngày
+    public function getWeekFromDate(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date_format:Y-m-d'
+        ]);
+
+        $weekInfo = WorkReport::getWeekInfoFromDate($request->date);
+        $weekDates = WorkReport::getWeekDates($weekInfo['year'], $weekInfo['week_of_year']);
+
+        return response()->json([
+            'year' => $weekInfo['year'],
+            'week' => $weekInfo['week_of_year'],
+            'week_of_month' => $weekInfo['week_of_month'],
+            'month' => $weekInfo['month'],
+            'week_info' => $weekDates,
+            'comprehensive_info' => $weekInfo
+        ]);
     }
 
     // Xóa báo cáo
@@ -304,5 +449,119 @@ class WorkReportController extends Controller
         $workReport->delete();
 
         return back()->with('success', 'Báo cáo đã được xóa thành công.');
+    }
+
+    // Hiển thị báo cáo tuần hiện tại
+    public function currentWeek()
+    {
+        $user = Auth::user();
+        $now = Carbon::now();
+        
+        // Lấy thông tin tuần hiện tại
+        $weekInfo = WorkReport::getWeekInfoFromDate($now->format('Y-m-d'));
+        $weekDates = WorkReport::getWeekDates($weekInfo['year'], $weekInfo['week_of_year']);
+        
+        // Lấy báo cáo của tuần hiện tại
+        $reports = WorkReport::where('user_id', $user->id)
+                            ->where('year', $weekInfo['year'])
+                            ->where('week', $weekInfo['week_of_year'])
+                            ->orderBy('report_date', 'desc')
+                            ->get();
+        
+        // Thống kê
+        $totalReports = $reports->count();
+        $completedDays = $reports->count();
+        
+        return view('work-reports.current-week', compact('reports', 'weekInfo', 'weekDates', 'totalReports', 'completedDays'));
+    }
+
+    // Hiển thị báo cáo tháng hiện tại
+    public function currentMonth()
+    {
+        $user = Auth::user();
+        $now = Carbon::now();
+        
+        // Lấy báo cáo của tháng hiện tại
+        $reports = WorkReport::where('user_id', $user->id)
+                            ->where('year', $now->year)
+                            ->where('month', $now->month)
+                            ->orderBy('report_date', 'desc')
+                            ->get();
+        
+        // Nhóm theo tuần
+        $reportsByWeek = $reports->groupBy('week');
+        
+        // Thống kê
+        $totalReports = $reports->count();
+        $totalWeeks = $reportsByWeek->count();
+        $completedDays = $reports->count();
+        
+        // Tính số tuần trong tháng
+        $firstDayOfMonth = Carbon::createFromDate($now->year, $now->month, 1);
+        $lastDayOfMonth = $firstDayOfMonth->copy()->endOfMonth();
+        $weeksInMonth = $firstDayOfMonth->diffInWeeks($lastDayOfMonth) + 1;
+        
+        // Lấy thông tin tháng
+        $monthInfo = [
+            'year' => $now->year,
+            'month' => $now->month,
+            'month_name' => $now->format('F Y'),
+            'days_in_month' => $now->daysInMonth,
+            'weeks_in_month' => $weeksInMonth
+        ];
+        
+        return view('work-reports.current-month', compact('reports', 'reportsByWeek', 'monthInfo', 'totalReports', 'completedDays', 'totalWeeks'));
+    }
+
+    // Hiển thị hoạt động cá nhân
+    public function myActivity(Request $request)
+    {
+        $user = Auth::user();
+        $selectedDays = $request->get('days', 30); // Mặc định 30 ngày
+        
+        // Lấy báo cáo gần đây theo số ngày được chọn
+        $recentReports = WorkReport::where('user_id', $user->id)
+                                  ->where('report_date', '>=', Carbon::now()->subDays($selectedDays))
+                                  ->orderBy('report_date', 'desc')
+                                  ->get();
+        
+        // Thống kê theo tuần
+        $weeklyStats = WorkReport::where('user_id', $user->id)
+                                ->where('report_date', '>=', Carbon::now()->subDays($selectedDays))
+                                ->selectRaw('year, week, COUNT(*) as report_count')
+                                ->groupBy('year', 'week')
+                                ->orderBy('year', 'desc')
+                                ->orderBy('week', 'desc')
+                                ->get();
+        
+        // Thống kê theo tháng (luôn lấy 90 ngày để có đủ dữ liệu)
+        $monthlyStats = WorkReport::where('user_id', $user->id)
+                                 ->where('report_date', '>=', Carbon::now()->subDays(90))
+                                 ->selectRaw('year, month, COUNT(*) as report_count')
+                                 ->groupBy('year', 'month')
+                                 ->orderBy('year', 'desc')
+                                 ->orderBy('month', 'desc')
+                                 ->get();
+        
+        // Tổng quan
+        $totalReports = WorkReport::where('user_id', $user->id)->count();
+        $thisMonthReports = WorkReport::where('user_id', $user->id)
+                                    ->where('year', Carbon::now()->year)
+                                    ->where('month', Carbon::now()->month)
+                                    ->count();
+        $thisWeekReports = WorkReport::where('user_id', $user->id)
+                                   ->where('year', Carbon::now()->year)
+                                   ->where('week', Carbon::now()->weekOfYear)
+                                   ->count();
+        
+        return view('work-reports.my-activity', compact(
+            'recentReports', 
+            'weeklyStats', 
+            'monthlyStats', 
+            'totalReports', 
+            'thisMonthReports', 
+            'thisWeekReports',
+            'selectedDays'
+        ));
     }
 }

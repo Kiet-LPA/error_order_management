@@ -2,6 +2,7 @@
 @section('title', 'Quản lý báo cáo công việc')
 
 @section('content')
+@push('styles')
 <style>
 .work-report-container {
     max-width: 1400px;
@@ -98,50 +99,82 @@
 .employee-card:hover {
     border-color: #558EC1;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(85, 142, 193, 0.2);
 }
 
 .employee-avatar {
     width: 60px;
     height: 60px;
+    background: linear-gradient(135deg, #558EC1 0%, #764ba2 100%);
     border-radius: 50%;
-    background: linear-gradient(135deg, #558EC1 0%, #4a90e2 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 24px;
     font-weight: 600;
-    margin-bottom: 12px;
+    margin: 0 auto 16px;
 }
 
 .employee-name {
     font-size: 18px;
     font-weight: 600;
     color: #2d3748;
-    margin-bottom: 4px;
+    text-align: center;
+    margin-bottom: 8px;
 }
 
 .employee-position {
-    color: #718096;
     font-size: 14px;
-    margin-bottom: 12px;
+    color: #718096;
+    text-align: center;
+    margin-bottom: 16px;
 }
 
 .employee-stats {
     display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: #718096;
+    justify-content: space-around;
+    gap: 8px;
 }
 
 .stat-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 4px;
+    font-size: 12px;
+    color: #718096;
+}
+
+.stat-item i {
+    color: #558EC1;
+    font-size: 16px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #718096;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: #cbd5e0;
+    margin-bottom: 16px;
+}
+
+.empty-state-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.empty-state-desc {
+    font-size: 14px;
 }
 
 .report-tree {
+    margin-top: 24px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -149,29 +182,35 @@
 }
 
 .tree-item {
-    margin-bottom: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .tree-toggle {
-    background: none;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
     border: none;
-    color: #2d3748;
+    font-size: 16px;
     font-weight: 600;
+    color: #2d3748;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 12px 16px;
+    width: 100%;
+    text-align: left;
     transition: all 0.3s ease;
 }
 
 .tree-toggle:hover {
-    background: #f7fafc;
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
 }
 
 .tree-toggle i {
     transition: transform 0.3s ease;
+    color: #558EC1;
 }
 
 .tree-toggle.expanded i {
@@ -180,90 +219,157 @@
 
 .tree-content {
     display: none;
-    margin-left: 24px;
-    margin-top: 8px;
+    padding: 16px;
+    background: #fafbfc;
+    border-top: 1px solid #e2e8f0;
 }
 
 .tree-content.active {
     display: block;
 }
 
-.year-item {
+.month-item {
     margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
-.month-item {
-    margin-bottom: 8px;
-    margin-left: 16px;
+.month-item .tree-toggle {
+    background: linear-gradient(135deg, #f0f4f8 0%, #e6f3ff 100%);
+    font-size: 14px;
+    padding: 10px 12px;
+}
+
+.month-item .tree-toggle:hover {
+    background: linear-gradient(135deg, #e6f3ff 0%, #d1ecf1 100%);
+}
+
+.month-item .tree-content {
+    padding: 12px;
+    background: white;
 }
 
 .week-item {
-    margin-bottom: 4px;
-    margin-left: 16px;
-    padding: 6px 12px;
-    background: #f7fafc;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
     border-radius: 6px;
+    margin: 8px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.week-item:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.week-item i {
+    color: #558EC1;
+}
+
+.year-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.year-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.year-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.year-number {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.year-label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.month-list {
+    display: none;
+    margin-top: 20px;
+}
+
+.month-list.active {
+    display: block;
+}
+
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.month-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.month-card:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.month-card-number {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.month-card-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.month-card-actions {
+    margin-top: 8px;
+}
+
+.month-action-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.week-item:hover {
-    background: #e2e8f0;
-}
-
-.report-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.report-table th,
-.report-table td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.report-table th {
-    background: #f7fafc;
-    font-weight: 600;
-    color: #2d3748;
-}
-
-.report-table tr:hover {
-    background: #f7fafc;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #718096;
-}
-
-.empty-state-icon {
-    font-size: 64px;
-    color: #cbd5e0;
-    margin-bottom: 16px;
-}
-
-.empty-state-title {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #4a5568;
-}
-
-.empty-state-desc {
-    font-size: 16px;
-    line-height: 1.6;
+.month-action-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .create-new-btn {
-    background: linear-gradient(135deg, #558EC1 0%, #4a90e2 100%);
+    background: linear-gradient(135deg, #558EC1 0%, #764ba2 100%);
     color: white;
     border: none;
     border-radius: 8px;
@@ -278,10 +384,229 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(85, 142, 193, 0.4);
 }
+
+.week-selection-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.week-selection-modal.show {
+    display: flex;
+}
+
+.week-selection-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.week-selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.week-selection-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.week-selection-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #718096;
+    cursor: pointer;
+}
+
+.week-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.week-option {
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.week-option:hover {
+    border-color: #558EC1;
+    background: #edf2f7;
+}
+
+.week-option.selected {
+    border-color: #558EC1;
+    background: #558EC1;
+    color: white;
+}
+
+.week-option-number {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.week-option-label {
+    font-size: 12px;
+}
+
+.week-selection-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.week-selection-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.week-selection-btn.cancel {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.week-selection-btn.confirm {
+    background: #558EC1;
+    color: white;
+}
+
+.week-selection-btn.confirm:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+}
+
+.report-table th,
+.report-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.report-table th {
+    background: #f7fafc;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.report-table tr:hover {
+    background: #f7fafc;
+}
+
+/* New styles for dropdown hierarchy */
+.hierarchy-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.hierarchy-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hierarchy-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.hierarchy-select {
+    padding: 10px 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #2d3748;
+    background-color: #f7fafc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hierarchy-select:hover {
+    border-color: #cbd5e0;
+    background-color: #edf2f7;
+}
+
+.hierarchy-select:focus {
+    border-color: #558EC1;
+    box-shadow: 0 0 0 0.25rem rgba(85, 142, 193, 0.25);
+    outline: none;
+}
+
+.create-action-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.create-new-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.section-subtitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-subtitle i {
+    color: #558EC1;
+}
+
+.create-new-btn.secondary {
+    background: #e2e8f0;
+    color: #4a5568;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.create-new-btn.secondary:hover {
+    background: #cbd5e0;
+}
 </style>
 @endpush
 
-@section('content')
 <div class="work-report-container">
     <div class="tab-container">
         <div class="tab-header">
@@ -303,40 +628,18 @@
                     Tạo báo cáo mới
                 </div>
                 
-                <div class="year-grid">
-                    @foreach($years as $year)
-                        <div class="year-card" data-year="{{ $year }}">
-                            <div class="year-number">{{ $year }}</div>
-                            <div class="year-label">Năm</div>
-                            
-                            <div class="month-list" id="months-{{ $year }}">
-                                <div class="month-grid">
-                                    @for($month = 1; $month <= 12; $month++)
-                                        <div class="month-card" 
-                                             data-month="{{ $month }}" 
-                                             data-year="{{ $year }}"
-                                             onclick="selectMonth({{ $year }}, {{ $month }})">
-                                            <div class="month-card-number">{{ $month }}</div>
-                                            <div class="month-card-label">Tháng</div>
-                                            <div class="month-card-actions">
-                                                <button class="month-action-btn" 
-                                                        onclick="event.stopPropagation(); showWeekSelection({{ $year }}, {{ $month }})"
-                                                        title="Chọn tuần">
-                                                    <i class="fas fa-calendar-week"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    @endfor
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Bạn sẽ tạo báo cáo cho chính mình. Hệ thống sẽ tự động tính toán tuần dựa trên ngày bạn chọn.
                 </div>
                 
-                <button class="create-new-btn" onclick="createNewReport()">
-                    <i class="fas fa-plus"></i>
-                    Tạo báo cáo mới
-                </button>
+                <!-- Nút tạo báo cáo -->
+                <div class="create-action-container">
+                    <button class="create-new-btn" onclick="selectDateForReport()">
+                        <i class="fas fa-calendar"></i>
+                        Chọn ngày để tạo báo cáo
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -360,11 +663,11 @@
                                 <div class="employee-stats">
                                     <div class="stat-item">
                                         <i class="fas fa-file-alt"></i>
-                                        <span>0 báo cáo</span>
+                                        <span id="report-count-{{ $employee->id }}">Đang tải...</span>
                                     </div>
                                     <div class="stat-item">
                                         <i class="fas fa-calendar"></i>
-                                        <span>Tuần này</span>
+                                        <span id="week-count-{{ $employee->id }}">Đang tải...</span>
                                     </div>
                                 </div>
                             </div>
@@ -484,7 +787,6 @@
         </div>
     </div>
 </div>
-@endsection
 
 @push('scripts')
 <script>
@@ -493,22 +795,11 @@ let selectedYear = null;
 let selectedMonth = null;
 let selectedWeek = null;
 
+// Variables for report management
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Xử lý click vào năm (tab tạo báo cáo)
-    document.querySelectorAll('.year-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const year = this.dataset.year;
-            const monthList = document.getElementById(`months-${year}`);
-            
-            // Ẩn tất cả month-list
-            document.querySelectorAll('.month-list').forEach(list => {
-                list.classList.remove('active');
-            });
-            
-            // Hiển thị month-list của năm được chọn
-            monthList.classList.add('active');
-        });
-    });
+    // Load số báo cáo cho tất cả nhân viên
+    loadAllEmployeeReportCounts();
 });
 
 function switchTab(tabName) {
@@ -529,51 +820,108 @@ function switchTab(tabName) {
     event.target.classList.add('active');
 }
 
+// Load số báo cáo cho tất cả nhân viên
+function loadAllEmployeeReportCounts() {
+    const employeeCards = document.querySelectorAll('.employee-card');
+    
+    employeeCards.forEach(card => {
+        const onclickAttr = card.getAttribute('onclick');
+        if (onclickAttr) {
+            const match = onclickAttr.match(/\d+/);
+            if (match) {
+                const employeeId = match[0];
+                loadEmployeeReportCount(employeeId);
+            }
+        }
+    });
+}
+
+function loadEmployeeReportCount(employeeId) {
+    console.log('Loading report count for employee:', employeeId);
+    
+    // Load tổng số báo cáo
+    fetch('{{ route("work-reports.employee-reports") }}?user_id=' + employeeId)
+        .then(response => {
+            console.log('API response status:', response.status);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('API response data for employee', employeeId, ':', data);
+            
+            const totalReports = data.reports ? data.reports.length : 0;
+            console.log('Total reports for employee', employeeId, ':', totalReports);
+            
+            const reportCountElement = document.getElementById('report-count-' + employeeId);
+            if (reportCountElement) {
+                reportCountElement.textContent = totalReports + ' báo cáo';
+            } else {
+                console.error('Element not found: report-count-' + employeeId);
+            }
+            
+            // Load số báo cáo tuần này
+            loadCurrentWeekReportCount(employeeId, data.reports);
+        })
+        .catch(error => {
+            console.error('Error loading report count for employee', employeeId, ':', error);
+            const reportCountElement = document.getElementById('report-count-' + employeeId);
+            if (reportCountElement) {
+                reportCountElement.textContent = 'Lỗi tải dữ liệu';
+            }
+        });
+}
+
+function loadCurrentWeekReportCount(employeeId, reports) {
+    if (!reports || reports.length === 0) {
+        document.getElementById('week-count-' + employeeId).textContent = '0 báo cáo tuần này';
+        return;
+    }
+    
+    // Lấy tuần hiện tại
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentWeek = Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7);
+    const currentMonth = now.getMonth() + 1;
+    
+    // Đếm báo cáo trong tuần hiện tại
+    const currentWeekReports = reports.filter(function(report) {
+        return report.year == currentYear && 
+               report.month == currentMonth && 
+               report.week == currentWeek;
+    });
+    
+    document.getElementById('week-count-' + employeeId).textContent = currentWeekReports.length + ' báo cáo tuần này';
+}
+
+// Function to navigate to date selection page
+function selectDateForReport() {
+    window.location.href = '{{ route("work-reports.select-date") }}';
+}
+
+// Old functions (kept for compatibility)
 function selectMonth(year, month) {
-    // Hiển thị modal chọn tuần
-    showWeekSelection(year, month);
+    // Chuyển đến trang chọn ngày
+    selectDateForReport();
 }
 
 function showWeekSelection(year, month) {
-    selectedYear = year;
-    selectedMonth = month;
-    
-    // Cập nhật text trong modal
-    document.getElementById('selectedMonthText').textContent = `Tháng ${month} - ${year}`;
-    
-    // Reset selection
-    selectedWeek = null;
-    document.querySelectorAll('.week-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    document.querySelector('.week-selection-btn.confirm').disabled = true;
-    
-    // Hiển thị modal
-    document.getElementById('weekSelectionModal').classList.add('show');
+    // Chuyển đến trang chọn ngày
+    selectDateForReport();
 }
 
 function closeWeekSelection() {
-    document.getElementById('weekSelectionModal').classList.remove('show');
+    // Không cần thiết nữa
 }
 
 function selectWeek(week) {
-    selectedWeek = week;
-    
-    // Update UI
-    document.querySelectorAll('.week-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    event.target.closest('.week-option').classList.add('selected');
-    
-    // Enable confirm button
-    document.querySelector('.week-selection-btn.confirm').disabled = false;
+    // Không cần thiết nữa
 }
 
 function confirmWeekSelection() {
-    if (selectedYear && selectedMonth && selectedWeek) {
-        // Chuyển đến trang tạo báo cáo
-        window.location.href = `{{ route('work-reports.create') }}?year=${selectedYear}&month=${selectedMonth}&week=${selectedWeek}`;
-    }
+    // Chuyển đến trang chọn ngày
+    selectDateForReport();
 }
 
 function selectEmployee(employeeId, employeeName) {
@@ -586,92 +934,126 @@ function selectEmployee(employeeId, employeeName) {
 }
 
 function loadEmployeeReportTree(employeeId) {
+    console.log('Loading report tree for employee:', employeeId);
+    
     // Hiển thị loading
     document.getElementById('report-tree-content').innerHTML = '<p>Đang tải...</p>';
     
     // Gọi API để lấy dữ liệu báo cáo của employee
-    fetch(`{{ route('work-reports.show-week') }}?user_id=${employeeId}`)
-        .then(response => response.json())
+    fetch('{{ route("work-reports.employee-reports") }}?user_id=' + employeeId)
+        .then(response => {
+            console.log('Report tree API response status:', response.status);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Report tree API response data:', data);
             renderReportTree(data);
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error loading report tree:', error);
             document.getElementById('report-tree-content').innerHTML = '<p>Có lỗi xảy ra khi tải dữ liệu</p>';
         });
 }
 
 function renderReportTree(data) {
+    console.log('Rendering report tree with data:', data);
+    
     // Render cây báo cáo dựa trên dữ liệu
     const treeContent = document.getElementById('report-tree-content');
     
     if (data.reports && data.reports.length > 0) {
+        console.log('Found', data.reports.length, 'reports');
+        
         // Nhóm báo cáo theo năm, tháng, tuần
         const groupedReports = groupReportsByHierarchy(data.reports);
+        console.log('Grouped reports:', groupedReports);
         
         let html = '';
-        Object.keys(groupedReports).forEach(year => {
-            html += `
-                <div class="tree-item">
-                    <button class="tree-toggle" onclick="toggleTreeItem(this)">
-                        <i class="fas fa-chevron-right"></i>
-                        ${year}
-                    </button>
-                    <div class="tree-content">
-            `;
+        
+        // Sắp xếp năm theo thứ tự giảm dần
+        const years = Object.keys(groupedReports).sort((a, b) => b - a);
+        
+        years.forEach(function(year) {
+            html += 
+                '<div class="tree-item">' +
+                    '<button class="tree-toggle" onclick="toggleTreeItem(this)">' +
+                        '<i class="fas fa-chevron-right"></i>' +
+                        'Năm ' + year +
+                    '</button>' +
+                    '<div class="tree-content">';
             
-            Object.keys(groupedReports[year]).forEach(month => {
-                html += `
-                    <div class="month-item">
-                        <button class="tree-toggle" onclick="toggleTreeItem(this)">
-                            <i class="fas fa-chevron-right"></i>
-                            Tháng ${month}
-                        </button>
-                        <div class="tree-content">
-                `;
+            // Sắp xếp tháng theo thứ tự giảm dần
+            const months = Object.keys(groupedReports[year]).sort((a, b) => b - a);
+            
+            months.forEach(function(month) {
+                html += 
+                    '<div class="month-item">' +
+                        '<button class="tree-toggle" onclick="toggleTreeItem(this)">' +
+                            '<i class="fas fa-chevron-right"></i>' +
+                            'Tháng ' + month +
+                        '</button>' +
+                        '<div class="tree-content">';
                 
-                Object.keys(groupedReports[year][month]).forEach(week => {
-                    html += `
-                        <div class="week-item" onclick="viewWeekReports(${year}, ${month}, ${week})">
-                            Tuần ${week}
-                        </div>
-                    `;
+                // Sắp xếp tuần theo thứ tự giảm dần
+                const weeks = Object.keys(groupedReports[year][month]).sort((a, b) => b - a);
+                
+                weeks.forEach(function(week) {
+                    const reportCount = groupedReports[year][month][week].length;
+                    html += 
+                        '<div class="week-item" onclick="viewWeekReports(' + year + ', ' + month + ', ' + week + ')">' +
+                            '<i class="fas fa-calendar-week"></i>' +
+                            'Tuần ' + week + ' (' + reportCount + ' báo cáo)' +
+                        '</div>';
                 });
                 
-                html += `
-                        </div>
-                    </div>
-                `;
+                html += 
+                    '</div>' +
+                    '</div>';
             });
             
-            html += `
-                    </div>
-                </div>
-            `;
+            html += 
+                '</div>' +
+                '</div>';
         });
         
+        console.log('Generated HTML:', html);
         treeContent.innerHTML = html;
     } else {
+        console.log('No reports found');
         treeContent.innerHTML = '<p>Chưa có báo cáo nào</p>';
     }
 }
 
 function groupReportsByHierarchy(reports) {
+    console.log('Grouping reports:', reports);
     const grouped = {};
     
     reports.forEach(report => {
-        if (!grouped[report.year]) {
-            grouped[report.year] = {};
+        console.log('Processing report:', report);
+        
+        // Đảm bảo year, month, week là số
+        const year = parseInt(report.year);
+        const month = parseInt(report.month);
+        const week = parseInt(report.week);
+        
+        console.log('Parsed values - year:', year, 'month:', month, 'week:', week);
+        
+        if (!grouped[year]) {
+            grouped[year] = {};
         }
-        if (!grouped[report.year][report.month]) {
-            grouped[report.year][report.month] = {};
+        if (!grouped[year][month]) {
+            grouped[year][month] = {};
         }
-        if (!grouped[report.year][report.month][report.week]) {
-            grouped[report.year][report.month][report.week] = [];
+        if (!grouped[year][month][week]) {
+            grouped[year][month][week] = [];
         }
-        grouped[report.year][report.month][report.week].push(report);
+        grouped[year][month][week].push(report);
     });
     
+    console.log('Final grouped result:', grouped);
     return grouped;
 }
 
@@ -683,7 +1065,7 @@ function toggleTreeItem(button) {
 
 function viewWeekReports(year, month, week) {
     // Hiển thị báo cáo của tuần được chọn
-    fetch(`{{ route('work-reports.show-week') }}?year=${year}&month=${month}&week=${week}&user_id=${selectedEmployeeId}`)
+    fetch('{{ route("work-reports.show-week") }}?year=' + year + '&month=' + month + '&week=' + week + '&user_id=' + selectedEmployeeId)
         .then(response => response.json())
         .then(data => {
             showWeekReportModal(data);
@@ -696,64 +1078,64 @@ function viewWeekReports(year, month, week) {
 
 function showWeekReportModal(data) {
     // Tạo modal hiển thị báo cáo tuần
-    let modalHtml = `
-        <div class="modal fade" id="weekReportModal" tabindex="-1">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Báo cáo tuần ${data.week_info.week} - Tháng ${data.week_info.month} - ${data.week_info.year}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-    `;
+    let modalHtml = 
+        '<div class="modal fade" id="weekReportModal" tabindex="-1" role="dialog" aria-labelledby="weekReportModalLabel" aria-hidden="false">' +
+            '<div class="modal-dialog modal-xl" role="document">' +
+                '<div class="modal-content">' +
+                    '<div class="modal-header">' +
+                        '<h5 class="modal-title" id="weekReportModalLabel">Báo cáo tuần ' + data.week_info.week + ' - Tháng ' + (data.week_info.month || 'N/A') + ' - ' + data.week_info.year + '</h5>' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                    '</div>' +
+                    '<div class="modal-body">';
     
     if (data.reports && data.reports.length > 0) {
-        modalHtml += `
-            <table class="report-table">
-                <thead>
-                    <tr>
-                        <th>STT</th>
-                        <th>Ngày/Tháng/Năm</th>
-                        <th>Tên</th>
-                        <th>Phòng ban</th>
-                        <th>Vị trí</th>
-                        <th>Công việc trong ngày</th>
-                        <th>Khó khăn</th>
-                        <th>Nhận xét</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        modalHtml += 
+            '<div class="table-responsive">' +
+                '<table class="table table-striped table-hover">' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th style="color: #000; font-weight: bold;">STT</th>' +
+                            '<th style="color: #000; font-weight: bold;">Ngày/Tháng/Năm</th>' +
+                            '<th style="color: #000; font-weight: bold;">Tên</th>' +
+                            '<th style="color: #000; font-weight: bold;">Phòng ban</th>' +
+                            '<th style="color: #000; font-weight: bold;">Vị trí</th>' +
+                            '<th style="color: #000; font-weight: bold;">Công việc trong ngày</th>' +
+                            '<th style="color: #000; font-weight: bold;">Khó khăn</th>' +
+                            '<th style="color: #000; font-weight: bold;">Nhận xét</th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
         
-        data.reports.forEach((report, index) => {
-            modalHtml += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${report.report_date}</td>
-                    <td>${report.user.name}</td>
-                    <td>${report.department.name}</td>
-                    <td>${report.user.position || 'Nhân viên'}</td>
-                    <td>${report.daily_work}</td>
-                    <td>${report.difficulties || '-'}</td>
-                    <td>${report.comments || '-'}</td>
-                </tr>
-            `;
+        data.reports.forEach(function(report, index) {
+            modalHtml += 
+                '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td>' + report.report_date + '</td>' +
+                    '<td>' + report.user.name + '</td>' +
+                    '<td>' + report.department.name + '</td>' +
+                    '<td>' + (report.user.position || 'Nhân viên') + '</td>' +
+                    '<td>' + report.daily_work + '</td>' +
+                    '<td>' + (report.difficulties || '-') + '</td>' +
+                    '<td>' + (report.comments || '-') + '</td>' +
+                '</tr>';
         });
         
-        modalHtml += `
-                </tbody>
-            </table>
-        `;
+        modalHtml += 
+                    '</tbody>' +
+                '</table>' +
+            '</div>';
     } else {
-        modalHtml += '<p>Chưa có báo cáo nào cho tuần này</p>';
+        modalHtml += '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Chưa có báo cáo nào cho tuần này</div>';
     }
     
-    modalHtml += `
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    modalHtml += 
+                    '</div>' +
+                    '<div class="modal-footer">' +
+                        '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
     
     // Xóa modal cũ nếu có
     const oldModal = document.getElementById('weekReportModal');
@@ -765,8 +1147,21 @@ function showWeekReportModal(data) {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
     // Hiển thị modal
-    const modal = new bootstrap.Modal(document.getElementById('weekReportModal'));
+    const modalElement = document.getElementById('weekReportModal');
+    const modal = new bootstrap.Modal(modalElement);
+    
+    // Đảm bảo modal được hiển thị đúng cách
+    modalElement.addEventListener('shown.bs.modal', function() {
+        // Focus vào modal để tránh warning
+        modalElement.focus();
+    });
+    
     modal.show();
+}
+
+function selectDateForReport() {
+    // Chuyển đến trang chọn ngày
+    window.location.href = '{{ route("work-reports.select-date") }}';
 }
 
 function createNewReport() {
@@ -775,17 +1170,8 @@ function createNewReport() {
 }
 
 function submitCreateForm() {
-    const form = document.getElementById('createReportForm');
-    const year = document.getElementById('year').value;
-    const month = document.getElementById('month').value;
-    const week = document.getElementById('week').value;
-    
-    if (!year || !month || !week) {
-        alert('Vui lòng chọn đầy đủ năm, tháng và tuần');
-        return;
-    }
-    
-    form.submit();
+    // Chuyển đến trang chọn ngày
+    selectDateForReport();
 }
 
 // Close modal when clicking outside
@@ -803,3 +1189,4 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 @endpush
+@endsection

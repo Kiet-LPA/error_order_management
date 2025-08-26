@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('work_reports', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('department_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('department_id')->nullable()->constrained()->cascadeOnDelete();
             $table->integer('year');
             $table->integer('month');
             $table->integer('week');

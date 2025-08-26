@@ -245,36 +245,31 @@
     min-height: 80px;
 }
 
-.existing-reports {
-    background: #f7fafc;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 24px;
-}
 
-.existing-reports-title {
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 12px;
-}
 
-.existing-report-item {
-    background: white;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 8px;
-    border-left: 4px solid #558EC1;
-}
-
-.existing-report-date {
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 4px;
-}
-
-.existing-report-summary {
-    color: #718096;
+.form-text {
     font-size: 14px;
+    margin-top: 4px;
+}
+
+.text-muted {
+    color: #718096 !important;
+}
+
+.alert {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.alert-info {
+    background: #e6f3ff;
+    border: 1px solid #b3d9ff;
+    color: #1a365d;
+}
+
+.alert i {
+    margin-right: 8px;
 }
 </style>
 @endpush
@@ -284,50 +279,26 @@
     <div class="report-header">
         <div class="report-title">Tạo báo cáo công việc</div>
         <div class="report-subtitle">
-            Tuần {{ $week }} - Tháng {{ $month }} - Năm {{ $year }}
+            Tuần {{ $week }} ({{ $weekInfo['start_formatted'] }} - {{ $weekInfo['end_formatted'] }}) - Năm {{ $year }}
         </div>
     </div>
 
-    @if($existingReports->count() > 0)
-        <div class="existing-reports">
-            <div class="existing-reports-title">
-                <i class="fas fa-info-circle"></i>
-                Báo cáo đã có trong tuần này
-            </div>
-            @foreach($existingReports as $report)
-                <div class="existing-report-item">
-                    <div class="existing-report-date">
-                        {{ \Carbon\Carbon::parse($report->report_date)->format('d/m/Y') }}
-                    </div>
-                    <div class="existing-report-summary">
-                        {{ Str::limit($report->daily_work, 100) }}
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    @endif
+
 
     <form class="report-form" method="POST" action="{{ route('work-reports.store') }}" id="reportForm">
         @csrf
-        <input type="hidden" name="year" value="{{ $year }}">
-        <input type="hidden" name="month" value="{{ $month }}">
-        <input type="hidden" name="week" value="{{ $week }}">
+        <!-- Không cần gửi year và week nữa, sẽ tính toán từ ngày báo cáo -->
 
         <div class="form-section">
             <div class="section-title">
                 <i class="fas fa-calendar"></i>
-                Thông tin báo cáo
+                Thông tin tuần báo cáo
             </div>
             
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Ngày báo cáo</label>
-                    <input type="date" name="report_date" class="form-control @error('report_date') error @enderror" 
-                           value="{{ old('report_date', now()->format('Y-m-d')) }}" required>
-                    @error('report_date')
-                        <div class="error-message">{{ $message }}</div>
-                    @enderror
-                </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Thông tin tuần hiện tại</strong><br>
+                <small>Tuần {{ $week }} của năm {{ $year }} ({{ $weekInfo['start_formatted'] }} đến {{ $weekInfo['end_formatted'] }})</small>
             </div>
         </div>
 
@@ -337,26 +308,33 @@
                 Báo cáo công việc
             </div>
             
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Hướng dẫn:</strong> Bạn có thể tạo nhiều báo cáo cho các ngày khác nhau. 
+                Hệ thống sẽ tự động phân loại báo cáo theo tuần dựa trên ngày bạn chọn.
+                <br><small>Ví dụ: Ngày 26/8 sẽ thuộc tuần 35, ngày 1/9 sẽ thuộc tuần 36.</small>
+            </div>
+            
             <table class="report-table" id="reportTable">
                 <thead>
                     <tr>
-                        <th style="width: 50px;">STT</th>
-                        <th style="width: 120px;">Ngày/Tháng/Năm</th>
-                        <th style="width: 150px;">Tên</th>
-                        <th style="width: 120px;">Phòng ban</th>
-                        <th style="width: 100px;">Vị trí</th>
-                        <th>Công việc trong ngày</th>
-                        <th style="width: 120px;">Khó khăn</th>
-                        <th style="width: 120px;">Nhận xét</th>
-                        <th style="width: 80px;">Thao tác</th>
+                        <th style="width: 50px; color: #000; font-weight: bold;">STT</th>
+                        <th style="width: 120px; color: #000; font-weight: bold;">Ngày báo cáo</th>
+                        <th style="width: 150px; color: #000; font-weight: bold;">Tên</th>
+                        <th style="width: 120px; color: #000; font-weight: bold;">Phòng ban</th>
+                        <th style="width: 100px; color: #000; font-weight: bold;">Vị trí</th>
+                        <th style="color: #000; font-weight: bold;">Công việc trong ngày</th>
+                        <th style="width: 120px; color: #000; font-weight: bold;">Khó khăn</th>
+                        <th style="width: 120px; color: #000; font-weight: bold;">Nhận xét</th>
+                        <th style="width: 80px; color: #000; font-weight: bold;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="reportTableBody">
                     <tr class="report-row">
                         <td>1</td>
                         <td>
-                            <input type="date" name="report_date" class="form-control" 
-                                   value="{{ old('report_date', now()->format('Y-m-d')) }}" required>
+                            <input type="date" name="report_dates[]" class="form-control" 
+                                   value="{{ old('report_dates.0', $selectedDateFormatted ?? now()->format('Y-m-d')) }}" required>
                         </td>
                         <td>
                             <input type="text" value="{{ auth()->user()->name }}" readonly class="form-control" style="background: #f7fafc;">
@@ -368,19 +346,19 @@
                             <input type="text" value="{{ auth()->user()->position ?? 'Nhân viên' }}" readonly class="form-control" style="background: #f7fafc;">
                         </td>
                         <td>
-                            <textarea name="daily_work" class="form-control @error('daily_work') error @enderror" 
-                                      placeholder="Mô tả công việc đã làm trong ngày..." required>{{ old('daily_work') }}</textarea>
-                            @error('daily_work')
+                            <textarea name="daily_works[]" class="form-control @error('daily_works.0') error @enderror" 
+                                      placeholder="Mô tả công việc đã làm trong ngày..." required>{{ old('daily_works.0') }}</textarea>
+                            @error('daily_works.0')
                                 <div class="error-message">{{ $message }}</div>
                             @enderror
                         </td>
                         <td>
-                            <textarea name="difficulties" class="form-control" 
-                                      placeholder="Những khó khăn gặp phải...">{{ old('difficulties') }}</textarea>
+                            <textarea name="difficulties[]" class="form-control" 
+                                      placeholder="Những khó khăn gặp phải...">{{ old('difficulties.0') }}</textarea>
                         </td>
                         <td>
-                            <textarea name="comments" class="form-control" 
-                                      placeholder="Nhận xét, đề xuất...">{{ old('comments') }}</textarea>
+                            <textarea name="comments[]" class="form-control" 
+                                      placeholder="Nhận xét, đề xuất...">{{ old('comments.0') }}</textarea>
                         </td>
                         <td>
                             <button type="button" class="remove-row-btn" onclick="removeRow(this)" style="display: none;">
@@ -406,6 +384,19 @@
             
             <div class="custom-fields-section" id="customFieldsContent">
                 <!-- Custom fields sẽ được load bằng JavaScript -->
+            </div>
+        </div>
+
+        <!-- Tùy chọn thay thế báo cáo cũ -->
+        <div class="form-section">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="replace_existing" name="replace_existing" value="1">
+                <label class="form-check-label" for="replace_existing">
+                    <i class="fas fa-exchange-alt text-warning"></i>
+                    <strong>Thay thế báo cáo cũ</strong>
+                    <br>
+                    <small class="text-muted">Nếu đã có báo cáo cho ngày này, hệ thống sẽ xóa báo cáo cũ và tạo báo cáo mới</small>
+                </label>
             </div>
         </div>
 
@@ -445,7 +436,7 @@ function addRow() {
     newRow.innerHTML = `
         <td>${rowCounter + 1}</td>
         <td>
-            <input type="date" name="report_date" class="form-control" value="${today}" required>
+            <input type="date" name="report_dates[]" class="form-control" value="${today}" required>
         </td>
         <td>
             <input type="text" value="{{ auth()->user()->name }}" readonly class="form-control" style="background: #f7fafc;">
@@ -457,13 +448,13 @@ function addRow() {
             <input type="text" value="{{ auth()->user()->position ?? 'Nhân viên' }}" readonly class="form-control" style="background: #f7fafc;">
         </td>
         <td>
-            <textarea name="daily_work" class="form-control" placeholder="Mô tả công việc đã làm trong ngày..." required></textarea>
+            <textarea name="daily_works[]" class="form-control" placeholder="Mô tả công việc đã làm trong ngày..." required></textarea>
         </td>
         <td>
-            <textarea name="difficulties" class="form-control" placeholder="Những khó khăn gặp phải..."></textarea>
+            <textarea name="difficulties[]" class="form-control" placeholder="Những khó khăn gặp phải..."></textarea>
         </td>
         <td>
-            <textarea name="comments" class="form-control" placeholder="Nhận xét, đề xuất..."></textarea>
+            <textarea name="comments[]" class="form-control" placeholder="Nhận xét, đề xuất..."></textarea>
         </td>
         <td>
             <button type="button" class="remove-row-btn" onclick="removeRow(this)">

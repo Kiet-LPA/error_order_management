@@ -9,70 +9,24 @@
             Báo cáo công việc
         </div>
         
-        @if($years->count() > 0)
-            <div class="year-grid">
-                @foreach($years as $year)
-                    <div class="year-card" data-year="{{ $year }}">
-                        <div class="year-number">{{ $year }}</div>
-                        <div class="year-label">Năm</div>
-                        
-                        <div class="month-list" id="months-{{ $year }}">
-                            <div class="month-grid">
-                                @for($month = 1; $month <= 12; $month++)
-                                    <div class="month-card" 
-                                         data-month="{{ $month }}" 
-                                         data-year="{{ $year }}"
-                                         onclick="selectMonth({{ $year }}, {{ $month }})">
-                                        <div class="month-card-number">{{ $month }}</div>
-                                        <div class="month-card-label">Tháng</div>
-                                        <div class="month-card-actions">
-                                            <button class="month-action-btn" 
-                                                    onclick="event.stopPropagation(); showWeekSelection({{ $year }}, {{ $month }})"
-                                                    title="Chọn tuần">
-                                                <i class="fas fa-calendar-week"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                @endfor
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-            
-            <button class="create-new-btn" onclick="createNewReport()">
-                <i class="fas fa-plus"></i>
-                Tạo báo cáo mới
-            </button>
-        @else
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <div class="empty-state-title">Chưa có báo cáo nào</div>
-                <div class="empty-state-desc">
-                    Bắt đầu tạo báo cáo công việc đầu tiên của bạn
-                </div>
-                <button class="create-new-btn" onclick="createNewReport()">
-                    <i class="fas fa-plus"></i>
-                    Tạo báo cáo đầu tiên
-                </button>
-            </div>
-        @endif
+        <div class="create-new-btn" onclick="selectDateForReport()">
+            <i class="fas fa-plus"></i>
+            Tạo báo cáo mới
+        </div>
     </div>
 
     <div class="quick-actions">
-        <div class="quick-action-card">
+        <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.current-week') }}'">
             <div class="quick-action-icon">
                 <i class="fas fa-calendar-week"></i>
             </div>
             <div class="quick-action-title">Báo cáo tuần này</div>
             <div class="quick-action-desc">
-                Tạo báo cáo cho tuần hiện tại
+                Xem và tạo báo cáo cho tuần hiện tại
             </div>
         </div>
         
-        <div class="quick-action-card">
+        <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.current-month') }}'">
             <div class="quick-action-icon">
                 <i class="fas fa-calendar-alt"></i>
             </div>
@@ -82,13 +36,23 @@
             </div>
         </div>
         
-        <div class="quick-action-card">
+        <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.my-activity') }}'">
             <div class="quick-action-icon">
-                <i class="fas fa-history"></i>
+                <i class="fas fa-chart-line"></i>
             </div>
-            <div class="quick-action-title">Lịch sử báo cáo</div>
+            <div class="quick-action-title">Hoạt động của tôi</div>
             <div class="quick-action-desc">
-                Xem lại các báo cáo đã tạo trước đó
+                Theo dõi hoạt động và thống kê cá nhân
+            </div>
+        </div>
+        
+        <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.index') }}'">
+            <div class="quick-action-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="quick-action-title">Quản lý báo cáo</div>
+            <div class="quick-action-desc">
+                Xem và quản lý tất cả báo cáo của bạn
             </div>
         </div>
     </div>
@@ -254,8 +218,13 @@ function selectWeek(week) {
 function confirmWeekSelection() {
     if (selectedYear && selectedMonth && selectedWeek) {
         // Chuyển đến trang tạo báo cáo
-        window.location.href = `{{ route('work-reports.create') }}?year=${selectedYear}&month=${selectedMonth}&week=${selectedWeek}`;
+        window.location.href = `{{ route('work-reports.create') }}?year=${selectedYear}&week=${selectedWeek}`;
     }
+}
+
+function selectDateForReport() {
+    // Chuyển đến trang chọn ngày
+    window.location.href = `{{ route('work-reports.select-date') }}`;
 }
 
 function createNewReport() {
@@ -266,11 +235,10 @@ function createNewReport() {
 function submitCreateForm() {
     const form = document.getElementById('createReportForm');
     const year = document.getElementById('year').value;
-    const month = document.getElementById('month').value;
     const week = document.getElementById('week').value;
     
-    if (!year || !month || !week) {
-        alert('Vui lòng chọn đầy đủ năm, tháng và tuần');
+    if (!year || !week) {
+        alert('Vui lòng chọn đầy đủ năm và tuần');
         return;
     }
     

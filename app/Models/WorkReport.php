@@ -25,7 +25,9 @@ class WorkReport extends Model
 
     protected $casts = [
         'report_date' => 'date',
-        'custom_fields' => 'array'
+        'custom_fields' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     // Relationships
@@ -81,6 +83,59 @@ class WorkReport extends Model
         return Carbon::parse($date)->year;
     }
 
+    // Get week start and end dates (Monday to Sunday)
+    public static function getWeekDates($year, $weekNumber)
+    {
+        $date = Carbon::now()->setISODate($year, $weekNumber, 1); // Monday
+        $startDate = $date->copy();
+        $endDate = $date->copy()->addDays(6); // Sunday
+        
+        return [
+            'start' => $startDate->format('Y-m-d'),
+            'end' => $endDate->format('Y-m-d'),
+            'start_formatted' => $startDate->format('d/m/Y'),
+            'end_formatted' => $endDate->format('d/m/Y')
+        ];
+    }
+
+    // Get week number from date
+    public static function getWeekFromDate($date)
+    {
+        return Carbon::parse($date)->weekOfYear;
+    }
+
+    // Get week of month from date
+    public static function getWeekOfMonth($date)
+    {
+        $carbon = Carbon::parse($date);
+        $firstDayOfMonth = $carbon->copy()->startOfMonth();
+        $dayOfMonth = $carbon->day;
+        
+        // Tính tuần thứ mấy của tháng
+        $weekOfMonth = ceil($dayOfMonth / 7);
+        
+        return $weekOfMonth;
+    }
+
+    // Get comprehensive week info from date
+    public static function getWeekInfoFromDate($date)
+    {
+        $carbon = Carbon::parse($date);
+        $year = $carbon->year;
+        $month = $carbon->month;
+        $weekOfYear = $carbon->weekOfYear;
+        $weekOfMonth = self::getWeekOfMonth($date);
+        
+        return [
+            'year' => $year,
+            'month' => $month,
+            'week_of_year' => $weekOfYear,
+            'week_of_month' => $weekOfMonth,
+            'date' => $carbon->format('Y-m-d'),
+            'formatted_date' => $carbon->format('d/m/Y')
+        ];
+    }
+
     // Get available years for a user
     public static function getAvailableYears($userId = null)
     {
@@ -101,10 +156,13 @@ class WorkReport extends Model
         return $query->distinct()->pluck('month')->sort()->values();
     }
 
-    // Get available weeks for a month
-    public static function getAvailableWeeks($year, $month, $userId = null)
+    // Get available weeks for a year and month
+    public static function getAvailableWeeks($year, $month = null, $userId = null)
     {
-        $query = self::byYear($year)->byMonth($month);
+        $query = self::byYear($year);
+        if ($month) {
+            $query->byMonth($month);
+        }
         if ($userId) {
             $query->byUser($userId);
         }
@@ -112,18 +170,21 @@ class WorkReport extends Model
     }
 
     // Get reports for a specific week
-    public static function getWeekReports($year, $month, $week, $userId = null)
+    public static function getWeekReports($year, $week, $month = null, $userId = null)
     {
         $query = self::with(['user', 'department'])
                     ->byYear($year)
-                    ->byMonth($month)
                     ->byWeek($week);
+        
+        if ($month) {
+            $query->byMonth($month);
+        }
         
         if ($userId) {
             $query->byUser($userId);
         }
         
-        return $query->orderBy('report_date')->get();
+        return $query->orderBy('report_date', 'desc')->get();
     }
 
     // Get department custom fields configuration
