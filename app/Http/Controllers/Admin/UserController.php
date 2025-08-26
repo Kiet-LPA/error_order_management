@@ -171,8 +171,13 @@ class UserController extends Controller
             abort(403, 'Bạn chỉ có thể chỉnh sửa người dùng cùng phòng ban.');
         }
         
+        // Chỉ xử lý nhân viên chính thức
+        if ($user->employee_type === 'new') {
+            abort(404, 'Vui lòng sử dụng form chỉnh sửa nhân viên mới.');
+        }
+        
         $departments = Department::orderBy('name')->get();
-        return view('admin.users.edit', compact('user', 'departments'));
+        return view('admin.users.edit-official', compact('user', 'departments'));
     }
 
     public function show(User $user)
@@ -209,6 +214,11 @@ class UserController extends Controller
             abort(403, 'Bạn chỉ có thể cập nhật người dùng cùng phòng ban.');
         }
         
+        // Chỉ xử lý nhân viên chính thức
+        if ($user->employee_type === 'new') {
+            abort(404, 'Vui lòng sử dụng form chỉnh sửa nhân viên mới.');
+        }
+        
         $data = $request->validate([
             'name'=>'required|string|max:255',
             'email'=>['nullable','email', Rule::unique('users','email')->ignore($user->id)],
@@ -221,11 +231,26 @@ class UserController extends Controller
             'health_insurance_number'=>'nullable|string|max:50',
             'personal_identification_number'=>'nullable|string|max:50',
             'contract_images.*'=>'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            // Thông tin hợp đồng
+            'contract_salary'=>'nullable|numeric|min:0',
+            'contract_period'=>'nullable|integer|min:1|max:60',
+            'contract_start_date'=>'nullable|date',
+            'contract_status'=>'nullable|in:active,completed,terminated',
         ]);
         
-        // Kiểm tra ít nhất phải có email hoặc số điện thoại
+        // Kiểm tra ít nhất phải có email hoặc số điện thoại cho nhân viên chính thức
         if (empty($data['email']) && empty($data['phone'])) {
             return back()->withErrors(['email'=>'Phải có ít nhất email hoặc số điện thoại.'])->withInput();
+        }
+        
+        // Kiểm tra thông tin hợp đồng
+        if ($request->filled('contract_start_date') && $request->filled('contract_period')) {
+            $startDate = \Carbon\Carbon::parse($request->contract_start_date);
+            $endDate = $startDate->copy()->addMonths($request->contract_period);
+            
+            if ($endDate->isPast()) {
+                return back()->withErrors(['contract_period'=>'Thời gian hợp đồng không hợp lệ. Ngày kết thúc không được trong quá khứ.'])->withInput();
+            }
         }
         
         if (in_array($data['role'], ['manager','employee']) && empty($data['department_id'])) {
@@ -242,10 +267,42 @@ class UserController extends Controller
             abort(403, 'Bạn không có quyền tạo tài khoản admin.');
         }
         
-        if (!empty($data['password'])) $data['password'] = bcrypt($data['password']); else unset($data['password']);
-        
+        // Xử lý cập nhật thông tin hợp đồng
+        if ($user->activeContract) {
+            $contractData = [];
+            
+            if ($request->filled('contract_salary')) {
+                $contractData['probation_salary'] = $request->contract_salary;
+            }
+            if ($request->filled('contract_period')) {
+                $contractData['probation_period'] = $request->contract_period;
+                // Cập nhật ngày kết thúc dựa trên ngày bắt đầu và thời gian hợp đồng
+                if ($request->filled('contract_start_date')) {
+                    $startDate = $request->contract_start_date;
+                } else {
+                    $startDate = $user->activeContract->start_date->format('Y-m-d');
+                }
+                $contractData['end_date'] = \Carbon\Carbon::parse($startDate)->addMonths($request->contract_period);
+            }
+            if ($request->filled('contract_start_date')) {
+                $contractData['start_date'] = $request->contract_start_date;
+                // Cập nhật ngày kết thúc nếu có thời gian hợp đồng
+                if ($request->filled('contract_period')) {
+                    $contractData['end_date'] = \Carbon\Carbon::parse($request->contract_start_date)->addMonths($request->contract_period);
+                }
+            }
+            if ($request->filled('contract_status')) {
+                $contractData['status'] = $request->contract_status;
+            }
+            
+            // Cập nhật hợp đồng nếu có dữ liệu thay đổi
+            if (!empty($contractData)) {
+                $user->activeContract->update($contractData);
+            }
+        }
+
         // Xử lý upload hình ảnh hợp đồng (chỉ cho nhân viên chính thức)
-        if ($user->employee_type == 'official' && $request->hasFile('contract_images')) {
+        if ($request->hasFile('contract_images')) {
             $activeContract = $user->contracts()->where('status', 'active')->first();
             
             if ($activeContract) {
@@ -261,8 +318,16 @@ class UserController extends Controller
             }
         }
         
+        if (!empty($data['password'])) $data['password'] = bcrypt($data['password']); else unset($data['password']);
+        
         $user->update($data);
-        return redirect()->route('users.index')->with('success','Cập nhật thành công.');
+        
+        $message = 'Cập nhật thông tin thành công.';
+        if ($user->activeContract && ($request->filled('contract_salary') || $request->filled('contract_period') || $request->filled('contract_start_date') || $request->filled('contract_status'))) {
+            $message = 'Cập nhật thông tin và hợp đồng thành công.';
+        }
+        
+        return redirect()->route('users.index')->with('success', $message);
     }
 
     public function destroy(User $user)

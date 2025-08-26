@@ -15,6 +15,9 @@ class CommentController extends Controller
     {
         $user = $request->user();
         
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
+        
         // Kiểm tra quyền comment trên task
         if ($user->isAdmin()) {
             // Admin có thể comment trên mọi task
@@ -25,9 +28,13 @@ class CommentController extends Controller
                 abort(403, 'Bạn chỉ có thể comment trên task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể comment trên task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể comment trên task của mình.');
+            // Employee chỉ có thể comment trên task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể comment trên task mà bạn được assign hoặc tạo.');
             }
         }
         

@@ -130,17 +130,23 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            @if($user->contracts && $user->contracts->count() > 0)
-                                @foreach($user->contracts as $contract)
+                                                            @if($user->activeContract)
+                                @php $contract = $user->activeContract; @endphp
                                     <div class="border rounded p-3 mb-3">
-                                                                                 <div class="row mb-2">
-                                             <div class="col-sm-4 fw-bold">Lương chính thức:</div>
-                                             <div class="col-sm-8">{{ number_format($contract->probation_salary) }} VNĐ</div>
-                                         </div>
-                                         <div class="row mb-2">
-                                             <div class="col-sm-4 fw-bold">Thời gian hợp đồng:</div>
-                                             <div class="col-sm-8">{{ $contract->probation_period }} tháng</div>
-                                         </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 fw-bold">
+                                                @if($user->employee_type == 'new')
+                                                    Lương thử việc:
+                                                @else
+                                                    Lương chính thức:
+                                                @endif
+                                            </div>
+                                            <div class="col-sm-8">{{ number_format($contract->probation_salary) }} VNĐ</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 fw-bold">Thời gian hợp đồng:</div>
+                                            <div class="col-sm-8">{{ $contract->probation_period }} tháng</div>
+                                        </div>
                                         <div class="row mb-2">
                                             <div class="col-sm-4 fw-bold">Ngày bắt đầu:</div>
                                             <div class="col-sm-8">{{ $contract->start_date->format('d/m/Y') }}</div>
@@ -187,7 +193,6 @@
                                         </div>
                                         @endif
                                     </div>
-                                @endforeach
                             @else
                                 <p class="text-muted mb-0">Chưa có thông tin hợp đồng</p>
                             @endif

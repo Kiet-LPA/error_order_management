@@ -53,12 +53,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks/{task}/undo-completion', [TaskController::class, 'undoCompletion'])->name('tasks.undo-completion');
     
     // Employee/Manager/Admin: trang "my tasks" & comment trên task
-    Route::middleware('role:employee,manager,admin')->group(function () {
+    Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
         Route::get('/my-tasks', [TaskController::class, 'myTasks'])->name('tasks.mine');
     });
 
     // Comment routes
-    Route::middleware('role:employee,manager,admin')->group(function () {
+    Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
         Route::post('/tasks/{task}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
         Route::put('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'update'])->name('comments.update');
         Route::delete('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
@@ -72,7 +72,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Báo cáo công việc - cho tất cả role
-    Route::middleware('role:employee,manager,admin')->group(function () {
+    Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
         Route::get('/work-reports', [WorkReportController::class, 'index'])->name('work-reports.index');
         Route::get('/work-reports/select-date', [WorkReportController::class, 'selectDate'])->name('work-reports.select-date');
         Route::get('/work-reports/create', [WorkReportController::class, 'create'])->name('work-reports.create');
@@ -101,7 +101,14 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesIndex'])->name('employees.new.index');
     Route::get('/employees/new/create', [App\Http\Controllers\EmployeeController::class, 'newEmployeesCreate'])->name('employees.new.create');
     Route::post('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesStore'])->name('employees.new.store');
+    Route::get('/employees/new/{user}/edit', [App\Http\Controllers\EmployeeController::class, 'newEmployeesEdit'])->name('employees.new.edit');
+    Route::put('/employees/new/{user}', [App\Http\Controllers\EmployeeController::class, 'newEmployeesUpdate'])->name('employees.new.update');
     Route::post('/employees/{user}/convert', [App\Http\Controllers\EmployeeController::class, 'convertToOfficial'])->name('employees.convert');
+});
+
+// Trang thông báo cho nhân viên mới
+Route::middleware(['auth'])->group(function () {
+    Route::get('/employees/new/notice', [App\Http\Controllers\EmployeeController::class, 'newEmployeeNotice'])->name('employees.new.notice');
 });
 
 // Quản lý lương
@@ -115,7 +122,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    
 });
 
 // Chỉ require auth.php nếu đã cài Breeze/Jetstream (tránh lỗi file không tồn tại)

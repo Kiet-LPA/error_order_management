@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Cập nhật thông tin nhân viên')
+@section('title', 'Cập nhật thông tin nhân viên chính thức')
 
 @section('content')
 <style>
@@ -33,8 +33,8 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="mb-0">
-                    <i class="bi bi-person-circle me-2"></i>
-                    Cập nhật thông tin nhân viên
+                    <i class="bi bi-person-check me-2"></i>
+                    Cập nhật thông tin nhân viên chính thức
                 </h2>
                 <div>
                     <a href="{{ route('users.index') }}" class="btn btn-secondary">
@@ -58,7 +58,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">Tên</label>
+                                    <label for="name" class="form-label">Họ tên <span class="text-danger">*</span></label>
                                     <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
                                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
@@ -97,7 +97,7 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="role" class="form-label">Vai trò</label>
+                                    <label for="role" class="form-label">Vai trò <span class="text-danger">*</span></label>
                                     <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
                                         <option value="admin" {{ old('role', $user->role)=='admin'?'selected':'' }}>Admin</option>
                                         <option value="manager" {{ old('role', $user->role)=='manager'?'selected':'' }}>Manager</option>
@@ -107,7 +107,7 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="department_id" class="form-label">Phòng ban (nếu có)</label>
+                                    <label for="department_id" class="form-label">Phòng ban</label>
                                     <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror">
                                         <option value="">-- Không chọn --</option>
                                         @foreach($departments as $department)
@@ -142,60 +142,130 @@
                                 
                                 <div class="mb-3">
                                     <label for="social_insurance_number" class="form-label">Mã số BHXH</label>
-                                    <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}">
+                                    <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}" placeholder="VD: 1234567890">
                                     @error('social_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="health_insurance_number" class="form-label">Mã số BHYT</label>
-                                    <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}">
+                                    <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}" placeholder="VD: DN1234567890123">
                                     @error('health_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="personal_identification_number" class="form-label">Mã số định danh cá nhân</label>
-                                    <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}">
+                                    <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}" placeholder="VD: 123456789012345">
                                     @error('personal_identification_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
-                                <!-- Hình ảnh hợp đồng (chỉ cho nhân viên chính thức) -->
-                                @if($user->employee_type == 'official')
-                                <div class="mt-4">
-                                    <h6 class="text-info mb-3">
-                                        <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
-                                    </h6>
-                                    
-                                    <div class="mb-3">
-                                        <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
-                                        <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
-                                               id="contract_images" name="contract_images[]" multiple 
-                                               accept="image/*">
-                                        <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF</div>
-                                        @error('contract_images.*')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                    <div id="imagePreview" class="row g-2"></div>
-                                    
-                                    <!-- Hiển thị hình ảnh hiện có -->
-                                    @if($user->contracts && $user->contracts->where('status', 'active')->first() && $user->contracts->where('status', 'active')->first()->images->count() > 0)
-                                    <div class="mt-3">
-                                        <h6>Hình ảnh hợp đồng hiện tại:</h6>
-                                        <div class="row g-2">
-                                            @foreach($user->contracts->where('status', 'active')->first()->images as $image)
-                                            <div class="col-md-6 col-sm-6 col-6">
-                                                <div class="card">
-                                                    <img src="{{ $image->image_path }}" class="card-img-top" style="height: 120px; object-fit: cover;">
-                                                    <div class="card-body p-2">
-                                                        <small class="text-muted">Trang {{ $image->page_number }}</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            @endforeach
+                <!-- Thông tin hợp đồng -->
+                @if($user->activeContract)
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-file-earmark-text me-2"></i>Thông tin hợp đồng chính thức
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="contract_salary" class="form-label">Lương chính thức (VNĐ)</label>
+                                            <input type="number" name="contract_salary" id="contract_salary" 
+                                                   class="form-control @error('contract_salary') is-invalid @enderror" 
+                                                   value="{{ old('contract_salary', $user->activeContract->probation_salary) }}" 
+                                                   min="0" step="1000000" placeholder="VD: 7000000">
+                                            @error('contract_salary')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
                                     </div>
-                                    @endif
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="contract_period" class="form-label">Thời gian hợp đồng (tháng)</label>
+                                            <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror">
+                                                <option value="1" {{ old('contract_period', $user->activeContract->probation_period) == '1' ? 'selected' : '' }}>1 tháng</option>
+                                                <option value="3" {{ old('contract_period', $user->activeContract->probation_period) == '3' ? 'selected' : '' }}>3 tháng</option>
+                                                <option value="6" {{ old('contract_period', $user->activeContract->probation_period) == '6' ? 'selected' : '' }}>6 tháng</option>
+                                                <option value="12" {{ old('contract_period', $user->activeContract->probation_period) == '12' ? 'selected' : '' }}>12 tháng</option>
+                                                <option value="24" {{ old('contract_period', $user->activeContract->probation_period) == '24' ? 'selected' : '' }}>24 tháng</option>
+                                                <option value="36" {{ old('contract_period', $user->activeContract->probation_period) == '36' ? 'selected' : '' }}>36 tháng</option>
+                                            </select>
+                                            @error('contract_period')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="contract_start_date" class="form-label">Ngày bắt đầu hợp đồng</label>
+                                            <input type="date" name="contract_start_date" id="contract_start_date" 
+                                                   class="form-control @error('contract_start_date') is-invalid @enderror" 
+                                                   value="{{ old('contract_start_date', $user->activeContract->start_date->format('Y-m-d')) }}">
+                                            @error('contract_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="contract_status" class="form-label">Trạng thái hợp đồng</label>
+                                            <select name="contract_status" id="contract_status" class="form-select @error('contract_status') is-invalid @enderror">
+                                                <option value="active" {{ old('contract_status', $user->activeContract->status) == 'active' ? 'selected' : '' }}>Đang hoạt động</option>
+                                                <option value="completed" {{ old('contract_status', $user->activeContract->status) == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                                                <option value="terminated" {{ old('contract_status', $user->activeContract->status) == 'terminated' ? 'selected' : '' }}>Đã chấm dứt</option>
+                                            </select>
+                                            @error('contract_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Hình ảnh hợp đồng -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
+                                    <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
+                                           id="contract_images" name="contract_images[]" multiple 
+                                           accept="image/*">
+                                    <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF. Tối đa 2MB mỗi file.</div>
+                                    @error('contract_images.*')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div id="imagePreview" class="row g-2 mb-3"></div>
+                                
+                                <!-- Hiển thị hình ảnh hiện có -->
+                                @if($user->contracts && $user->contracts->where('status', 'active')->first() && $user->contracts->where('status', 'active')->first()->images->count() > 0)
+                                <div class="mt-3">
+                                    <h6>Hình ảnh hợp đồng hiện tại:</h6>
+                                    <div class="row g-2">
+                                        @foreach($user->contracts->where('status', 'active')->first()->images as $image)
+                                        <div class="col-md-6 col-sm-6 col-6">
+                                            <div class="card">
+                                                <img src="{{ $image->image_path }}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                                                <div class="card-body p-2">
+                                                    <small class="text-muted">Trang {{ $image->page_number }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                                 @endif
                             </div>
@@ -221,7 +291,6 @@
     </div>
 </div>
 
-@if($user->employee_type == 'official')
 @push('scripts')
 <script>
 document.getElementById('contract_images').addEventListener('change', function(e) {
@@ -251,7 +320,7 @@ document.getElementById('contract_images').addEventListener('change', function(e
 });
 </script>
 @endpush
-@endif
+
 @endsection
 
 <script>

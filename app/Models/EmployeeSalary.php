@@ -12,6 +12,7 @@ class EmployeeSalary extends Model
     protected $fillable = [
         'user_id',
         'gross_salary',
+        'basic_salary',
         'allowance',
         'bonus',
         'deduction',
@@ -25,6 +26,7 @@ class EmployeeSalary extends Model
     protected $casts = [
         'effective_date' => 'datetime',
         'gross_salary' => 'decimal:2',
+        'basic_salary' => 'decimal:2',
         'allowance' => 'decimal:2',
         'bonus' => 'decimal:2',
         'deduction' => 'decimal:2',

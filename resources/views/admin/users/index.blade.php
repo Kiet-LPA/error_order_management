@@ -305,9 +305,6 @@
                             <td>{{ $user->id }}</td>
                             <td>
                                 <div class="fw-semibold">{{ $user->name }}</div>
-                                @if($user->position)
-                                    <small class="text-muted">{{ $user->position }}</small>
-                                @endif
                             </td>
                             <td>
                                 @if($user->email)

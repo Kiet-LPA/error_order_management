@@ -53,6 +53,7 @@ class EmployeeController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
+                'role' => 'employee', // Mặc định là employee
                 'department_id' => $request->department_id,
                 'employee_type' => 'new',
                 'password' => bcrypt('password123'), // mật khẩu mặc định
@@ -83,27 +84,58 @@ class EmployeeController extends Controller
     public function convertToOfficial(Request $request, User $user)
     {
         $request->validate([
+            'role' => 'required|in:admin,manager,employee',
             'official_salary' => 'required|numeric|min:0',
             'official_start_date' => 'required|date',
             'contract_duration' => 'required|integer|min:1|max:60', // tháng
         ]);
 
+        // Kiểm tra quyền
+        $currentUser = auth()->user();
+        
+        // Manager không thể tạo admin
+        if ($currentUser->isManager() && $request->role === 'admin') {
+            abort(403, 'Bạn không có quyền tạo tài khoản admin.');
+        }
+
         try {
-            $user->update([
-                'employee_type' => 'official',
+            // Log thông tin trước khi chuyển đổi
+            \Log::info('Converting employee to official', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'old_employee_type' => $user->employee_type,
+                'new_role' => $request->role,
+                'official_salary' => $request->official_salary,
+                'contract_duration' => $request->contract_duration,
             ]);
 
+            // Bắt đầu transaction
+            \DB::beginTransaction();
+
+            $user->update([
+                'employee_type' => 'official',
+                'role' => $request->role,
+            ]);
+            \Log::info('User updated successfully', ['user_id' => $user->id, 'new_employee_type' => $user->employee_type]);
+
             // Tạo lương chính thức
-            EmployeeSalary::create([
+            $salary = EmployeeSalary::create([
                 'user_id' => $user->id,
                 'gross_salary' => $request->official_salary,
+                'basic_salary' => $request->official_salary,
                 'net_salary' => $request->official_salary,
                 'effective_date' => $request->official_start_date,
                 'status' => 'active',
             ]);
+            \Log::info('Salary created successfully', ['salary_id' => $salary->id, 'amount' => $salary->gross_salary]);
 
-            // Tạo hợp đồng chính thức
-            EmployeeContract::create([
+            // Cập nhật trạng thái hợp đồng thử việc cũ thành completed
+            $oldContracts = $user->contracts()->where('status', 'active')->get();
+            $user->contracts()->where('status', 'active')->update(['status' => 'completed']);
+            \Log::info('Old contracts marked as completed', ['count' => $oldContracts->count()]);
+
+            // Tạo hợp đồng chính thức mới
+            $newContract = EmployeeContract::create([
                 'user_id' => $user->id,
                 'probation_salary' => $request->official_salary,
                 'probation_period' => $request->contract_duration,
@@ -111,16 +143,182 @@ class EmployeeController extends Controller
                 'end_date' => \Carbon\Carbon::parse($request->official_start_date)->addMonths($request->contract_duration),
                 'status' => 'active',
             ]);
+            \Log::info('New contract created successfully', [
+                'contract_id' => $newContract->id,
+                'salary' => $newContract->probation_salary,
+                'period' => $newContract->probation_period,
+                'status' => $newContract->status
+            ]);
 
-            // Cập nhật trạng thái hợp đồng thử việc
-            $user->contracts()->where('status', 'active')->update(['status' => 'completed']);
+            // Đảm bảo chỉ có một hợp đồng active
+            $latestContract = $user->contracts()->where('status', 'active')->latest()->first();
+            if ($latestContract) {
+                $user->contracts()->where('status', 'active')->where('id', '!=', $latestContract->id)->update(['status' => 'completed']);
+                \Log::info('Ensured only one active contract', ['active_contract_id' => $latestContract->id]);
+            }
+
+            // Commit transaction
+            \DB::commit();
+            \Log::info('Transaction committed successfully');
 
             return redirect()->route('users.index')->with('success', 'Đã chuyển nhân viên thành chính thức!');
 
         } catch (\Exception $e) {
-            Log::error('Error converting employee: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Có lỗi xảy ra khi chuyển đổi nhân viên.']);
+            \DB::rollBack();
+            \Log::error('Error converting employee: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['error' => 'Có lỗi xảy ra khi chuyển đổi nhân viên: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Hiển thị trang thông báo cho nhân viên mới
+     */
+    public function newEmployeeNotice()
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra xem user có phải là nhân viên mới không
+        if ($user->role !== 'employee' || $user->employee_type !== 'new') {
+            return redirect()->route('dashboard');
+        }
+        
+        return view('employees.new.notice', compact('user'));
+    }
+
+    /**
+     * Hiển thị form chỉnh sửa nhân viên mới
+     */
+    public function newEmployeesEdit(User $user)
+    {
+        // Kiểm tra quyền
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Bạn không có quyền chỉnh sửa nhân viên.');
+        }
+        
+        // Kiểm tra xem user có phải là nhân viên mới không
+        if ($user->employee_type !== 'new') {
+            abort(404, 'Chỉ có thể chỉnh sửa nhân viên mới.');
+        }
+        
+        $departments = \App\Models\Department::orderBy('name')->get();
+        return view('admin.users.edit-new', compact('user', 'departments'));
+    }
+
+    /**
+     * Cập nhật thông tin nhân viên mới
+     */
+    public function newEmployeesUpdate(Request $request, User $user)
+    {
+        // Kiểm tra quyền
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Bạn không có quyền cập nhật nhân viên.');
+        }
+        
+        // Kiểm tra xem user có phải là nhân viên mới không
+        if ($user->employee_type !== 'new') {
+            abort(404, 'Chỉ có thể cập nhật nhân viên mới.');
+        }
+        
+        $data = $request->validate([
+            'name'=>'required|string|max:255',
+            'email'=>'required|email|unique:users,email,' . $user->id,
+            'phone'=>'nullable|string|max:20|unique:users,phone,' . $user->id,
+            'password'=>'nullable|min:8|confirmed',
+            'role'=>'required|in:admin,manager,employee',
+            'department_id'=>'required|exists:departments,id',
+            'add_contract'=>'nullable|boolean',
+            // Thông tin hợp đồng thử việc
+            'probation_salary'=>'nullable|numeric|min:0',
+            'probation_period'=>'nullable|integer|min:1|max:12',
+            'start_date'=>'nullable|date',
+            'contract_status'=>'nullable|in:active,completed,terminated',
+        ]);
+        
+        // Kiểm tra quyền
+        $currentUser = auth()->user();
+        
+        // Manager không thể tạo admin
+        if ($currentUser->isManager() && $data['role'] === 'admin') {
+            abort(403, 'Bạn không có quyền tạo tài khoản admin.');
+        }
+        
+        // Validate thông tin hợp đồng nếu có gửi lên
+        if ($request->filled('probation_salary') || $request->filled('probation_period') || $request->filled('start_date')) {
+            // Chỉ validate các trường được gửi lên
+            $contractValidation = [];
+            if ($request->filled('probation_salary')) {
+                $contractValidation['probation_salary'] = 'required|numeric|min:0';
+            }
+            if ($request->filled('probation_period')) {
+                $contractValidation['probation_period'] = 'required|integer|min:1|max:12';
+            }
+            if ($request->filled('start_date')) {
+                $contractValidation['start_date'] = 'required|date';
+            }
+            
+            if (!empty($contractValidation)) {
+                $request->validate($contractValidation);
+            }
+        }
+        
+        if (!empty($data['password'])) {
+            $data['password'] = bcrypt($data['password']);
+        } else {
+            unset($data['password']);
+        }
+        
+        $user->update($data);
+        
+        // Xử lý hợp đồng thử việc
+        if ($user->activeContract) {
+            // Cập nhật hợp đồng hiện tại
+            $contract = $user->activeContract;
+            $contractData = [];
+            
+
+            
+            // Chỉ cập nhật các trường được gửi lên
+            if ($request->filled('probation_salary')) {
+                $contractData['probation_salary'] = $request->probation_salary;
+            }
+            if ($request->filled('probation_period')) {
+                $contractData['probation_period'] = $request->probation_period;
+            }
+            if ($request->filled('start_date')) {
+                $contractData['start_date'] = $request->start_date;
+            }
+            if ($request->filled('contract_status')) {
+                $contractData['status'] = $request->contract_status;
+            }
+            
+            // Cập nhật nếu có dữ liệu thay đổi
+            if (!empty($contractData)) {
+                $contract->update($contractData);
+            }
+        } elseif ($request->has('add_contract') && $request->filled('probation_salary') && $request->filled('probation_period') && $request->filled('start_date')) {
+            // Tạo hợp đồng thử việc mới
+            EmployeeContract::create([
+                'user_id' => $user->id,
+                'probation_salary' => $request->probation_salary,
+                'probation_period' => $request->probation_period,
+                'start_date' => $request->start_date,
+                'status' => 'active',
+            ]);
+        }
+        
+        $message = 'Cập nhật thông tin thành công.';
+        if ($user->activeContract) {
+            $message = 'Cập nhật thông tin và hợp đồng thành công.';
+        } elseif ($request->has('add_contract')) {
+            $message = 'Cập nhật thông tin và tạo hợp đồng thử việc thành công.';
+        }
+        
+        return redirect()->route('employees.new.index')->with('success', $message);
     }
 
     /**

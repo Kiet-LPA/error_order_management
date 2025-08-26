@@ -38,6 +38,11 @@ class User extends Authenticatable
         return $this->hasMany(EmployeeContract::class);
     }
 
+    public function activeContract()
+    {
+        return $this->hasOne(EmployeeContract::class)->where('status', 'active')->latest();
+    }
+
     public function salary()
     {
         return $this->hasOne(EmployeeSalary::class)->where('status', 'active');

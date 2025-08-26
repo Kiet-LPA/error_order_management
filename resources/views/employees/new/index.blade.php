@@ -45,7 +45,6 @@
                                                 </div>
                                                 <div>
                                                     <div class="fw-bold">{{ $employee->name }}</div>
-                                                    <small class="text-muted">{{ $employee->position ?? 'Chưa có chức vụ' }}</small>
                                                 </div>
                                             </div>
                                         </td>
@@ -71,29 +70,29 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->contracts && $employee->contracts->count() > 0)
-                                                {{ number_format($employee->contracts->first()->probation_salary) }} VNĐ
+                                            @if($employee->activeContract)
+                                                {{ number_format($employee->activeContract->probation_salary) }} VNĐ
                                             @else
                                                 <span class="text-muted">Chưa có</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->contracts && $employee->contracts->count() > 0)
-                                                {{ $employee->contracts->first()->probation_period }} tháng
+                                            @if($employee->activeContract)
+                                                {{ $employee->activeContract->probation_period }} tháng
                                             @else
                                                 <span class="text-muted">Chưa có</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->contracts && $employee->contracts->count() > 0)
-                                                {{ $employee->contracts->first()->start_date->format('d/m/Y') }}
+                                            @if($employee->activeContract)
+                                                {{ $employee->activeContract->start_date->format('d/m/Y') }}
                                             @else
                                                 <span class="text-muted">Chưa có</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->contracts && $employee->contracts->count() > 0)
-                                                @switch($employee->contracts->first()->status)
+                                            @if($employee->activeContract)
+                                                @switch($employee->activeContract->status)
                                                     @case('active')
                                                         <span class="badge bg-success">Đang thử việc</span>
                                                         @break
@@ -113,10 +112,10 @@
                                                 <a href="{{ route('users.show', $employee) }}" class="btn btn-sm btn-outline-info">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                <a href="{{ route('users.edit', $employee) }}" class="btn btn-sm btn-outline-warning">
+                                                <a href="{{ route('employees.new.edit', $employee) }}" class="btn btn-sm btn-outline-warning">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                                @if($employee->contracts && $employee->contracts->first()->status == 'active')
+                                                @if($employee->activeContract && $employee->activeContract->status == 'active')
                                                     <button type="button" class="btn btn-sm btn-outline-success" 
                                                             data-bs-toggle="modal" data-bs-target="#convertModal{{ $employee->id }}">
                                                         <i class="bi bi-check-circle"></i>
@@ -146,7 +145,7 @@
 
 <!-- Modals for converting employees -->
 @foreach($newEmployees as $employee)
-    @if($employee->contracts && $employee->contracts->first()->status == 'active')
+    @if($employee->activeContract && $employee->activeContract->status == 'active')
     <div class="modal fade" id="convertModal{{ $employee->id }}" tabindex="-1" aria-labelledby="convertModalLabel{{ $employee->id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -161,7 +160,24 @@
                     <div class="modal-body">
                         <p>Bạn đang chuyển <strong>{{ $employee->name }}</strong> từ nhân viên thử việc thành nhân viên chính thức.</p>
                         
-
+                        <div class="alert alert-info">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Vai trò hiện tại:</strong> {{ ucfirst($employee->role ?? 'employee') }}
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role{{ $employee->id }}" class="form-label">Vai trò <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role{{ $employee->id }}" name="role" required>
+                                <option value="">Chọn vai trò</option>
+                                <option value="employee" {{ ($employee->role ?? 'employee') == 'employee' ? 'selected' : '' }}>Nhân viên</option>
+                                <option value="manager" {{ ($employee->role ?? 'employee') == 'manager' ? 'selected' : '' }}>Quản lý</option>
+                                @if(auth()->user()->isAdmin())
+                                    <option value="admin" {{ ($employee->role ?? 'employee') == 'admin' ? 'selected' : '' }}>Quản trị viên</option>
+                                @endif
+                            </select>
+                        </div>
                         
                         <div class="mb-3">
                             <label for="official_salary{{ $employee->id }}" class="form-label">Lương chính thức (VNĐ) <span class="text-danger">*</span></label>
@@ -190,7 +206,7 @@
                         <div class="alert alert-info">
                             <small>
                                 <i class="bi bi-info-circle me-1"></i>
-                                Lương thử việc hiện tại: {{ number_format($employee->contracts->first()->probation_salary) }} VNĐ
+                                Lương thử việc hiện tại: {{ $employee->activeContract ? number_format($employee->activeContract->probation_salary) : 'N/A' }} VNĐ
                             </small>
                         </div>
                     </div>

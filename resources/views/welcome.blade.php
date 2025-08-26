@@ -280,9 +280,9 @@
     </form>
   </div>
 
-  {{-- Filter theo thời gian --}}
-  <div class="row g-2">
-    <div class="col-md-6">
+  {{-- Filter theo thời gian và phòng ban --}}
+  <div class="row g-3">
+    <div class="col-md-4">
       <small class="text-muted mb-2 d-block"><i class="bi bi-sort-numeric-down me-1"></i>Sắp xếp theo thời gian:</small>
       <div class="btn-group" role="group">
         <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
@@ -322,7 +322,7 @@
       </div>
     </div>
     
-    <div class="col-md-6">
+    <div class="col-md-4">
       <small class="text-muted mb-2 d-block"><i class="bi bi-calendar-range me-1"></i>Chọn khoảng thời gian:</small>
       <form method="GET" action="{{ route('dashboard') }}" class="row g-2">
         <input type="hidden" name="status" value="{{ request('status') }}">
@@ -337,11 +337,11 @@
         @endif
         <div class="col-5">
           <input type="date" name="date_from" value="{{ request('date_from') }}" 
-                 class="form-control form-control-sm" placeholder="Từ ngày">
+                 class="form-control form-control-sm" placeholder="dd/mm/yyyy">
         </div>
         <div class="col-5">
           <input type="date" name="date_to" value="{{ request('date_to') }}" 
-                 class="form-control form-control-sm" placeholder="Đến ngày">
+                 class="form-control form-control-sm" placeholder="dd/mm/yyyy">
         </div>
         <div class="col-2">
           <button type="submit" class="btn btn-sm btn-primary w-100" style="background-color: #558EC1; border-color: #558EC1;">
@@ -350,6 +350,62 @@
         </div>
       </form>
     </div>
+
+    @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+    <div class="col-md-4">
+      <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Filter theo phòng ban:</small>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-secondary dropdown-toggle w-100" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          @if(request('department_filter'))
+            @php
+              $selectedDept = $departments->firstWhere('id', request('department_filter'));
+            @endphp
+            {{ $selectedDept ? $selectedDept->name : 'Tất cả phòng ban' }}
+          @else
+            Tất cả phòng ban
+          @endif
+        </button>
+        <ul class="dropdown-menu w-100" aria-labelledby="departmentDropdown">
+          <li><h6 class="dropdown-header">Chọn phòng ban:</h6></li>
+          <li>
+            <form method="GET" action="{{ route('dashboard') }}" class="px-3 py-2">
+              <input type="hidden" name="status" value="{{ request('status') }}">
+              <input type="hidden" name="sort" value="{{ request('sort') }}">
+              <input type="hidden" name="date_from" value="{{ request('date_from') }}">
+              <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+              @if(request('statuses'))
+                @foreach(request('statuses') as $status)
+                  <input type="hidden" name="statuses[]" value="{{ $status }}">
+                @endforeach
+              @endif
+              <button type="submit" class="btn btn-sm btn-outline-secondary w-100 mb-2">
+                <i class="bi bi-x-circle me-1"></i>Xóa
+              </button>
+            </form>
+          </li>
+          @foreach($departments as $department)
+            <li>
+              <form method="GET" action="{{ route('dashboard') }}" class="px-3 py-1">
+                <input type="hidden" name="status" value="{{ request('status') }}">
+                <input type="hidden" name="sort" value="{{ request('sort') }}">
+                <input type="hidden" name="date_from" value="{{ request('date_from') }}">
+                <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+                <input type="hidden" name="department_filter" value="{{ $department->id }}">
+                @if(request('statuses'))
+                  @foreach(request('statuses') as $status)
+                    <input type="hidden" name="statuses[]" value="{{ $status }}">
+                  @endforeach
+                @endif
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-1">
+                  {{ $department->name }}
+                </button>
+              </form>
+            </li>
+          @endforeach
+        </ul>
+      </div>
+    </div>
+    @endif
   </div>
 
   {{-- Nút xóa filter --}}

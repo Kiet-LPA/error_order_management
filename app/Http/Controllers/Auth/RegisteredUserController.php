@@ -42,6 +42,9 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
+            'role' => 'employee', // Mặc định là employee
+            'employee_type' => 'new', // Tài khoản mới tạo sẽ là nhân viên mới
+            'department_id' => null, // Chưa được phân công phòng ban
         ]);
 
         event(new Registered($user));

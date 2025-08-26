@@ -28,15 +28,32 @@
         </div>
         @endif
         @if($task->tracking_code)
-        <div class="col-12 mt-2">
+        <div class="col-6">
           <div class="d-flex align-items-center">
-            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary me-2">
-              <i class="bi bi-qr-code me-1"></i>
-              Mã Tracking: {{ $task->tracking_code }}
-            </span>
-            <button class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ $task->tracking_code }}')" title="Copy mã tracking">
-              <i class="bi bi-copy"></i> Copy
-            </button>
+            <span>Tracking code: <strong>{{ $task->tracking_code }}</strong></span>
+            @php
+              try {
+                $qrGatewayService = new \App\Services\QRGatewayService();
+                $qrCode = $qrGatewayService->generateQRCode($task->tracking_code);
+              } catch (\Exception $e) {
+                $qrCode = null;
+              }
+            @endphp
+            @if($qrCode)
+              <div class="ms-2">
+                <img src="data:image/png;base64,{{ base64_encode($qrCode) }}" 
+                     alt="QR Code" 
+                     style="width: 40px; height: 40px; cursor: pointer;" 
+                     onclick="showQRModal('{{ $task->tracking_code }}', '{{ base64_encode($qrCode) }}')"
+                     title="Click để xem QR code lớn">
+              </div>
+            @else
+              <div class="ms-2">
+                <span class="text-muted" title="Không thể tạo QR code">
+                  <i class="bi bi-qr-code"></i>
+                </span>
+              </div>
+            @endif
           </div>
         </div>
         @endif
@@ -761,25 +778,7 @@ html, body {
 
 @push('scripts')
 <script>
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        // Hiển thị thông báo thành công
-        const button = event.target.closest('button');
-        const originalHTML = button.innerHTML;
-        button.innerHTML = '<i class="bi bi-check"></i> Copied!';
-        button.classList.remove('btn-outline-primary');
-        button.classList.add('btn-success');
-        
-        setTimeout(function() {
-            button.innerHTML = originalHTML;
-            button.classList.remove('btn-success');
-            button.classList.add('btn-outline-primary');
-        }, 2000);
-    }).catch(function(err) {
-        console.error('Could not copy text: ', err);
-        alert('Không thể copy mã tracking. Vui lòng copy thủ công.');
-    });
-}
+
 
 // Function to break long strings
 function breakLongStrings() {
@@ -1078,6 +1077,62 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Make removeFile function global
     window.removeFile = removeFile;
+    
+    // QR Code Modal function
+    function showQRModal(trackingCode, qrCodeBase64) {
+        const modalHtml = `
+            <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="qrModalLabel">
+                                <i class="bi bi-qr-code me-2"></i>
+                                QR Code - ${trackingCode}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="data:image/png;base64,${qrCodeBase64}" 
+                                 alt="QR Code" 
+                                 style="max-width: 100%; height: auto;">
+                            <div class="mt-3">
+                                <strong>Tracking Code:</strong> ${trackingCode}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            <button type="button" class="btn btn-primary" onclick="downloadQRCode('${trackingCode}', '${qrCodeBase64}')">
+                                <i class="bi bi-download me-1"></i>
+                                Tải xuống
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('qrModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add new modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+        modal.show();
+    }
+    
+    function downloadQRCode(trackingCode, qrCodeBase64) {
+        const link = document.createElement('a');
+        link.href = `data:image/png;base64,${qrCodeBase64}`;
+        link.download = `QR_${trackingCode}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 });
 </script>
 @endpush

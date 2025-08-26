@@ -107,9 +107,12 @@
 
                                 <div class="mb-3">
                                     <label for="position" class="form-label">Chức vụ</label>
-                                    <input type="text" class="form-control @error('position') is-invalid @enderror" 
-                                           id="position" name="position" value="{{ old('position') }}" 
-                                           placeholder="Ví dụ: Nhân viên thử việc">
+                                    <select name="position" id="position" class="form-select @error('position') is-invalid @enderror">
+                                        <option value="">Chọn chức vụ</option>
+                                        <option value="Nhân Viên Chính Thức" {{ old('position') == 'Nhân Viên Chính Thức' ? 'selected' : '' }}>Nhân Viên Chính Thức</option>
+                                        <option value="Nhân Viên Thử Việc" {{ old('position') == 'Nhân Viên Thử Việc' ? 'selected' : '' }}>Nhân Viên Thử Việc</option>
+                                        <option value="Nhân Viên Remote" {{ old('position') == 'Nhân Viên Remote' ? 'selected' : '' }}>Nhân Viên Remote</option>
+                                    </select>
                                     @error('position')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

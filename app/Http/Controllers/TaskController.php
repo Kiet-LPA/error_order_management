@@ -212,9 +212,13 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể xem task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể xem task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể xem task của mình.');
+            // Employee có thể xem task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể xem task mà bạn được assign hoặc tạo.');
             }
         }
         
@@ -239,9 +243,13 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể chỉnh sửa task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể chỉnh sửa task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể chỉnh sửa task của mình.');
+            // Employee chỉ có thể chỉnh sửa task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể chỉnh sửa task mà bạn được assign hoặc tạo.');
             }
         }
         
@@ -284,9 +292,13 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể cập nhật task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể cập nhật task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể cập nhật task của mình.');
+            // Employee chỉ có thể cập nhật task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể cập nhật task mà bạn được assign hoặc tạo.');
             }
         }
         
@@ -445,11 +457,18 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể xóa task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể xóa task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể xóa task của mình.');
+            // Employee chỉ có thể xóa task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể xóa task mà bạn được assign hoặc tạo.');
             }
         }
+        
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
         
         $task->delete();
         
@@ -470,11 +489,18 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể cập nhật task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể cập nhật task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể cập nhật task của mình.');
+            // Employee chỉ có thể cập nhật task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể cập nhật task mà bạn được assign hoặc tạo.');
             }
         }
+        
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
         
         $status = $r->get('status');
         $rejectionReason = $r->get('rejection_reason');
@@ -677,6 +703,9 @@ class TaskController extends Controller
     {
         $user = $r->user();
         
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
+        
         // Kiểm tra quyền comment trên task
         if ($user->isAdmin()) {
             // Admin có thể comment trên mọi task
@@ -687,9 +716,13 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể comment trên task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể comment trên task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể comment trên task của mình.');
+            // Employee chỉ có thể comment trên task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể comment trên task mà bạn được assign hoặc tạo.');
             }
         }
         
@@ -770,6 +803,9 @@ class TaskController extends Controller
     {
         $user = auth()->user();
         
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
+        
         // Kiểm tra quyền xem lịch sử task
         if ($user->isAdmin()) {
             // Admin có thể xem lịch sử mọi task
@@ -780,9 +816,13 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể xem lịch sử task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể xem lịch sử task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể xem lịch sử task của mình.');
+            // Employee chỉ có thể xem lịch sử task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể xem lịch sử task mà bạn được assign hoặc tạo.');
             }
         }
         
@@ -796,6 +836,9 @@ class TaskController extends Controller
     {
         $user = $request->user();
         
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
+        
         // Kiểm tra quyền xóa file
         if ($user->isAdmin()) {
             // Admin có thể xóa file của mọi task
@@ -806,9 +849,13 @@ class TaskController extends Controller
                 return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể xóa file của task phòng ban mình.']);
             }
         } else {
-            // Employee chỉ có thể xóa file của task của mình
-            if ($task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
-                return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể xóa file của task của mình.']);
+            // Employee chỉ có thể xóa file của task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể xóa file của task mà bạn được assign hoặc tạo.']);
             }
         }
         
@@ -851,6 +898,9 @@ class TaskController extends Controller
     {
         $user = auth()->user();
         
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
+        
         // Kiểm tra quyền hoàn tác
         if ($user->isAdmin()) {
             // Admin có thể hoàn tác mọi task
@@ -861,9 +911,13 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể hoàn tác task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể hoàn tác task của mình
-            if ($task->assignee_id !== $user->id) {
-                abort(403, 'Bạn chỉ có thể hoàn tác task của mình.');
+            // Employee chỉ có thể hoàn tác task mà họ được assign hoặc tạo
+            $isAssigned = $task->assignee_id === $user->id || 
+                         $task->creator_id === $user->id ||
+                         $task->assignees->contains('id', $user->id);
+            
+            if (!$isAssigned) {
+                abort(403, 'Bạn chỉ có thể hoàn tác task mà bạn được assign hoặc tạo.');
             }
         }
         

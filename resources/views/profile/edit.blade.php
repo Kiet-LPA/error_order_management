@@ -135,17 +135,158 @@
             </div>
         </div>
 
-        <!-- Xóa tài khoản -->
+        <!-- Thông tin hợp đồng và phòng ban -->
         <div class="row mt-4">
             <div class="col-12">
-                <div class="card shadow-sm border-danger">
-                    <div class="card-header bg-danger">
+                <div class="card shadow-sm">
+                    <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="bi bi-exclamation-triangle me-2"></i>Xóa tài khoản
+                            <i class="bi bi-file-earmark-text me-2"></i>Thông tin hợp đồng và phòng ban
                         </h5>
                     </div>
                     <div class="card-body">
-                        @include('profile.partials.delete-user-form')
+                        <div class="row">
+                            <!-- Thông tin cơ bản -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Vai trò</label>
+                                    <div class="form-control-plaintext">
+                                        @switch($user->role)
+                                            @case('admin')
+                                                <span class="badge bg-danger">Quản trị viên</span>
+                                                @break
+                                            @case('manager')
+                                                <span class="badge bg-warning">Quản lý</span>
+                                                @break
+                                            @case('employee')
+                                                <span class="badge bg-primary">Nhân viên</span>
+                                                @break
+                                        @endswitch
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Loại nhân viên</label>
+                                    <div class="form-control-plaintext">
+                                        @if($user->employee_type == 'new')
+                                            <span class="badge bg-info">Nhân viên mới</span>
+                                        @else
+                                            <span class="badge bg-success">Nhân viên chính thức</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Phòng ban</label>
+                                    <div class="form-control-plaintext">
+                                        @if($user->department)
+                                            {{ $user->department->name }}
+                                        @else
+                                            <span class="text-muted">Chưa được phân công</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                @if($user->position)
+                                <div class="mb-3">
+                                    <label class="form-label">Chức vụ</label>
+                                    <div class="form-control-plaintext">
+                                        {{ $user->position }}
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                            
+                            <!-- Thông tin hợp đồng -->
+                            <div class="col-md-6">
+                                @if($user->activeContract)
+                                    @php $contract = $user->activeContract; @endphp
+                                    <div class="mb-3">
+                                        <label class="form-label">Lương thử việc</label>
+                                        <div class="form-control-plaintext">
+                                            {{ number_format($contract->probation_salary) }} VNĐ
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Thời gian thử việc</label>
+                                        <div class="form-control-plaintext">
+                                            {{ $contract->probation_period }} tháng
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Ngày bắt đầu</label>
+                                        <div class="form-control-plaintext">
+                                            {{ $contract->start_date->format('d/m/Y') }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Ngày kết thúc</label>
+                                        <div class="form-control-plaintext">
+                                            {{ $contract->end_date->format('d/m/Y') }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Trạng thái hợp đồng</label>
+                                        <div class="form-control-plaintext">
+                                            @switch($contract->status)
+                                                @case('active')
+                                                    <span class="badge bg-success">Đang thử việc</span>
+                                                    @break
+                                                @case('completed')
+                                                    <span class="badge bg-info">Hoàn thành</span>
+                                                    @break
+                                                @case('terminated')
+                                                    <span class="badge bg-danger">Đã chấm dứt</span>
+                                                    @break
+                                            @endswitch
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="alert alert-warning">
+                                        <small>
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Bạn chưa có hợp đồng thử việc.
+                                        </small>
+                                    </div>
+                                @endif
+                                
+                                @if($user->social_insurance_number || $user->health_insurance_number || $user->personal_identification_number)
+                                    <hr class="my-3">
+                                    <h6 class="text-muted mb-3">Thông tin bảo hiểm</h6>
+                                    
+                                    @if($user->social_insurance_number)
+                                    <div class="mb-3">
+                                        <label class="form-label">Số bảo hiểm xã hội</label>
+                                        <div class="form-control-plaintext">
+                                            {{ $user->social_insurance_number }}
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($user->health_insurance_number)
+                                    <div class="mb-3">
+                                        <label class="form-label">Số bảo hiểm y tế</label>
+                                        <div class="form-control-plaintext">
+                                            {{ $user->health_insurance_number }}
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($user->personal_identification_number)
+                                    <div class="mb-3">
+                                        <label class="form-label">Số CMND/CCCD</label>
+                                        <div class="form-control-plaintext">
+                                            {{ $user->personal_identification_number }}
+                                        </div>
+                                    </div>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
