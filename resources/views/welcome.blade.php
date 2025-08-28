@@ -3,6 +3,30 @@
 
 @push('styles')
 <style>
+/* Custom tooltip styles */
+.tooltip-inner {
+    max-width: 300px !important;
+    text-align: left !important;
+    white-space: pre-line !important;
+    line-height: 1.4 !important;
+    padding: 8px 12px !important;
+    font-size: 0.875rem !important;
+}
+
+.tooltip.show {
+    opacity: 1 !important;
+}
+
+/* Hover effect for tooltip badges */
+.assignee-tooltip:hover,
+.follower-tooltip:hover {
+    cursor: help !important;
+    transform: scale(1.05) !important;
+    transition: transform 0.2s ease !important;
+}
+
+
+
 /* Sticky first column CSS */
 .table-responsive {
     overflow-x: auto !important;
@@ -377,34 +401,7 @@
   </div>
 </div>
 
-@if(auth()->user()->isAdmin())
-  <div class="mb-3 filter-section">
-    {{-- Filter theo phòng ban (chỉ Admin) --}}
-    <div class="mb-3">
-      <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Lọc theo phòng ban:</small>
-      <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
-        <input type="hidden" name="status" value="{{ request('status') }}">
-        <input type="hidden" name="sort" value="{{ request('sort') }}">
-        <input type="hidden" name="date_from" value="{{ request('date_from') }}">
-        <input type="hidden" name="date_to" value="{{ request('date_to') }}">
-        @if(request('statuses'))
-          @foreach(request('statuses') as $status)
-            <input type="hidden" name="statuses[]" value="{{ $status }}">
-          @endforeach
-        @endif
-        <select name="department_filter" class="form-select form-select-sm d-inline-block w-auto me-2" onchange="this.form.submit()">
-          <option value="">Tất cả phòng ban</option>
-          @foreach($departments as $dept)
-            <option value="{{ $dept->id }}" {{ request('department_filter') == $dept->id ? 'selected' : '' }}>
-              {{ $dept->name }}
-            </option>
-          @endforeach
-        </select>
-      </form>
-    </div>
-  </div>
-@else
-  <div class="mb-3 filter-section">
+<div class="mb-3 filter-section">
 
   {{-- Filter theo trạng thái --}}
   <div class="mb-2">
@@ -413,9 +410,7 @@
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
-      @if(auth()->user()->isAdmin())
-        <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-      @endif
+      <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
       <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('status') && !request('statuses') ? ' active' : '' }}">Tất cả</button>
     </form>
 
@@ -424,9 +419,7 @@
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
-      @if(auth()->user()->isAdmin())
-        <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-      @endif
+      <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
       <div class="btn-group me-2" role="group" aria-label="Statuses">
         @php
           $selected = collect(request('statuses', []));
@@ -460,9 +453,7 @@
           <input type="hidden" name="sort" value="newest">
           <input type="hidden" name="date_from" value="{{ request('date_from') }}">
           <input type="hidden" name="date_to" value="{{ request('date_to') }}">
-          @if(auth()->user()->isAdmin())
-            <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-          @endif
+          <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
           @if(request('statuses'))
             @foreach(request('statuses') as $status)
               <input type="hidden" name="statuses[]" value="{{ $status }}">
@@ -477,9 +468,7 @@
           <input type="hidden" name="sort" value="oldest">
           <input type="hidden" name="date_from" value="{{ request('date_from') }}">
           <input type="hidden" name="date_to" value="{{ request('date_to') }}">
-          @if(auth()->user()->isAdmin())
-            <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-          @endif
+          <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
           @if(request('statuses'))
             @foreach(request('statuses') as $status)
               <input type="hidden" name="statuses[]" value="{{ $status }}">
@@ -497,9 +486,7 @@
       <form method="GET" action="{{ route('dashboard') }}" class="row g-2">
         <input type="hidden" name="status" value="{{ request('status') }}">
         <input type="hidden" name="sort" value="{{ request('sort') }}">
-        @if(auth()->user()->isAdmin())
-          <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-        @endif
+        <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
         @if(request('statuses'))
           @foreach(request('statuses') as $status)
             <input type="hidden" name="statuses[]" value="{{ $status }}">
@@ -521,7 +508,6 @@
       </form>
     </div>
 
-    @if(auth()->user()->isAdmin() || auth()->user()->isManager())
     <div class="col-md-4">
       <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Filter theo phòng ban:</small>
       <div class="dropdown">
@@ -575,7 +561,6 @@
         </ul>
       </div>
     </div>
-    @endif
   </div>
 
   {{-- Nút xóa filter --}}
@@ -587,7 +572,6 @@
     </div>
   @endif
 </div>
-@endif
 
 {{-- Tasks đang theo dõi --}}
 @if(isset($followedTasks) && $followedTasks->count() > 0)
@@ -609,6 +593,7 @@
           <tr>
             <th class="px-4 py-3 fw-semibold">Tiêu đề</th>
             <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
+            <th class="px-4 py-3 fw-semibold">Người theo dõi</th>
             <th class="px-4 py-3 fw-semibold">Trạng thái</th>
             <th class="px-4 py-3 fw-semibold">Deadline</th>
             <th class="px-4 py-3 fw-semibold text-end">Hành động</th>
@@ -623,8 +608,41 @@
               </td>
               <td class="px-4 py-3">
                 @if($task->assignees->count() > 0)
-                  <span class="badge bg-dark bg-opacity-10 text-dark">
-                    {{ $task->assignees->count() }} người
+                  @php
+                    $assigneeDetails = $task->assignees->map(function($assignee) {
+                        $role = ucfirst($assignee->role);
+                        $department = $assignee->department ? $assignee->department->name : 'N/A';
+                        return "• {$assignee->name} ({$role} - {$department})";
+                    })->implode("\n");
+                    $assigneeCount = $task->assignees->count();
+                  @endphp
+                  <span class="badge bg-dark bg-opacity-10 text-dark assignee-tooltip" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-html="true"
+                        title="<strong>Người phụ trách:</strong><br>{{ $assigneeDetails }}">
+                    {{ $assigneeCount }} người
+                  </span>
+                @else
+                  <span class="text-muted">—</span>
+                @endif
+              </td>
+              <td class="px-4 py-3">
+                @if($task->followers->count() > 0)
+                  @php
+                    $followerDetails = $task->followers->map(function($follower) {
+                        $role = ucfirst($follower->role);
+                        $department = $follower->department ? $follower->department->name : 'N/A';
+                        return "• {$follower->name} ({$role} - {$department})";
+                    })->implode("\n");
+                    $followerCount = $task->followers->count();
+                  @endphp
+                  <span class="badge bg-dark bg-opacity-10 text-dark follower-tooltip" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-html="true"
+                        title="<strong>Người theo dõi:</strong><br>{{ $followerDetails }}">
+                    {{ $followerCount }} người
                   </span>
                 @else
                   <span class="text-muted">—</span>
@@ -723,13 +741,18 @@
                 <td class="px-4 py-3">
                   @if($task->assignees->count() > 0)
                     @php
-                      $assigneeNames = $task->assignees->pluck('name')->implode(', ');
+                      $assigneeDetails = $task->assignees->map(function($assignee) {
+                          $role = ucfirst($assignee->role);
+                          $department = $assignee->department ? $assignee->department->name : 'N/A';
+                          return "• {$assignee->name} ({$role} - {$department})";
+                      })->implode("\n");
                       $assigneeCount = $task->assignees->count();
                     @endphp
-                    <span class="badge bg-light text-dark border" 
+                    <span class="badge bg-light text-dark border assignee-tooltip" 
                           data-bs-toggle="tooltip" 
                           data-bs-placement="top" 
-                          title="Người phụ trách: {{ $assigneeNames }}">
+                          data-bs-html="true"
+                          title="<strong>Người phụ trách:</strong><br>{{ $assigneeDetails }}">
                       <i class="bi bi-people me-1"></i>{{ $assigneeCount }} người
                     </span>
                   @else
@@ -742,13 +765,18 @@
                 <td class="px-4 py-3">
                   @if($task->followers->count() > 0)
                     @php
-                      $followerNames = $task->followers->pluck('name')->implode("\n");
+                      $followerDetails = $task->followers->map(function($follower) {
+                          $role = ucfirst($follower->role);
+                          $department = $follower->department ? $follower->department->name : 'N/A';
+                          return "• {$follower->name} ({$role} - {$department})";
+                      })->implode("\n");
                       $followerCount = $task->followers->count();
                     @endphp
-                    <span class="badge bg-dark bg-opacity-10 text-dark border border-dark" 
+                    <span class="badge bg-dark bg-opacity-10 text-dark border border-dark follower-tooltip" 
                           data-bs-toggle="tooltip" 
                           data-bs-placement="top" 
-                          title="Người theo dõi:&#10;{{ $followerNames }}">
+                          data-bs-html="true"
+                          title="<strong>Người theo dõi:</strong><br>{{ $followerDetails }}">
                       <i class="bi bi-eye me-1"></i>{{ $followerCount }} người
                     </span>
                     @if($task->isFollowedBy(auth()->user()))
@@ -841,6 +869,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+    
+    // Debug: Log số lượng tooltip được khởi tạo
+    console.log('Đã khởi tạo', tooltipList.length, 'tooltip');
 
     const sortableContainer = document.getElementById('sortable-departments');
     if (!sortableContainer) return;
@@ -1092,5 +1123,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
+    // Thêm cách khởi tạo tooltip thay thế
+    setTimeout(function() {
+        // Khởi tạo lại tooltip sau 1 giây
+        var tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipElements.forEach(function(element) {
+            if (!element.hasAttribute('data-bs-original-title')) {
+                var title = element.getAttribute('title');
+                if (title) {
+                    element.setAttribute('data-bs-original-title', title);
+                    new bootstrap.Tooltip(element);
+                }
+            }
+        });
+        console.log('Đã khởi tạo lại', tooltipElements.length, 'tooltip');
+    }, 1000);
 });
 </script>
+@endpush
