@@ -13,6 +13,9 @@
         </a>
       </div>
       
+      <!-- Notification Dropdown -->
+      @include('components.notification-dropdown')
+      
       <!-- User Menu -->
       <div class="dropdown">
         <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">

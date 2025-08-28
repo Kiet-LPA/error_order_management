@@ -615,8 +615,7 @@
           </tr>
         </thead>
         <tbody>
-          @foreach($followedTasks as $follower)
-            @php $task = $follower->task; @endphp
+          @foreach($followedTasks as $task)
             <tr class="border-bottom">
               <td class="px-4 py-3">
                 <div class="fw-medium text-dark task-title">{{ $task->title }}</div>
@@ -645,7 +644,6 @@
               </td>
               <td class="px-4 py-3 text-end">
                 <a href="{{ route('task-detail', $task) }}" class="btn btn-sm btn-outline-info">👁 Xem</a>
-                <button class="btn btn-sm btn-outline-warning" onclick="unfollowTask({{ $task->id }})">👁 Bỏ theo dõi</button>
               </td>
             </tr>
           @endforeach
@@ -1061,67 +1059,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khôi phục thứ tự khi load trang
     restoreDepartmentOrder();
 
-
-
-    // Function để unfollow task
-    function unfollowTask(taskId) {
-        if (!confirm('Bạn có chắc muốn bỏ theo dõi task này?')) {
-            return;
-        }
+    // Sticky column enhancement
+    // Smooth scroll to first column when clicking on sticky column
+    const stickyCells = document.querySelectorAll('.table thead th:first-child, .table tbody td:first-child');
+    
+    stickyCells.forEach(cell => {
+        cell.addEventListener('click', function() {
+            const tableContainer = this.closest('.table-responsive');
+            tableContainer.scrollTo({
+                left: 0,
+                behavior: 'smooth'
+            });
+        });
         
-        fetch(`/tasks/${taskId}/followers/unfollow`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Đã bỏ theo dõi task thành công!');
-                location.reload();
-            } else {
-                alert('Lỗi: ' + data.message);
-            }
+        // Add cursor pointer to indicate clickable
+        cell.style.cursor = 'pointer';
+    });
+    
+    // Add visual feedback for scrollable content
+    const tableResponsive = document.querySelector('.table-responsive');
+    if (tableResponsive) {
+        tableResponsive.addEventListener('scroll', function() {
+            const isScrolled = this.scrollLeft > 0;
+            const stickyCells = this.querySelectorAll('.table thead th:first-child, .table tbody td:first-child');
+            
+            stickyCells.forEach(cell => {
+                if (isScrolled) {
+                    cell.style.boxShadow = '2px 0 8px rgba(0,0,0,0.15)';
+                } else {
+                    cell.style.boxShadow = '2px 0 4px rgba(0,0,0,0.1)';
+                }
+            });
         });
     }
-
-    // Sticky column enhancement
-    document.addEventListener('DOMContentLoaded', function() {
-        // Smooth scroll to first column when clicking on sticky column
-        const stickyCells = document.querySelectorAll('.table thead th:first-child, .table tbody td:first-child');
-        
-        stickyCells.forEach(cell => {
-            cell.addEventListener('click', function() {
-                const tableContainer = this.closest('.table-responsive');
-                tableContainer.scrollTo({
-                    left: 0,
-                    behavior: 'smooth'
-                });
-            });
-            
-            // Add cursor pointer to indicate clickable
-            cell.style.cursor = 'pointer';
-        });
-        
-        // Add visual feedback for scrollable content
-        const tableResponsive = document.querySelector('.table-responsive');
-        if (tableResponsive) {
-            tableResponsive.addEventListener('scroll', function() {
-                const isScrolled = this.scrollLeft > 0;
-                const stickyCells = this.querySelectorAll('.table thead th:first-child, .table tbody td:first-child');
-                
-                stickyCells.forEach(cell => {
-                    if (isScrolled) {
-                        cell.style.boxShadow = '2px 0 8px rgba(0,0,0,0.15)';
-                    } else {
-                        cell.style.boxShadow = '2px 0 4px rgba(0,0,0,0.1)';
-                    }
-                });
-            });
-        }
-    });
 });
 </script>
-@endpush

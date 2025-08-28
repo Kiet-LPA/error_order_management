@@ -38,6 +38,12 @@ class Department extends Model
         return $this->hasMany(WorkReport::class);
     }
 
+    // Manager relationship
+    public function manager()
+    {
+        return $this->hasOne(User::class)->where('role', 'manager');
+    }
+
     /**
      * Scope để tìm kiếm department
      */

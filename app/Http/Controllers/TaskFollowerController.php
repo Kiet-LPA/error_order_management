@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -46,6 +47,12 @@ class TaskFollowerController extends Controller
         }
 
         $task->followers()->attach($request->user_id);
+
+        // Gửi thông báo cho creator của task
+        $follower = User::find($request->user_id);
+        if ($follower) {
+            NotificationService::taskFollowed($task, $follower);
+        }
 
         return response()->json(['success' => true, 'message' => 'Đã thêm Task Follower thành công']);
     }

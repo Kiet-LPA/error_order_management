@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\WorkReport;
 use App\Models\User;
 use App\Models\Department;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -177,7 +178,7 @@ class WorkReportController extends Controller
             $week = $reportDateCarbon->weekOfYear;
 
             // Tạo báo cáo mới
-            WorkReport::create([
+            $report = WorkReport::create([
                 'user_id' => $user->id,
                 'department_id' => $user->department_id ?? null, // Cho phép null cho admin
                 'year' => $year,
@@ -189,6 +190,9 @@ class WorkReportController extends Controller
                 'comments' => $request->comments[$index] ?? null,
                 'custom_fields' => $request->custom_fields
             ]);
+
+            // Gửi thông báo cho Admin và Manager
+            NotificationService::workReportSubmitted($report, $user);
 
             $createdCount++;
         }

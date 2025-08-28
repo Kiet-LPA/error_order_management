@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Task;
 use App\Models\Department;
 use App\Models\TaskFollower;
+use App\Services\NotificationService;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -154,10 +155,20 @@ class TaskController extends Controller
             // Multi-user assignment
             foreach ($r->assignee_ids as $assigneeId) {
                 $task->assignees()->attach($assigneeId);
+                // Gửi thông báo cho assignee
+                $assignee = User::find($assigneeId);
+                if ($assignee) {
+                    NotificationService::taskAssigned($task, $user, $assignee);
+                }
             }
         } elseif ($r->filled('assignee_id')) {
             // Single user assignment - cũng lưu vào pivot table để thống nhất
             $task->assignees()->attach($r->assignee_id);
+            // Gửi thông báo cho assignee
+            $assignee = User::find($r->assignee_id);
+            if ($assignee) {
+                NotificationService::taskAssigned($task, $user, $assignee);
+            }
         }
 
         // Xử lý multi-department assignments
@@ -207,13 +218,14 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể xem task của phòng ban mình.');
             }
         } else {
-            // Employee có thể xem task mà họ được assign hoặc tạo
+            // Employee có thể xem task mà họ được assign, tạo, hoặc follow
             $isAssigned = $task->assignee_id === $user->id || 
                          $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
+                         $task->assignees->contains('id', $user->id) ||
+                         $task->followers->contains('id', $user->id);
             
             if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể xem task mà bạn được assign hoặc tạo.');
+                abort(403, 'Bạn chỉ có thể xem task mà bạn được assign, tạo, hoặc theo dõi.');
             }
         }
         
@@ -455,6 +467,9 @@ class TaskController extends Controller
             // Tạo approval requests
             \App\Http\Controllers\TaskApprovalController::createApprovalRequests($task);
         }
+
+        // Gửi thông báo cho assignees và followers
+        NotificationService::taskUpdated($task, $user);
 
         // Ghi log hoạt động
         $task->activities()->create([

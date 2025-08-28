@@ -8,6 +8,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WorkReportController;
 use App\Http\Controllers\TaskFollowerController;
 use App\Http\Controllers\TaskApprovalController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -79,8 +80,16 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/tasks/{task}/followers/unfollow', [TaskFollowerController::class, 'unfollow'])->name('tasks.followers.unfollow');
     });
 
+    // Notification routes (cho tất cả users)
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+        Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
+        Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
+    });
+
     // Comment routes
-    Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::post('/tasks/{task}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
         Route::put('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'update'])->name('comments.update');
         Route::delete('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');

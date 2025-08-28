@@ -120,8 +120,11 @@ class DashboardController extends Controller
             $departments = Department::where('id', $user->department_id)->get();
         }
 
-        // Lấy tasks mà user đang follow
-        $followedTasks = $user->tasksFollowing()
+        // Lấy tasks mà user đang follow (bao gồm cả tasks được assign làm follower)
+        $followedTasks = Task::whereHas('followers', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->with(['assignees', 'departments', 'creator'])
             ->where('status', '!=', 'finished')
             ->orderBy('updated_at', 'desc')
             ->get();

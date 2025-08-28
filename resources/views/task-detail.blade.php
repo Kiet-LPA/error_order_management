@@ -260,7 +260,7 @@
     </div>
     @endif
 
-    <!-- Follow/Unfollow buttons cho tất cả users -->
+    <!-- Follow button cho tất cả users -->
     <div class="card mb-3 border-dark">
       <div class="card-header bg-dark text-white">
         <h6 class="mb-0">
@@ -268,14 +268,14 @@
         </h6>
       </div>
       <div class="card-body">
-        @if($task->isFollowedBy(auth()->user()))
-          <button class="btn btn-warning" onclick="unfollowTask({{ $task->id }})">
-            <i class="bi bi-eye-slash me-1"></i>Bỏ theo dõi
-          </button>
-        @else
+        @if(!$task->isFollowedBy(auth()->user()))
           <button class="btn btn-dark" onclick="followTask({{ $task->id }})">
             <i class="bi bi-eye me-1"></i>Theo dõi
           </button>
+        @else
+          <div class="text-success">
+            <i class="bi bi-check-circle me-1"></i>Đang theo dõi
+          </div>
         @endif
       </div>
     </div>
@@ -1375,28 +1375,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function unfollowTask(taskId) {
-        if (!confirm('Bạn có chắc muốn bỏ theo dõi task này?')) {
-            return;
-        }
-        
-        fetch(`{{ route('tasks.followers.unfollow', $task) }}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Đã bỏ theo dõi task thành công!');
-                location.reload();
-            } else {
-                alert('Lỗi: ' + data.message);
-            }
-        });
-    }
+
 
     // Load followers khi trang load
     document.addEventListener('DOMContentLoaded', function() {
