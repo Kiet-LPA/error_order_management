@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Task;
 use App\Models\Department;
-use App\Services\QRGatewayService;
+use App\Models\TaskFollower;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -25,13 +26,13 @@ class TaskController extends Controller
             $users = User::with('department')->orderBy('name')->get();
             $departments = \App\Models\Department::orderBy('name')->get();
         } else {
-            // Manager chỉ có thể giao việc cho users cùng phòng ban
+            // Manager chỉ có thể giao việc cho Employee
             $users = User::with('department')
-                        ->where('department_id', $user->department_id)
+                        ->where('role', 'employee')
                         ->where('id', '!=', $user->id) // Không giao việc cho chính mình
                         ->orderBy('name')
                         ->get();
-            $departments = \App\Models\Department::where('id', $user->department_id)->get();
+            $departments = \App\Models\Department::orderBy('name')->get();
         }
         
         return view('tasks.create', compact('users', 'departments'));
@@ -60,17 +61,16 @@ class TaskController extends Controller
             'deadline'    => 'nullable|date',
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
-            'tracking_code' => 'nullable|string|max:255',
             'is_recurring' => 'nullable|boolean',
         ]);
 
-        // Kiểm tra quyền theo phòng ban
+        // Kiểm tra quyền theo role
         if ($user->isManager()) {
             // Kiểm tra assignee_id (single user)
             if ($data['assignee_id']) {
                 $assignee = User::find($data['assignee_id']);
-                if ($assignee && $assignee->department_id !== $user->department_id) {
-                    abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                if ($assignee && $assignee->role !== 'employee') {
+                    abort(403, 'Manager chỉ có thể giao việc cho Employee.');
                 }
             }
             
@@ -78,22 +78,8 @@ class TaskController extends Controller
             if ($data['assignee_ids']) {
                 foreach ($data['assignee_ids'] as $assigneeId) {
                     $assignee = User::find($assigneeId);
-                    if ($assignee && $assignee->department_id !== $user->department_id) {
-                        abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
-                    }
-                }
-            }
-            
-            // Kiểm tra department_id (single department)
-            if ($data['department_id'] && $data['department_id'] !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể giao việc cho phòng ban của mình.');
-            }
-            
-            // Kiểm tra department_ids (multi-department)
-            if ($data['department_ids']) {
-                foreach ($data['department_ids'] as $deptId) {
-                    if ($deptId !== $user->department_id) {
-                        abort(403, 'Bạn chỉ có thể giao việc cho phòng ban của mình.');
+                    if ($assignee && $assignee->role !== 'employee') {
+                        abort(403, 'Manager chỉ có thể giao việc cho Employee.');
                     }
                 }
             }
@@ -151,21 +137,7 @@ class TaskController extends Controller
         }
         $data['attachments'] = $attachments;
 
-        // Xử lý tracking code
-        if ($r->filled('tracking_code')) {
-            $data['tracking_code'] = $r->input('tracking_code');
-            
-            // Tạo QR code từ tracking code đã nhập
-            $qrGatewayService = new QRGatewayService();
-            $qrCode = $qrGatewayService->generateQRCode($data['tracking_code']);
-            
-            if ($qrCode) {
-                // Lưu QR code vào storage
-                $qrFileName = time() . '_qr_' . $data['tracking_code'] . '.png';
-                Storage::put('public/qr_codes/' . $qrFileName, $qrCode);
-                $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
-            }
-        }
+
 
         // Xử lý multi-department
         if ($r->boolean('is_multi_department') && $r->has('department_ids')) {
@@ -195,6 +167,25 @@ class TaskController extends Controller
             }
         }
 
+        // Xử lý followers khi tạo task
+        if ($r->has('followers') && is_array($r->followers)) {
+            foreach ($r->followers as $followerId) {
+                // Kiểm tra user không phải là người tham gia task
+                if ($followerId != $task->creator_id && 
+                    $followerId != $task->assignee_id &&
+                    !in_array($followerId, $r->assignee_ids ?? [])) {
+                    $task->followers()->create(['user_id' => $followerId]);
+                }
+            }
+        }
+
+        // Xử lý approval system cho multi-department tasks
+        if ($task->is_multi_department && $user->isManager()) {
+            // Tạo approval requests
+            \App\Http\Controllers\TaskApprovalController::createApprovalRequests($task);
+            return redirect()->route('task-detail', $task)->with('ok', 'Đã tạo công việc. Task đang chờ phê duyệt từ các Manager.');
+        }
+
         return redirect()->route('task-detail', $task)->with('ok', 'Đã tạo công việc');
     }
 
@@ -222,7 +213,7 @@ class TaskController extends Controller
             }
         }
         
-        $task->load(['creator','assignee','assignees']);
+        $task->load(['creator','assignee','assignees','followers.user.department','approvals.department','approvals.manager']);
         $task->load(['activities' => function($query) {
             $query->orderBy('created_at', 'desc');
         }, 'activities.user']);
@@ -254,16 +245,16 @@ class TaskController extends Controller
         }
         
         // Load relationships
-        $task->load(['assignees', 'departments']);
+        $task->load(['assignees', 'departments', 'followers.user.department']);
         
         // Lấy danh sách users có thể assign
         if ($user->isAdmin()) {
             // Admin có thể giao việc cho tất cả users
             $users = User::with('department')->orderBy('name')->get(['id','name','department_id']);
         } elseif ($user->isManager()) {
-            // Manager chỉ có thể giao việc cho users cùng phòng ban
+            // Manager chỉ có thể giao việc cho Employee
             $users = User::with('department')
-                        ->where('department_id', $user->department_id)
+                        ->where('role', 'employee')
                         ->where('id', '!=', $user->id) // Không giao việc cho chính mình
                         ->orderBy('name')
                         ->get(['id','name','department_id']);
@@ -315,10 +306,12 @@ class TaskController extends Controller
             'is_multi_department' => 'nullable|boolean',
             'deadline'    => 'nullable|date',
             'priority'    => 'nullable|in:low,medium,high',
-            'status'      => 'required|in:in_progress,completed,rejected,overdue,finished',
+            'status'      => 'required|in:in_progress,completed,rejected,overdue,finished,pending_approval',
             'rejection_reason' => 'nullable|string|max:1000',
-            'tracking_code' => 'nullable|string|max:255',
+
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
+            'followers'   => 'nullable|array',
+            'followers.*' => 'exists:users,id',
         ]);
 
         // Kiểm tra lý do từ chối khi trạng thái là rejected
@@ -343,12 +336,12 @@ class TaskController extends Controller
             // Multi-user assignment
             $assigneeIds = $request->assignee_ids;
             
-            // Kiểm tra quyền theo phòng ban cho tất cả assignees
+            // Kiểm tra quyền theo role cho tất cả assignees
             if ($user->isManager()) {
                 foreach ($assigneeIds as $assigneeId) {
                     $assignee = User::find($assigneeId);
-                    if ($assignee->department_id !== $user->department_id) {
-                        abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                    if ($assignee->role !== 'employee') {
+                        abort(403, 'Manager chỉ có thể giao việc cho Employee.');
                     }
                 }
             }
@@ -360,11 +353,11 @@ class TaskController extends Controller
             // Single user assignment
             $data['assignee_id'] = $request->assignee_id;
             
-            // Kiểm tra quyền theo phòng ban cho assignee
+            // Kiểm tra quyền theo role cho assignee
             if ($user->isManager()) {
                 $assignee = User::find($data['assignee_id']);
-                if ($assignee->department_id !== $user->department_id) {
-                    abort(403, 'Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban.');
+                if ($assignee->role !== 'employee') {
+                    abort(403, 'Manager chỉ có thể giao việc cho Employee.');
                 }
             }
         } else {
@@ -415,23 +408,48 @@ class TaskController extends Controller
         }
         $data['attachments'] = $attachments;
 
-        // Cập nhật tracking code và tạo QR code mới
-        if ($request->has('tracking_code') && $request->tracking_code !== $task->tracking_code) {
-            $data['tracking_code'] = $request->tracking_code;
+
+
+        $task->update($data);
+
+        // Xử lý Task Followers (chỉ Admin/Manager)
+        if (($user->isAdmin() || $user->isManager()) && $request->has('followers')) {
+            // Xóa followers cũ
+            $task->followers()->delete();
             
-            // Tạo QR code mới từ tracking code
-            $qrGatewayService = new QRGatewayService();
-            $qrCode = $qrGatewayService->generateQRCode($data['tracking_code']);
+            // Thêm followers mới
+            $followerIds = $request->followers;
+            $involvedUserIds = collect([
+                $task->creator_id,
+                $task->assignee_id
+            ])->filter();
+            $involvedUserIds = $involvedUserIds->merge($task->assignees()->pluck('users.id'));
             
-            if ($qrCode) {
-                // Lưu QR code mới vào storage
-                $qrFileName = time() . '_qr_' . $data['tracking_code'] . '.png';
-                Storage::put('public/qr_codes/' . $qrFileName, $qrCode);
-                $data['qr_code'] = asset('storage/qr_codes/' . $qrFileName);
+            foreach ($followerIds as $followerId) {
+                // Kiểm tra không phải là người tham gia task
+                if (!$involvedUserIds->contains($followerId)) {
+                    // Kiểm tra quyền theo role
+                    if ($user->isManager()) {
+                        $follower = User::find($followerId);
+                        if ($follower->role !== 'employee') {
+                            continue; // Bỏ qua nếu không phải Employee
+                        }
+                    }
+                    
+                    // Tạo TaskFollower
+                    TaskFollower::create([
+                        'task_id' => $task->id,
+                        'user_id' => $followerId
+                    ]);
+                }
             }
         }
 
-        $task->update($data);
+        // Xử lý approval system cho multi-department tasks
+        if ($task->is_multi_department && $user->isManager()) {
+            // Tạo approval requests
+            \App\Http\Controllers\TaskApprovalController::createApprovalRequests($task);
+        }
 
         // Ghi log hoạt động
         $task->activities()->create([

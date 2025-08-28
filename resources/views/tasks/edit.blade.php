@@ -426,27 +426,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     @endif
                 </div>
 
-                {{-- Tracking Code --}}
-                <div class="form-group">
-                    <label class="form-label">
-                        <i class="bi bi-qr-code me-1"></i>Mã Tracking
-                    </label>
-                    <input type="text" name="tracking_code" class="form-control @error('tracking_code') is-invalid @enderror" 
-                           value="{{ old('tracking_code', $task->tracking_code) }}" 
-                           placeholder="Nhập mã tracking từ QR code... (không bắt buộc)">
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            <a href="https://qrscanner.net/" target="_blank" class="text-primary text-decoration-none">
-                                <i class="bi bi-qrcode me-1"></i>Quét mã QR
-                            </a> 
-                            - Nếu bạn có ảnh QR code, hãy quét tại đây và copy mã về
-                        </small>
-                    </div>
-                    @error('tracking_code')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
-                </div>
+
 
                 {{-- Multi-Department Assignment --}}
                 <div class="form-group">
@@ -519,44 +499,60 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     
                     {{-- Single User --}}
                     <div id="single_user_section" class="{{ old('is_multi_user', $task->assignees->count() > 0) ? 'd-none' : '' }}">
-                        <select name="assignee_id" id="assignee_id" class="form-select @error('assignee_id') is-invalid @enderror">
+                        <div id="single_user_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa;">
+                            <i class="bi bi-exclamation-triangle text-warning fs-1 mb-2"></i>
+                            <p class="mb-0">Vui lòng chọn phòng ban trước khi chọn người nhận</p>
+                        </div>
+                        <select name="assignee_id" id="assignee_id" class="form-select @error('assignee_id') is-invalid @enderror" style="display: none;">
                             <option value="">Chọn người phụ trách</option>
-                            @foreach($users as $user)
-                                @if($user)
-                                    <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
-                                        {{ $user->name ?? 'Không có tên' }} @if($user->department) ({{ $user->department->name }}) @endif
-                                    </option>
-                                @endif
+                            @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)
+                                @php
+                                    $department = $departmentUsers->first()->department;
+                                    $departmentName = $department ? $department->name : 'Không có phòng ban';
+                                @endphp
+                                <optgroup label="{{ $departmentName }}" data-department="{{ $departmentId }}">
+                                    @foreach($departmentUsers as $user)
+                                        @if($user)
+                                            <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
+                                                {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                            </option>
+                                        @endif
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                     </div>
                     
                     {{-- Multi-User --}}
                     <div id="multi_user_section" class="{{ old('is_multi_user', $task->assignees->count() > 0) ? '' : 'd-none' }}">
-                        <div class="custom-dropdown">
-                            <div class="dropdown-toggle" id="user_dropdown_toggle">
-                                <span class="selected-text">Chọn người phụ trách...</span>
-                                <i class="bi bi-chevron-down"></i>
-                            </div>
-                            <div class="dropdown-menu" id="user_dropdown_menu">
-                                @foreach($users as $user)
-                                    @if($user)
-                                        <div class="dropdown-item">
-                                            <div class="form-check">
+                        <div id="user_selection_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa;">
+                            <i class="bi bi-exclamation-triangle text-warning fs-1 mb-2"></i>
+                            <p class="mb-0">Vui lòng chọn phòng ban trước khi chọn người nhận</p>
+                        </div>
+                        <div id="user_selection_enabled" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; display: none;">
+                            @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)
+                                @php
+                                    $department = $departmentUsers->first()->department;
+                                    $departmentName = $department ? $department->name : 'Không có phòng ban';
+                                @endphp
+                                <div class="mb-3 department-user-group" data-department="{{ $departmentId }}">
+                                    <div class="fw-bold text-primary mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #007bff;">
+                                        {{ $departmentName }}
+                                    </div>
+                                    @foreach($departmentUsers as $user)
+                                        @if($user)
+                                            <div class="form-check mb-2 ms-3 user-option" data-department="{{ $user->department_id ?? '' }}">
                                                 <input class="form-check-input" type="checkbox" name="assignee_ids[]" 
                                                        value="{{ $user->id }}" id="user_{{ $user->id }}"
                                                        {{ in_array($user->id, old('assignee_ids', $task->assignees->pluck('id')->toArray())) ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="user_{{ $user->id }}">
-                                                    {{ $user->name ?? 'Không có tên' }} 
-                                                    @if($user->department) 
-                                                        <span class="badge bg-secondary">{{ $user->department->name }}</span>
-                                                    @endif
+                                                    {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
                                                 </label>
                                             </div>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                     @error('assignee_id')
@@ -643,6 +639,46 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+
+                {{-- Chọn Task Followers (chỉ Admin/Manager) --}}
+                @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-people me-1"></i>Chọn Task Followers
+                    </label>
+                    <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)
+                            @php
+                                $department = $departmentUsers->first()->department;
+                                $departmentName = $department ? $department->name : 'Không có phòng ban';
+                            @endphp
+                            <div class="mb-3">
+                                <div class="fw-bold text-dark mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #6c757d;">
+                                    {{ $departmentName }}
+                                </div>
+                                @foreach($departmentUsers as $user)
+                                    @if($user)
+                                        <div class="form-check mb-2 ms-3 follower-option" data-department="{{ $user->department_id ?? '' }}" data-user-id="{{ $user->id }}" data-user-role="{{ $user->role }}">
+                                            <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}"
+                                                   {{ in_array($user->id, old('followers', $task->followers->pluck('user_id')->toArray())) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="follower_{{ $user->id }}">
+                                                {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                            </label>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </div>
+                    <small class="form-text text-muted">
+                        @if(auth()->user()->isManager())
+                            Manager chỉ có thể thêm Employee làm follower. Người tham gia task sẽ không thể làm follower.
+                        @else
+                            Những người này sẽ nhận thông báo khi task có thay đổi. Người tham gia task sẽ không thể làm follower.
+                        @endif
+                    </small>
+                </div>
+                @endif
 
                 {{-- Submit Button --}}
                 <div class="text-center mt-4">
@@ -828,6 +864,137 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // Filter users by selected departments
+    function filterUsersByDepartments() {
+        const selectedDepartments = [];
+        const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
+        const singleDepartmentSelect = document.querySelector('select[name="department_id"]');
+        
+        // Get selected departments from both multi and single selection
+        departmentCheckboxes.forEach(checkbox => {
+            selectedDepartments.push(checkbox.value);
+        });
+        
+        if (singleDepartmentSelect && singleDepartmentSelect.value) {
+            selectedDepartments.push(singleDepartmentSelect.value);
+        }
+
+        // Show/hide user selection based on department selection
+        const userSelectionDisabled = document.getElementById('user_selection_disabled');
+        const userSelectionEnabled = document.getElementById('user_selection_enabled');
+        const singleUserDisabled = document.getElementById('single_user_disabled');
+        const assigneeSelect = document.getElementById('assignee_id');
+
+        if (selectedDepartments.length === 0) {
+            // No department selected - show disabled message
+            if (userSelectionDisabled) userSelectionDisabled.style.display = 'block';
+            if (userSelectionEnabled) userSelectionEnabled.style.display = 'none';
+            if (singleUserDisabled) singleUserDisabled.style.display = 'block';
+            if (assigneeSelect) assigneeSelect.style.display = 'none';
+        } else {
+            // Department selected - enable user selection
+            if (userSelectionDisabled) userSelectionDisabled.style.display = 'none';
+            if (userSelectionEnabled) userSelectionEnabled.style.display = 'block';
+            if (singleUserDisabled) singleUserDisabled.style.display = 'none';
+            if (assigneeSelect) assigneeSelect.style.display = 'block';
+
+            // Filter multi-user section
+            const userOptions = document.querySelectorAll('.user-option');
+            userOptions.forEach(option => {
+                const departmentId = option.getAttribute('data-department');
+                if (selectedDepartments.includes(departmentId)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                    // Uncheck hidden options
+                    const checkbox = option.querySelector('input[type="checkbox"]');
+                    if (checkbox) checkbox.checked = false;
+                }
+            });
+
+            // Filter single user dropdown optgroups
+            if (assigneeSelect) {
+                const optgroups = assigneeSelect.querySelectorAll('optgroup');
+                optgroups.forEach(optgroup => {
+                    const departmentId = optgroup.getAttribute('data-department');
+                    if (selectedDepartments.includes(departmentId)) {
+                        optgroup.style.display = 'block';
+                    } else {
+                        optgroup.style.display = 'none';
+                        // Clear selection if department is not selected
+                        const options = optgroup.querySelectorAll('option');
+                        options.forEach(option => {
+                            if (option.selected) {
+                                assigneeSelect.value = '';
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        // Update followers based on selected users
+        updateFollowersAvailability();
+    }
+
+    // Update followers availability based on selected users
+    function updateFollowersAvailability() {
+        const selectedUserIds = [];
+        
+        // Get selected users from multi-user section
+        const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+        multiUserCheckboxes.forEach(checkbox => {
+            selectedUserIds.push(checkbox.value);
+        });
+        
+        // Get selected user from single user section
+        const singleUserSelect = document.getElementById('assignee_id');
+        if (singleUserSelect && singleUserSelect.value) {
+            selectedUserIds.push(singleUserSelect.value);
+        }
+
+        // Disable followers who are selected as assignees
+        const followerOptions = document.querySelectorAll('.follower-option');
+        followerOptions.forEach(option => {
+            const userId = option.getAttribute('data-user-id');
+            const checkbox = option.querySelector('input[type="checkbox"]');
+            const label = option.querySelector('label');
+            
+            if (selectedUserIds.includes(userId)) {
+                checkbox.disabled = true;
+                checkbox.checked = false;
+                label.style.opacity = '0.5';
+                label.style.textDecoration = 'line-through';
+            } else {
+                checkbox.disabled = false;
+                label.style.opacity = '1';
+                label.style.textDecoration = 'none';
+            }
+        });
+    }
+
+    // Add event listeners for department checkboxes
+    const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]');
+    departmentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', filterUsersByDepartments);
+    });
+
+    // Add event listener for single department select
+    const singleDepartmentSelect = document.querySelector('select[name="department_id"]');
+    if (singleDepartmentSelect) {
+        singleDepartmentSelect.addEventListener('change', filterUsersByDepartments);
+    }
+
+    // Add event listeners for user selection
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'assignee_ids[]' || e.target.name === 'assignee_id') {
+            updateFollowersAvailability();
+        }
+    });
+
+    // Initial filter on page load
+    filterUsersByDepartments();
 
     // Initialize dropdowns
     initDropdowns();

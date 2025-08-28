@@ -3,6 +3,176 @@
 
 @push('styles')
 <style>
+/* Sticky first column CSS */
+.table-responsive {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #c1c1c1 #f1f1f1 !important;
+    scroll-behavior: smooth !important;
+}
+
+/* Custom scrollbar cho webkit browsers */
+.table-responsive::-webkit-scrollbar {
+    height: 8px !important;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1 !important;
+    border-radius: 4px !important;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8 !important;
+}
+
+/* Đảm bảo bảng có min-width để scroll */
+.table {
+    min-width: 800px !important;
+    width: 100% !important;
+}
+
+/* CHỈ cột đầu tiên giữ nguyên vị trí */
+.table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 20 !important;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.1) !important;
+    will-change: transform !important;
+}
+
+.table tbody td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 15 !important;
+    background: white !important;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.1) !important;
+    border-right: 1px solid #dee2e6 !important;
+    will-change: transform !important;
+}
+
+/* Cải thiện hiển thị cột tiêu đề */
+.table tbody td:first-child .task-title {
+    font-weight: 600 !important;
+    color: #495057 !important;
+    margin-bottom: 4px !important;
+    display: block !important;
+}
+
+.table tbody td:first-child small {
+    color: #6c757d !important;
+    font-size: 0.8rem !important;
+    line-height: 1.3 !important;
+}
+
+/* Hover effect cho cột sticky */
+.table tbody tr:hover td:first-child {
+    background: #f8f9fa !important;
+}
+
+/* Các cột khác di chuyển bình thường */
+.table thead th:not(:first-child) {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: 10 !important;
+}
+
+.table tbody td:not(:first-child) {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: 5 !important;
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+    .table {
+        min-width: 600px !important;
+    }
+    
+    .table thead th:first-child {
+        min-width: 150px !important;
+        max-width: 200px !important;
+    }
+    
+    .table tbody td:first-child {
+        min-width: 150px !important;
+        max-width: 200px !important;
+    }
+    
+    /* Hide scrollbar on mobile but keep functionality */
+    .table-responsive::-webkit-scrollbar {
+        height: 4px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .table {
+        min-width: 500px !important;
+    }
+    
+    .table thead th:first-child {
+        min-width: 120px !important;
+        max-width: 180px !important;
+    }
+    
+    .table tbody td:first-child {
+        min-width: 120px !important;
+        max-width: 180px !important;
+    }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 991px) {
+    .table {
+        min-width: 700px !important;
+    }
+    
+    .table thead th:first-child {
+        min-width: 180px !important;
+        max-width: 250px !important;
+    }
+    
+    .table tbody td:first-child {
+        min-width: 180px !important;
+        max-width: 250px !important;
+    }
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+    .table {
+        min-width: 900px !important;
+    }
+    
+    .table thead th:first-child {
+        min-width: 200px !important;
+        max-width: 300px !important;
+    }
+    
+    .table tbody td:first-child {
+        min-width: 200px !important;
+        max-width: 300px !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    .table thead th:first-child,
+    .table tbody td:first-child {
+        position: static !important;
+        box-shadow: none !important;
+    }
+}
+
 /* CSS cho drag & drop */
 .department-card {
   transition: all 0.2s ease;
@@ -419,6 +589,73 @@
 </div>
 @endif
 
+{{-- Tasks đang theo dõi --}}
+@if(isset($followedTasks) && $followedTasks->count() > 0)
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <h5 class="mb-0 fw-bold text-white">
+      <i class="bi bi-eye me-2"></i>
+      Tasks đang theo dõi
+      <span class="badge bg-light text-dark ms-2">
+        {{ $followedTasks->count() }} tasks
+      </span>
+    </h5>
+  </div>
+  
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="px-4 py-3 fw-semibold">Tiêu đề</th>
+            <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
+            <th class="px-4 py-3 fw-semibold">Trạng thái</th>
+            <th class="px-4 py-3 fw-semibold">Deadline</th>
+            <th class="px-4 py-3 fw-semibold text-end">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($followedTasks as $follower)
+            @php $task = $follower->task; @endphp
+            <tr class="border-bottom">
+              <td class="px-4 py-3">
+                <div class="fw-medium text-dark task-title">{{ $task->title }}</div>
+                <small class="text-muted">{{ Str::limit($task->description, 50) }}</small>
+              </td>
+              <td class="px-4 py-3">
+                @if($task->assignees->count() > 0)
+                  <span class="badge bg-dark bg-opacity-10 text-dark">
+                    {{ $task->assignees->count() }} người
+                  </span>
+                @else
+                  <span class="text-muted">—</span>
+                @endif
+              </td>
+              <td class="px-4 py-3">
+                <span class="status-badge status-{{ $task->status }}">
+                  @if($task->status == 'in_progress') Đang làm
+                  @elseif($task->status == 'completed') Chờ duyệt
+                  @elseif($task->status == 'finished') Kết thúc
+                  @else {{ strtoupper($task->status) }}
+                  @endif
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="text-muted">{{ $task->deadline?->format('d/m/Y') ?? '—' }}</span>
+              </td>
+              <td class="px-4 py-3 text-end">
+                <a href="{{ route('task-detail', $task) }}" class="btn btn-sm btn-outline-info">👁 Xem</a>
+                <button class="btn btn-sm btn-outline-warning" onclick="unfollowTask({{ $task->id }})">👁 Bỏ theo dõi</button>
+              </td>
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+@endif
+
 {{-- Giao diện thống nhất: Quản lý chung --}}
 <div class="card shadow-sm border-0">
   <div class="card-header text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%);">
@@ -440,6 +677,7 @@
               <th class="px-4 py-3 fw-semibold">Tiêu đề</th>
               <th class="px-4 py-3 fw-semibold">Phòng ban</th>
               <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
+              <th class="px-4 py-3 fw-semibold">Người theo dõi</th>
               <th class="px-4 py-3 fw-semibold">Ngày giao</th>
               <th class="px-4 py-3 fw-semibold">Deadline</th>
               <th class="px-4 py-3 fw-semibold">Trạng thái</th>
@@ -460,7 +698,10 @@
               @endphp
               <tr class="border-bottom">
                 <td class="px-4 py-3">
-                  <div class="fw-medium text-dark">{{ $task->title }}</div>
+                  <div class="fw-medium text-dark task-title">{{ $task->title }}</div>
+                  @if($task->description)
+                    <small class="text-muted">{{ Str::limit($task->description, 50) }}</small>
+                  @endif
                 </td>
                 <td class="px-4 py-3">
                   @if($task->is_multi_department && $task->departments->count() > 0)
@@ -498,6 +739,27 @@
                       <i class="bi bi-person me-1"></i>
                       {{ $task->assignee?->name ?? '—' }}
                     </span>
+                  @endif
+                </td>
+                <td class="px-4 py-3">
+                  @if($task->followers->count() > 0)
+                    @php
+                      $followerNames = $task->followers->pluck('user.name')->implode("\n");
+                      $followerCount = $task->followers->count();
+                    @endphp
+                    <span class="badge bg-dark bg-opacity-10 text-dark border border-dark" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="Người theo dõi:&#10;{{ $followerNames }}">
+                      <i class="bi bi-eye me-1"></i>{{ $followerCount }} người
+                    </span>
+                    @if($task->isFollowedBy(auth()->user()))
+                      <span class="badge bg-warning bg-opacity-10 text-warning border border-warning ms-1">
+                        <i class="bi bi-check me-1"></i>Đang theo dõi
+                      </span>
+                    @endif
+                  @else
+                    <span class="text-muted">—</span>
                   @endif
                 </td>
                 <td class="px-4 py-3">
@@ -799,26 +1061,67 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khôi phục thứ tự khi load trang
     restoreDepartmentOrder();
 
-    // Function để copy tracking code
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(function() {
-            // Hiển thị thông báo thành công
-            const button = event.target.closest('button');
-            const originalHTML = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-check"></i>';
-            button.classList.remove('btn-outline-primary');
-            button.classList.add('btn-success');
-            
-            setTimeout(function() {
-                button.innerHTML = originalHTML;
-                button.classList.remove('btn-success');
-                button.classList.add('btn-outline-primary');
-            }, 2000);
-        }).catch(function(err) {
-            console.error('Could not copy text: ', err);
-            alert('Không thể copy mã tracking. Vui lòng copy thủ công.');
+
+
+    // Function để unfollow task
+    function unfollowTask(taskId) {
+        if (!confirm('Bạn có chắc muốn bỏ theo dõi task này?')) {
+            return;
+        }
+        
+        fetch(`/tasks/${taskId}/followers/unfollow`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Đã bỏ theo dõi task thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
         });
     }
+
+    // Sticky column enhancement
+    document.addEventListener('DOMContentLoaded', function() {
+        // Smooth scroll to first column when clicking on sticky column
+        const stickyCells = document.querySelectorAll('.table thead th:first-child, .table tbody td:first-child');
+        
+        stickyCells.forEach(cell => {
+            cell.addEventListener('click', function() {
+                const tableContainer = this.closest('.table-responsive');
+                tableContainer.scrollTo({
+                    left: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Add cursor pointer to indicate clickable
+            cell.style.cursor = 'pointer';
+        });
+        
+        // Add visual feedback for scrollable content
+        const tableResponsive = document.querySelector('.table-responsive');
+        if (tableResponsive) {
+            tableResponsive.addEventListener('scroll', function() {
+                const isScrolled = this.scrollLeft > 0;
+                const stickyCells = this.querySelectorAll('.table thead th:first-child, .table tbody td:first-child');
+                
+                stickyCells.forEach(cell => {
+                    if (isScrolled) {
+                        cell.style.boxShadow = '2px 0 8px rgba(0,0,0,0.15)';
+                    } else {
+                        cell.style.boxShadow = '2px 0 4px rgba(0,0,0,0.1)';
+                    }
+                });
+            });
+        }
+    });
 });
 </script>
 @endpush

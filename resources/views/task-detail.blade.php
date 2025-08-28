@@ -4,9 +4,16 @@
 @section('content')
 <div class="task-header">
   <h3 class="mb-2">{{ $task->title }}</h3>
-  <span class="badge priority-badge bg-{{ $task->status=='done'?'success':($task->status=='in_progress'?'primary': 'warning') }}">
-    {{ __("statuses.$task->status") ?? strtoupper($task->status) }}
-  </span>
+  <div class="d-flex gap-2">
+    <span class="badge priority-badge bg-{{ $task->status=='done'?'success':($task->status=='in_progress'?'primary': 'warning') }}">
+      {{ __("statuses.$task->status") ?? strtoupper($task->status) }}
+    </span>
+    @if($task->priority)
+    <span class="badge priority-badge bg-{{ $task->priority == 'high' ? 'danger' : ($task->priority == 'medium' ? 'warning' : 'info') }}">
+      Độ ưu tiên: {{ __("priorities.$task->priority") }}
+    </span>
+    @endif
+  </div>
 </div>
 
 <div class="row g-3">
@@ -14,49 +21,70 @@
     <div class="progress-section">
       <h6 class="mb-3">Thông tin chung</h6>
       <div class="row">
-        <div class="col-6">Người giao: <strong>{{ $task->creator->name }}</strong></div>
-        <div class="col-6">Deadline:
-          <strong>{{ $task->deadline? $task->deadline->format('d/m/Y'):'—' }}</strong>
+        <div class="col-6">
+          <i class="bi bi-person"></i>Người giao: <strong>{{ $task->creator->name }}</strong>
         </div>
-        <div class="col-6">Người nhận: <strong>{{ $task->assignee?->name ?? '—' }}</strong></div>
-        <div class="col-6">Trạng thái: <strong>{{ __("statuses.$task->status") ?? strtoupper($task->status) }}</strong></div>
+        <div class="col-6">
+          <i class="bi bi-people"></i>Người nhận:
+          @if($task->assignees->count() > 0)
+            @foreach($task->assignees as $assignee)
+              <div class="badge bg-primary me-1 mb-1">{{ $assignee->name }}</div>
+            @endforeach
+          @elseif($task->assignee)
+            <strong>{{ $task->assignee->name }}</strong>
+            @if($task->assignee->department)
+              <span class="badge bg-secondary ms-1">{{ $task->assignee->department->name }}</span>
+            @endif
+          @else
+            <strong>—</strong>
+          @endif
+        </div>
+        <div class="col-6">
+          <i class="bi bi-calendar-check"></i>Ngày giao: <strong>{{ $task->created_at->format('d/m/Y') }}</strong>
+        </div>
+        <div class="col-6">
+          <i class="bi bi-calendar-event"></i>Deadline: <strong>{{ $task->deadline ? $task->deadline->format('d/m/Y') : 'Không có' }}</strong>
+        </div>
+        <div class="col-6">
+          <i class="bi bi-check-circle"></i>Trạng thái: <strong>{{ __("statuses.$task->status") ?? strtoupper($task->status) }}</strong>
+        </div>
         @if($task->priority)
-        <div class="col-6">Độ ưu tiên: 
+        <div class="col-6">
+          <i class="bi bi-flag"></i>Độ ưu tiên: 
           <span class="badge bg-{{ $task->priority == 'high' ? 'danger' : ($task->priority == 'medium' ? 'warning' : 'info') }}">
-            {{ ucfirst($task->priority) }}
+            {{ __("priorities.$task->priority") }}
           </span>
         </div>
         @endif
-        @if($task->tracking_code)
         <div class="col-6">
-          <div class="d-flex align-items-center">
-            <span>Tracking code: <strong>{{ $task->tracking_code }}</strong></span>
-            @php
-              try {
-                $qrGatewayService = new \App\Services\QRGatewayService();
-                $qrCode = $qrGatewayService->generateQRCode($task->tracking_code);
-              } catch (\Exception $e) {
-                $qrCode = null;
-              }
-            @endphp
-            @if($qrCode)
-              <div class="ms-2">
-                <img src="data:image/png;base64,{{ base64_encode($qrCode) }}" 
-                     alt="QR Code" 
-                     style="width: 40px; height: 40px; cursor: pointer;" 
-                     onclick="showQRModal('{{ $task->tracking_code }}', '{{ base64_encode($qrCode) }}')"
-                     title="Click để xem QR code lớn">
-              </div>
-            @else
-              <div class="ms-2">
-                <span class="text-muted" title="Không thể tạo QR code">
-                  <i class="bi bi-qr-code"></i>
-                </span>
-              </div>
-            @endif
-          </div>
+          <i class="bi bi-building"></i>Phòng ban:
+          @if($task->is_multi_department && $task->departments->count() > 0)
+            <div class="mt-1">
+              @foreach($task->departments as $department)
+                <div class="badge bg-info me-1 mb-1">{{ $department->name }}</div>
+              @endforeach
+            </div>
+          @elseif($task->department)
+            <div class="mt-1">
+              <span class="badge bg-info">{{ $task->department->name }}</span>
+            </div>
+          @else
+            <strong>—</strong>
+          @endif
         </div>
-        @endif
+        <div class="col-6">
+          <i class="bi bi-people"></i>Người theo dõi:
+          @if($task->followers->count() > 0)
+            <strong>{{ $task->followers->count() }} người:</strong>
+            <div class="mt-1">
+              @foreach($task->followers as $follower)
+                <div class="text-dark mb-1">{{ $follower->user->name }}</div>
+              @endforeach
+            </div>
+          @else
+            <strong>Chưa có người theo dõi</strong>
+          @endif
+        </div>
         
         @if($task->is_recurring)
         <div class="col-12 mt-2">
@@ -135,6 +163,117 @@
       </div>
     </div>
     @endif
+
+    <!-- Thông tin phê duyệt (nếu task đang chờ phê duyệt) -->
+    @if($task->status === 'pending_approval' && $task->approvals->count() > 0)
+    <div class="card mb-3 border-warning">
+      <div class="card-header bg-warning text-dark">
+        <h6 class="mb-0">
+          <i class="bi bi-clock me-2"></i>Thông tin phê duyệt
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning mb-3">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Task này đang chờ phê duyệt từ các phòng ban liên quan</strong>
+        </div>
+        
+        <div class="row">
+          @foreach($task->approvals as $approval)
+            <div class="col-md-6 mb-2">
+              <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                <div>
+                  <strong>{{ $approval->department->name }}</strong>
+                  <br>
+                  <small class="text-muted">Manager: {{ $approval->manager->name }}</small>
+                </div>
+                <div>
+                  @if($approval->status === 'pending')
+                    <span class="badge bg-warning">Chờ phê duyệt</span>
+                  @elseif($approval->status === 'approved')
+                    <span class="badge bg-success">Đã phê duyệt</span>
+                  @elseif($approval->status === 'rejected')
+                    <span class="badge bg-danger">Từ chối</span>
+                  @endif
+                </div>
+              </div>
+            </div>
+          @endforeach
+        </div>
+      </div>
+    </div>
+    @endif
+
+    <!-- Quản lý Task Followers (chỉ Admin/Manager) -->
+    @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+    <div class="card mb-3 border-success">
+                      <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-people me-2"></i>Quản lý Task Followers
+                    </h6>
+                </div>
+      <div class="card-body">
+        <!-- Danh sách followers hiện tại -->
+        <div class="mb-3">
+          <strong>Người đang theo dõi:</strong>
+          <div id="currentFollowers">
+                      @if($task->followers->count() > 0)
+            @foreach($task->followers as $follower)
+              <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="background: #f8f9fa; border-radius: 8px;">
+                                 <div>
+                   <span class="fw-medium">{{ $follower->user->name }}</span>
+                   <small class="text-muted d-block">
+                     {{ $follower->user->role }}
+                     @if($follower->user->department)
+                       - {{ $follower->user->department->name }}
+                     @endif
+                   </small>
+                 </div>
+                 <button class="btn btn-sm btn-outline-danger" onclick="removeFollower({{ $follower->user->id }})">
+                  <i class="bi bi-x"></i>
+                </button>
+              </div>
+            @endforeach
+            @else
+              <div class="text-muted text-center py-3">
+                <i class="bi bi-people text-muted"></i>
+                <div>Chưa có người theo dõi</div>
+              </div>
+            @endif
+          </div>
+        </div>
+        
+        <!-- Thêm follower mới -->
+        <div class="mb-3">
+          <label for="newFollower" class="form-label">Thêm người theo dõi:</label>
+          <select class="form-select mb-2" id="newFollower">
+            <option value="">Chọn người dùng...</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="addFollower()">Thêm</button>
+        </div>
+      </div>
+    </div>
+    @endif
+
+    <!-- Follow/Unfollow buttons cho tất cả users -->
+    <div class="card mb-3 border-dark">
+      <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">
+          <i class="bi bi-eye me-2"></i>Hành động
+        </h6>
+      </div>
+      <div class="card-body">
+        @if($task->isFollowedBy(auth()->user()))
+          <button class="btn btn-warning" onclick="unfollowTask({{ $task->id }})">
+            <i class="bi bi-eye-slash me-1"></i>Bỏ theo dõi
+          </button>
+        @else
+          <button class="btn btn-dark" onclick="followTask({{ $task->id }})">
+            <i class="bi bi-eye me-1"></i>Theo dõi
+          </button>
+        @endif
+      </div>
+    </div>
 
     <div class="comment-section">
       <h6 class="mb-3">Thảo luận</h6>
@@ -1133,6 +1272,131 @@ document.addEventListener('DOMContentLoaded', function() {
         link.click();
         document.body.removeChild(link);
     }
+
+    // Task Followers functions
+    function loadAvailableFollowers() {
+        fetch(`{{ route('tasks.followers.available', $task) }}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('newFollower');
+                    select.innerHTML = '<option value="">Chọn người dùng...</option>';
+                    
+                    data.users_by_department.forEach(department => {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = department.department_name;
+                        
+                        department.users.forEach(user => {
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = `${user.name} (${user.role})`;
+                            optgroup.appendChild(option);
+                        });
+                        
+                        select.appendChild(optgroup);
+                    });
+                }
+            });
+    }
+
+    function addFollower() {
+        const select = document.getElementById('newFollower');
+        const userId = select.value;
+        
+        if (!userId) {
+            alert('Vui lòng chọn người dùng để thêm.');
+            return;
+        }
+        
+        fetch(`{{ route('tasks.followers.add', $task) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Đã thêm Task Follower thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        });
+    }
+
+    function removeFollower(userId) {
+        if (!confirm('Bạn có chắc muốn xóa người này khỏi danh sách Task Follower?')) {
+            return;
+        }
+        
+        fetch(`{{ route('tasks.followers.remove', $task) }}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Đã xóa Task Follower thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        });
+    }
+
+    function followTask(taskId) {
+        fetch(`{{ route('tasks.followers.follow', $task) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Đã theo dõi task thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        });
+    }
+
+    function unfollowTask(taskId) {
+        if (!confirm('Bạn có chắc muốn bỏ theo dõi task này?')) {
+            return;
+        }
+        
+        fetch(`{{ route('tasks.followers.unfollow', $task) }}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Đã bỏ theo dõi task thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        });
+    }
+
+    // Load followers khi trang load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableFollowers();
+    });
 });
 </script>
 @endpush

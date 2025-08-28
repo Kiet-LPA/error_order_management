@@ -14,7 +14,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         
         // Giao diện chung cho tất cả users
-        $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department']);
+        $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department', 'followers.user']);
         
         // Filter theo quyền của user
         if ($user->isManager()) {
@@ -119,7 +119,13 @@ class DashboardController extends Controller
         } elseif ($user->isManager()) {
             $departments = Department::where('id', $user->department_id)->get();
         }
-        
-        return view('welcome', compact('tasks', 'stats', 'departments'));
+
+        // Lấy tasks mà user đang follow
+        $followedTasks = $user->tasksFollowing()
+            ->where('status', '!=', 'finished')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return view('welcome', compact('tasks', 'stats', 'departments', 'followedTasks'));
     }
 }

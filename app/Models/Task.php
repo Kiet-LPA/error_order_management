@@ -14,7 +14,6 @@ class Task extends Model
         'priority',
         'attachments',
         'qr_code',
-        'tracking_code',
         'department_id',
         'assignee_id',
         'creator_id',
@@ -97,6 +96,94 @@ class Task extends Model
     public function multiAssignedTasks()
     {
         return $this->hasMany(TaskAssignee::class);
+    }
+
+    // Task Followers relationships
+    public function followers()
+    {
+        return $this->hasMany(TaskFollower::class);
+    }
+
+    public function followersUsers()
+    {
+        return $this->belongsToMany(User::class, 'task_followers');
+    }
+
+    public function isFollowedBy(User $user): bool
+    {
+        return $this->followers()->where('user_id', $user->id)->exists();
+    }
+
+    // Task Approvals relationships
+    public function approvals()
+    {
+        return $this->hasMany(TaskApproval::class);
+    }
+
+    public function pendingApprovals()
+    {
+        return $this->approvals()->where('status', 'pending');
+    }
+
+    public function approvedApprovals()
+    {
+        return $this->approvals()->where('status', 'approved');
+    }
+
+    public function rejectedApprovals()
+    {
+        return $this->approvals()->where('status', 'rejected');
+    }
+
+    public function isFullyApproved()
+    {
+        if (!$this->is_multi_department) {
+            return true; // Single department tasks don't need approval
+        }
+
+        $totalDepartments = $this->departments()->count();
+        $approvedDepartments = $this->approvedApprovals()->count();
+        
+        return $totalDepartments === $approvedDepartments;
+    }
+
+    public function hasPendingApprovals()
+    {
+        return $this->pendingApprovals()->exists();
+    }
+
+    public function canBeActivated()
+    {
+        // Admin can activate any task
+        if (auth()->user()->isAdmin()) {
+            return true;
+        }
+
+        // For multi-department tasks, need all approvals
+        if ($this->is_multi_department) {
+            return $this->isFullyApproved();
+        }
+
+        return true;
+    }
+
+    public function getAvailableFollowers()
+    {
+        // Lấy tất cả user IDs đã tham gia task (creator, assignee, assignees, followers)
+        $involvedUserIds = collect([
+            $this->creator_id,
+            $this->assignee_id
+        ])->filter();
+        
+        $involvedUserIds = $involvedUserIds->merge($this->assignees()->pluck('users.id'));
+        $involvedUserIds = $involvedUserIds->merge($this->followers()->pluck('user_id'));
+
+        return User::whereNotIn('id', $involvedUserIds->unique())
+                  ->with('department')
+                  ->orderBy('department_id')
+                  ->orderBy('name')
+                  ->get()
+                  ->groupBy('department_id');
     }
     
     /**

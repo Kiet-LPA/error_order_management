@@ -76,6 +76,22 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+    // Task Followers relationships
+    public function followedTasks()
+    {
+        return $this->hasMany(TaskFollower::class);
+    }
+
+    public function tasksFollowing()
+    {
+        return $this->belongsToMany(Task::class, 'task_followers');
+    }
+
+    public function isFollowingTask(Task $task): bool
+    {
+        return $this->followedTasks()->where('task_id', $task->id)->exists();
+    }
+
     // Work Report relationships
     public function workReports()
     {

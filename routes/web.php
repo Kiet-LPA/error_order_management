@@ -6,6 +6,8 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WorkReportController;
+use App\Http\Controllers\TaskFollowerController;
+use App\Http\Controllers\TaskApprovalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +37,20 @@ Route::middleware(['auth'])->group(function () {
     // Manager & Admin: CRUD Task (tránh trùng, bỏ 'show' vì dùng alias riêng)
     Route::middleware('role:admin,manager')->group(function () {
         Route::resource('tasks', TaskController::class)->except(['show']);
+        
+        // Task Followers routes (Admin/Manager only)
+        Route::post('/tasks/{task}/followers/add', [TaskFollowerController::class, 'add'])->name('tasks.followers.add');
+        Route::delete('/tasks/{task}/followers/remove', [TaskFollowerController::class, 'remove'])->name('tasks.followers.remove');
+        Route::get('/tasks/{task}/followers/available', [TaskFollowerController::class, 'available'])->name('tasks.followers.available');
+        Route::get('/tasks/{task}/followers/list', [TaskFollowerController::class, 'list'])->name('tasks.followers.list');
+        Route::get('/followers/users-by-department', [TaskFollowerController::class, 'getUsersByDepartment'])->name('followers.users-by-department');
+        Route::get('/followers/departments-by-user', [TaskFollowerController::class, 'getDepartmentsByUser'])->name('followers.departments-by-user');
+        
+        // Task Approval routes
+        Route::get('/task-approvals', [TaskApprovalController::class, 'index'])->name('task-approvals.index');
+        Route::get('/task-approvals/{approval}', [TaskApprovalController::class, 'show'])->name('task-approvals.show');
+        Route::post('/task-approvals/{approval}/approve', [TaskApprovalController::class, 'approve'])->name('task-approvals.approve');
+        Route::post('/task-approvals/{approval}/reject', [TaskApprovalController::class, 'reject'])->name('task-approvals.reject');
     });
     
     // Lưu task (nút "Giao việc") - áp dụng middleware kiểm tra phòng ban
@@ -55,6 +71,12 @@ Route::middleware(['auth'])->group(function () {
     // Employee/Manager/Admin: trang "my tasks" & comment trên task
     Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
         Route::get('/my-tasks', [TaskController::class, 'myTasks'])->name('tasks.mine');
+    });
+
+    // Task Followers routes (cho tất cả users)
+    Route::middleware(['auth'])->group(function () {
+        Route::post('/tasks/{task}/followers/follow', [TaskFollowerController::class, 'follow'])->name('tasks.followers.follow');
+        Route::delete('/tasks/{task}/followers/unfollow', [TaskFollowerController::class, 'unfollow'])->name('tasks.followers.unfollow');
     });
 
     // Comment routes

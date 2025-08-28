@@ -212,20 +212,7 @@
                     @elseif($task->status == 'overdue')
                         Trễ hạn
                 </div>
-                @if($task->tracking_code)
-                <div class="col-12 mb-2">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-qr-code me-2"></i>
-                        <strong>Mã Tracking:</strong>
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary ms-2 me-2">
-                            {{ $task->tracking_code }}
-                        </span>
-                        <button class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ $task->tracking_code }}')" title="Copy mã tracking">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
-                    </div>
-                </div>
-                @endif
+
                     @elseif($task->status == 'finished')
                         Kết thúc
                     @else
