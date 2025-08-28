@@ -34,7 +34,7 @@ class TaskFollowerController extends Controller
         }
 
         // Kiểm tra follower đã tồn tại
-        if ($task->followers()->where('user_id', $request->user_id)->exists()) {
+        if ($task->followers()->where('id', $request->user_id)->exists()) {
             return response()->json(['success' => false, 'message' => 'Người dùng đã là follower của task này'], 400);
         }
 
@@ -45,7 +45,7 @@ class TaskFollowerController extends Controller
             return response()->json(['success' => false, 'message' => 'Không thể thêm người tham gia task làm follower'], 400);
         }
 
-        $task->followers()->create(['user_id' => $request->user_id]);
+        $task->followers()->attach($request->user_id);
 
         return response()->json(['success' => true, 'message' => 'Đã thêm Task Follower thành công']);
     }
@@ -74,7 +74,7 @@ class TaskFollowerController extends Controller
             }
         }
 
-        $task->followers()->where('user_id', $request->user_id)->delete();
+        $task->followers()->detach($request->user_id);
 
         return response()->json(['success' => true, 'message' => 'Đã xóa Task Follower thành công']);
     }
@@ -130,7 +130,7 @@ class TaskFollowerController extends Controller
      */
     public function list(Task $task)
     {
-        return view('components.task-followers-list', ['followers' => $task->followers()->with('user.department')->get()]);
+        return view('components.task-followers-list', ['followers' => $task->followers()->with('department')->get()]);
     }
 
     /**
@@ -141,7 +141,7 @@ class TaskFollowerController extends Controller
         $user = auth()->user();
 
         // Kiểm tra đã follow chưa
-        if ($task->followers()->where('user_id', $user->id)->exists()) {
+        if ($task->followers()->where('id', $user->id)->exists()) {
             return response()->json(['success' => false, 'message' => 'Bạn đã theo dõi task này rồi'], 400);
         }
 
@@ -152,7 +152,7 @@ class TaskFollowerController extends Controller
             return response()->json(['success' => false, 'message' => 'Không thể theo dõi task mà bạn đang tham gia'], 400);
         }
 
-        $task->followers()->create(['user_id' => $user->id]);
+        $task->followers()->attach($user->id);
 
         return response()->json(['success' => true, 'message' => 'Đã theo dõi task thành công']);
     }
@@ -165,11 +165,11 @@ class TaskFollowerController extends Controller
         $user = auth()->user();
 
         // Kiểm tra đang follow chưa
-        if (!$task->followers()->where('user_id', $user->id)->exists()) {
+        if (!$task->followers()->where('id', $user->id)->exists()) {
             return response()->json(['success' => false, 'message' => 'Bạn chưa theo dõi task này'], 400);
         }
 
-        $task->followers()->where('user_id', $user->id)->delete();
+        $task->followers()->detach($user->id);
 
         return response()->json(['success' => true, 'message' => 'Đã bỏ theo dõi task thành công']);
     }

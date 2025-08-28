@@ -660,7 +660,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                     @if($user)
                                         <div class="form-check mb-2 ms-3 follower-option" data-department="{{ $user->department_id ?? '' }}" data-user-id="{{ $user->id }}" data-user-role="{{ $user->role }}">
                                             <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}"
-                                                   {{ in_array($user->id, old('followers', $task->followers->pluck('user_id')->toArray())) ? 'checked' : '' }}>
+                                                   {{ in_array($user->id, old('followers', $task->followers->pluck('id')->toArray())) ? 'checked' : '' }}>
                                             <label class="form-check-label" for="follower_{{ $user->id }}">
                                                 {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
                                             </label>

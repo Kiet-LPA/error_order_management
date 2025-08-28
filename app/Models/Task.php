@@ -101,7 +101,7 @@ class Task extends Model
     // Task Followers relationships
     public function followers()
     {
-        return $this->hasMany(TaskFollower::class);
+        return $this->belongsToMany(User::class, 'task_followers');
     }
 
     public function followersUsers()
@@ -111,7 +111,7 @@ class Task extends Model
 
     public function isFollowedBy(User $user): bool
     {
-        return $this->followers()->where('user_id', $user->id)->exists();
+        return $this->followers()->where('users.id', $user->id)->exists();
     }
 
     // Task Approvals relationships
@@ -176,7 +176,7 @@ class Task extends Model
         ])->filter();
         
         $involvedUserIds = $involvedUserIds->merge($this->assignees()->pluck('users.id'));
-        $involvedUserIds = $involvedUserIds->merge($this->followers()->pluck('user_id'));
+        $involvedUserIds = $involvedUserIds->merge($this->followers()->pluck('id'));
 
         return User::whereNotIn('id', $involvedUserIds->unique())
                   ->with('department')

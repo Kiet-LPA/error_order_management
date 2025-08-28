@@ -169,13 +169,17 @@ class TaskController extends Controller
 
         // Xử lý followers khi tạo task
         if ($r->has('followers') && is_array($r->followers)) {
+            $validFollowers = [];
             foreach ($r->followers as $followerId) {
                 // Kiểm tra user không phải là người tham gia task
                 if ($followerId != $task->creator_id && 
                     $followerId != $task->assignee_id &&
                     !in_array($followerId, $r->assignee_ids ?? [])) {
-                    $task->followers()->create(['user_id' => $followerId]);
+                    $validFollowers[] = $followerId;
                 }
+            }
+            if (!empty($validFollowers)) {
+                $task->followers()->attach($validFollowers);
             }
         }
 
@@ -213,7 +217,7 @@ class TaskController extends Controller
             }
         }
         
-        $task->load(['creator','assignee','assignees','followers.user.department','approvals.department','approvals.manager']);
+        $task->load(['creator','assignee','assignees','departments','followers.department','approvals.department','approvals.manager']);
         $task->load(['activities' => function($query) {
             $query->orderBy('created_at', 'desc');
         }, 'activities.user']);
@@ -245,7 +249,7 @@ class TaskController extends Controller
         }
         
         // Load relationships
-        $task->load(['assignees', 'departments', 'followers.user.department']);
+        $task->load(['assignees', 'departments', 'followers.department']);
         
         // Lấy danh sách users có thể assign
         if ($user->isAdmin()) {
@@ -415,7 +419,7 @@ class TaskController extends Controller
         // Xử lý Task Followers (chỉ Admin/Manager)
         if (($user->isAdmin() || $user->isManager()) && $request->has('followers')) {
             // Xóa followers cũ
-            $task->followers()->delete();
+            $task->followers()->detach();
             
             // Thêm followers mới
             $followerIds = $request->followers;
@@ -425,6 +429,7 @@ class TaskController extends Controller
             ])->filter();
             $involvedUserIds = $involvedUserIds->merge($task->assignees()->pluck('users.id'));
             
+            $validFollowers = [];
             foreach ($followerIds as $followerId) {
                 // Kiểm tra không phải là người tham gia task
                 if (!$involvedUserIds->contains($followerId)) {
@@ -436,12 +441,12 @@ class TaskController extends Controller
                         }
                     }
                     
-                    // Tạo TaskFollower
-                    TaskFollower::create([
-                        'task_id' => $task->id,
-                        'user_id' => $followerId
-                    ]);
+                    $validFollowers[] = $followerId;
                 }
+            }
+            
+            if (!empty($validFollowers)) {
+                $task->followers()->attach($validFollowers);
             }
         }
 

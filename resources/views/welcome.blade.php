@@ -744,7 +744,7 @@
                 <td class="px-4 py-3">
                   @if($task->followers->count() > 0)
                     @php
-                      $followerNames = $task->followers->pluck('user.name')->implode("\n");
+                      $followerNames = $task->followers->pluck('name')->implode("\n");
                       $followerCount = $task->followers->count();
                     @endphp
                     <span class="badge bg-dark bg-opacity-10 text-dark border border-dark" 

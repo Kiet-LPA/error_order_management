@@ -14,7 +14,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         
         // Giao diện chung cho tất cả users
-        $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department', 'followers.user']);
+        $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department', 'followers']);
         
         // Filter theo quyền của user
         if ($user->isManager()) {
