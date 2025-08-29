@@ -24,7 +24,7 @@
 
                     <th>Người giao</th>
                     <th>Người nhận</th>
-                    <th>Deadline</th>
+                                            <th>Hạn cuối</th>
                     <th>Trạng thái</th>
                     <th>Hành động</th>
                 </tr>

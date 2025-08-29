@@ -266,14 +266,14 @@ class TaskController extends Controller
         // Lấy danh sách users có thể assign
         if ($user->isAdmin()) {
             // Admin có thể giao việc cho tất cả users
-            $users = User::with('department')->orderBy('name')->get(['id','name','department_id']);
+            $users = User::with('department')->orderBy('name')->get(['id','name','department_id','role']);
         } elseif ($user->isManager()) {
             // Manager chỉ có thể giao việc cho Employee
             $users = User::with('department')
                         ->where('role', 'employee')
                         ->where('id', '!=', $user->id) // Không giao việc cho chính mình
                         ->orderBy('name')
-                        ->get(['id','name','department_id']);
+                        ->get(['id','name','department_id','role']);
         } else {
             // Employee không thể giao việc
             $users = collect();

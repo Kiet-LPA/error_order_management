@@ -26,7 +26,7 @@
                                         <p><strong>Ngày tạo:</strong> {{ $approval->task->created_at->format('d/m/Y H:i') }}</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p><strong>Deadline:</strong> {{ $approval->task->deadline ? $approval->task->deadline->format('d/m/Y H:i') : 'Không có' }}</p>
+                                        <p><strong>Hạn cuối:</strong> {{ $approval->task->deadline ? $approval->task->deadline->format('d/m/Y H:i') : 'Không có' }}</p>
                                         <p><strong>Độ ưu tiên:</strong> 
                                             <span class="badge bg-{{ $approval->task->priority == 'high' ? 'danger' : ($approval->task->priority == 'medium' ? 'warning' : 'info') }}">
                                                 {{ __("priorities.{$approval->task->priority}") }}

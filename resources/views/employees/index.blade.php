@@ -22,8 +22,7 @@
 .employee-tooltip:hover,
 .department-tooltip:hover {
     cursor: help !important;
-    transform: scale(1.05) !important;
-    transition: transform 0.2s ease !important;
+    transition: opacity 0.2s ease !important;
 }
 
 /* Sticky first column CSS */
@@ -199,8 +198,7 @@
 /* CSS cho giao diện */
 .table-hover tbody tr:hover {
     background-color: #f8f9fa;
-    transform: scale(1.01);
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
 }
 
 .badge {
@@ -213,7 +211,6 @@
 }
 
 .btn-group .btn:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 

@@ -511,13 +511,23 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                     $departmentName = $department ? $department->name : 'Không có phòng ban';
                                 @endphp
                                 <optgroup label="{{ $departmentName }}" data-department="{{ $departmentId }}">
-                                    @foreach($departmentUsers as $user)
-                                        @if($user)
-                                            <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
-                                            </option>
-                                        @endif
-                                    @endforeach
+                                                                @php
+                                $sortedUsers = $departmentUsers->sortBy(function($user) {
+                                    $roleOrder = [
+                                        'employee' => 1,
+                                        'manager' => 2,
+                                        'admin' => 3
+                                    ];
+                                    return $roleOrder[$user->role] ?? 999;
+                                });
+                            @endphp
+                            @foreach($sortedUsers as $user)
+                                @if($user)
+                                    <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
+                                        {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                    </option>
+                                @endif
+                            @endforeach
                                 </optgroup>
                             @endforeach
                         </select>
@@ -539,7 +549,17 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                     <div class="fw-bold text-primary mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #007bff;">
                                         {{ $departmentName }}
                                     </div>
-                                    @foreach($departmentUsers as $user)
+                                    @php
+                                        $sortedUsers = $departmentUsers->sortBy(function($user) {
+                                            $roleOrder = [
+                                                'employee' => 1,
+                                                'manager' => 2,
+                                                'admin' => 3
+                                            ];
+                                            return $roleOrder[$user->role] ?? 999;
+                                        });
+                                    @endphp
+                                    @foreach($sortedUsers as $user)
                                         @if($user)
                                             <div class="form-check mb-2 ms-3 user-option" data-department="{{ $user->department_id ?? '' }}">
                                                 <input class="form-check-input" type="checkbox" name="assignee_ids[]" 
@@ -566,7 +586,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                 {{-- Deadline --}}
                 <div class="form-group">
                     <label for="deadline" class="form-label">
-                        <i class="bi bi-calendar-event me-1"></i>Deadline
+                        <i class="bi bi-calendar-event me-1"></i>Hạn cuối
                     </label>
                     <input type="datetime-local" name="deadline" id="deadline" 
                            class="form-control @error('deadline') is-invalid @enderror"
@@ -656,7 +676,17 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                 <div class="fw-bold text-dark mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #6c757d;">
                                     {{ $departmentName }}
                                 </div>
-                                @foreach($departmentUsers as $user)
+                                @php
+                                    $sortedUsers = $departmentUsers->sortBy(function($user) {
+                                        $roleOrder = [
+                                            'employee' => 1,
+                                            'manager' => 2,
+                                            'admin' => 3
+                                        ];
+                                        return $roleOrder[$user->role] ?? 999;
+                                    });
+                                @endphp
+                                @foreach($sortedUsers as $user)
                                     @if($user)
                                         <div class="form-check mb-2 ms-3 follower-option" data-department="{{ $user->department_id ?? '' }}" data-user-id="{{ $user->id }}" data-user-role="{{ $user->role }}">
                                             <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}"

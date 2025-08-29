@@ -14,7 +14,7 @@ body {
     color: #e5e7eb;
     border: none;
     border-bottom: 1px solid #2d323c;
-    transition: background 0.2s, color 0.2s;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 .sidebar .list-group-item.active, .sidebar .list-group-item:active {
     background: #2563eb !important;
@@ -47,11 +47,11 @@ body {
 
 /* Styles cho nút tạo công việc nổi */
 .position-fixed {
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease;
 }
 
 .position-fixed:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
 /* Styles cho form */
@@ -68,7 +68,7 @@ body {
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
   cursor: pointer;
 }
 
@@ -181,7 +181,7 @@ html, body {
   border: 1px solid #e9ecef;
   border-radius: .75rem;
   background: #fff;
-  transition: box-shadow .2s ease;
+  transition: box-shadow 0.2s ease;
 }
 .card-stat:hover {
   box-shadow: 0 6px 24px rgba(0,0,0,.06);

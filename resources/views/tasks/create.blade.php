@@ -247,7 +247,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-bold text-dark">Deadline</label>
+                                  <label class="form-label fw-bold text-dark">Hạn cuối</label>
               <input
                 type="datetime-local"
                 name="deadline"

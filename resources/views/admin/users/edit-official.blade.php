@@ -26,6 +26,21 @@
     color: #374151;
     font-weight: 500;
 }
+
+/* End date display styling */
+#contract_end_date_display {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#contract_end_date_display:focus {
+    outline: none;
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
 </style>
 
 <div class="container-fluid">
@@ -107,7 +122,7 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="department_id" class="form-label">Phòng ban</label>
+                                    <label for="department_id" class="form-label">Phòng ban (nếu có)</label>
                                     <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror">
                                         <option value="">-- Không chọn --</option>
                                         @foreach($departments as $department)
@@ -142,19 +157,19 @@
                                 
                                 <div class="mb-3">
                                     <label for="social_insurance_number" class="form-label">Mã số BHXH</label>
-                                    <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}" placeholder="VD: 1234567890">
+                                    <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}">
                                     @error('social_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="health_insurance_number" class="form-label">Mã số BHYT</label>
-                                    <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}" placeholder="VD: DN1234567890123">
+                                    <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}">
                                     @error('health_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="personal_identification_number" class="form-label">Mã số định danh cá nhân</label>
-                                    <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}" placeholder="VD: 123456789012345">
+                                    <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}">
                                     @error('personal_identification_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
@@ -162,8 +177,7 @@
                     </div>
                 </div>
 
-                <!-- Thông tin hợp đồng -->
-                @if($user->activeContract)
+                <!-- Thông tin hợp đồng chính thức -->
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="card shadow-sm">
@@ -177,97 +191,110 @@
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="contract_salary" class="form-label">Lương chính thức (VNĐ)</label>
-                                            <input type="number" name="contract_salary" id="contract_salary" 
-                                                   class="form-control @error('contract_salary') is-invalid @enderror" 
-                                                   value="{{ old('contract_salary', $user->activeContract->probation_salary) }}" 
-                                                   min="0" step="1000000" placeholder="VD: 7000000">
+                                            <input type="number" name="contract_salary" id="contract_salary" class="form-control @error('contract_salary') is-invalid @enderror" value="{{ old('contract_salary', $user->activeContract ? $user->activeContract->probation_salary : '') }}" placeholder="VD: 40000000" step="1000000" min="0">
                                             @error('contract_salary')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="contract_start_date" class="form-label">Ngày bắt đầu hợp đồng</label>
+                                            <input type="date" name="contract_start_date" id="contract_start_date" class="form-control @error('contract_start_date') is-invalid @enderror" value="{{ old('contract_start_date', $user->activeContract ? $user->activeContract->start_date->format('Y-m-d') : '') }}" onchange="calculateEndDate()">
+                                            @error('contract_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="contract_end_date_display" class="form-label">Thời gian kết thúc hợp đồng</label>
+                                            <input type="text" id="contract_end_date_display" class="form-control" readonly placeholder="Sẽ hiển thị khi chọn ngày bắt đầu và thời gian">
+                                        </div>
                                     </div>
+                                    
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="contract_period" class="form-label">Thời gian hợp đồng (tháng)</label>
-                                            <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror">
-                                                <option value="1" {{ old('contract_period', $user->activeContract->probation_period) == '1' ? 'selected' : '' }}>1 tháng</option>
-                                                <option value="3" {{ old('contract_period', $user->activeContract->probation_period) == '3' ? 'selected' : '' }}>3 tháng</option>
-                                                <option value="6" {{ old('contract_period', $user->activeContract->probation_period) == '6' ? 'selected' : '' }}>6 tháng</option>
-                                                <option value="12" {{ old('contract_period', $user->activeContract->probation_period) == '12' ? 'selected' : '' }}>12 tháng</option>
-                                                <option value="24" {{ old('contract_period', $user->activeContract->probation_period) == '24' ? 'selected' : '' }}>24 tháng</option>
-                                                <option value="36" {{ old('contract_period', $user->activeContract->probation_period) == '36' ? 'selected' : '' }}>36 tháng</option>
+                                            <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror" onchange="calculateEndDate()">
+                                                <option value="">Chọn thời gian</option>
+                                                <option value="6" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 6 ? 'selected' : '' }}>6 tháng</option>
+                                                <option value="12" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 12 ? 'selected' : '' }}>12 tháng</option>
+                                                <option value="24" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 24 ? 'selected' : '' }}>24 tháng</option>
+                                                <option value="36" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 36 ? 'selected' : '' }}>36 tháng</option>
+                                                <option value="48" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 48 ? 'selected' : '' }}>48 tháng</option>
+                                                <option value="60" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 60 ? 'selected' : '' }}>60 tháng</option>
                                             </select>
                                             @error('contract_period')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="contract_start_date" class="form-label">Ngày bắt đầu hợp đồng</label>
-                                            <input type="date" name="contract_start_date" id="contract_start_date" 
-                                                   class="form-control @error('contract_start_date') is-invalid @enderror" 
-                                                   value="{{ old('contract_start_date', $user->activeContract->start_date->format('Y-m-d')) }}">
-                                            @error('contract_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
+                                        
                                         <div class="mb-3">
                                             <label for="contract_status" class="form-label">Trạng thái hợp đồng</label>
                                             <select name="contract_status" id="contract_status" class="form-select @error('contract_status') is-invalid @enderror">
-                                                <option value="active" {{ old('contract_status', $user->activeContract->status) == 'active' ? 'selected' : '' }}>Đang hoạt động</option>
-                                                <option value="completed" {{ old('contract_status', $user->activeContract->status) == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
-                                                <option value="terminated" {{ old('contract_status', $user->activeContract->status) == 'terminated' ? 'selected' : '' }}>Đã chấm dứt</option>
+                                                <option value="active" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'active' ? 'selected' : '' }}>Đang hoạt động</option>
+                                                <option value="completed" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'completed' ? 'selected' : '' }}>Đã hoàn thành</option>
+                                                <option value="terminated" {{ old('contract_period', $user->activeContract ? $user->activeContract->status : '') == 'terminated' ? 'selected' : '' }}>Đã chấm dứt</option>
                                             </select>
                                             @error('contract_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                <!-- Hình ảnh hợp đồng -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card shadow-sm">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
-                                    <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
-                                           id="contract_images" name="contract_images[]" multiple 
-                                           accept="image/*">
-                                    <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF. Tối đa 2MB mỗi file.</div>
-                                    @error('contract_images.*')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div id="imagePreview" class="row g-2 mb-3"></div>
                                 
-                                <!-- Hiển thị hình ảnh hiện có -->
-                                @if($user->contracts && $user->contracts->where('status', 'active')->first() && $user->contracts->where('status', 'active')->first()->images->count() > 0)
-                                <div class="mt-3">
-                                    <h6>Hình ảnh hợp đồng hiện tại:</h6>
-                                    <div class="row g-2">
-                                        @foreach($user->contracts->where('status', 'active')->first()->images as $image)
-                                        <div class="col-md-6 col-sm-6 col-6">
-                                            <div class="card">
-                                                <img src="{{ $image->image_path }}" class="card-img-top" style="height: 120px; object-fit: cover;">
-                                                <div class="card-body p-2">
-                                                    <small class="text-muted">Trang {{ $image->page_number }}</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @endforeach
+                                <!-- Bổ sung hợp đồng cho nhân viên chưa có -->
+                                @if(!$user->activeContract)
+                                <div class="mt-4">
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <strong>Lưu ý:</strong> Nhân viên này chưa có hợp đồng. Vui lòng điền đầy đủ thông tin hợp đồng bên trên và tải lên hình ảnh hợp đồng để tạo hợp đồng mới.
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" class="btn btn-primary" onclick="createNewContract()">
+                                            <i class="bi bi-plus-circle me-2"></i>Tạo hợp đồng mới
+                                        </button>
+                                    </div>
+                                </div>
+                                @else
+                                <div class="mt-4">
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        <strong>Thông báo:</strong> Nhân viên này đã có hợp đồng. Bạn có thể cập nhật thông tin hợp đồng bên trên.
                                     </div>
                                 </div>
                                 @endif
+                                
+                                <!-- Hình ảnh hợp đồng (cho tất cả nhân viên) -->
+                                <div class="mt-4">
+                                    <h6 class="text-info mb-3">
+                                        <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
+                                    </h6>
+                                    
+                                    <div class="mb-3">
+                                        <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
+                                        <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
+                                               id="contract_images" name="contract_images[]" multiple 
+                                               accept="image/*">
+                                        <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF. Tối đa 2MB mỗi file.</div>
+                                        @error('contract_images.*')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div id="imagePreview" class="row g-2"></div>
+                                    
+                                    <!-- Hiển thị hình ảnh hiện có -->
+                                    @if($user->activeContract && $user->activeContract->images->count() > 0)
+                                    <div class="mt-3">
+                                        <h6>Hình ảnh hợp đồng hiện tại:</h6>
+                                        <div class="row g-2">
+                                            @foreach($user->activeContract->images as $image)
+                                            <div class="col-md-6 col-sm-6 col-6">
+                                                <div class="card">
+                                                    <img src="{{ $image->image_path }}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                                                    <div class="card-body p-2">
+                                                        <small class="text-muted">Trang {{ $image->page_number }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -293,6 +320,11 @@
 
 @push('scripts')
 <script>
+// Tính toán thời gian kết thúc khi trang load (nếu đã có dữ liệu)
+document.addEventListener('DOMContentLoaded', function() {
+    calculateEndDate();
+});
+
 document.getElementById('contract_images').addEventListener('change', function(e) {
     const preview = document.getElementById('imagePreview');
     preview.innerHTML = '';
@@ -318,9 +350,60 @@ document.getElementById('contract_images').addEventListener('change', function(e
         }
     }
 });
+
+// Function tính toán thời gian kết thúc hợp đồng
+function calculateEndDate() {
+    const startDate = document.getElementById('contract_start_date').value;
+    const period = document.getElementById('contract_period').value;
+    const endDateDisplay = document.getElementById('contract_end_date_display');
+    
+    if (startDate && period) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + parseInt(period));
+        
+        // Format ngày theo định dạng dd/mm/yyyy
+        const day = end.getDate().toString().padStart(2, '0');
+        const month = (end.getMonth() + 1).toString().padStart(2, '0');
+        const year = end.getFullYear();
+        
+        endDateDisplay.value = `${day}/${month}/${year}`;
+        endDateDisplay.style.backgroundColor = '#e8f5e8';
+        endDateDisplay.style.borderColor = '#28a745';
+    } else {
+        endDateDisplay.value = '';
+        endDateDisplay.style.backgroundColor = '';
+        endDateDisplay.style.borderColor = '';
+    }
+}
+
+// Function tạo hợp đồng mới
+function createNewContract() {
+    // Kiểm tra xem có thông tin hợp đồng chưa
+    const salary = document.getElementById('contract_salary').value;
+    const startDate = document.getElementById('contract_start_date').value;
+    const period = document.getElementById('contract_period').value;
+    const status = document.getElementById('contract_status').value;
+    
+    if (!salary || !startDate || !period || !status) {
+        alert('Vui lòng điền đầy đủ thông tin hợp đồng (Lương, Ngày bắt đầu, Thời gian, Trạng thái) trước khi tạo hợp đồng.');
+        return;
+    }
+    
+    // Kiểm tra xem có hình ảnh hợp đồng chưa
+    const contractImages = document.getElementById('contract_images').files;
+    if (contractImages.length === 0) {
+        alert('Vui lòng tải lên ít nhất một hình ảnh hợp đồng trước khi tạo hợp đồng.');
+        return;
+    }
+    
+    // Nếu đã đủ thông tin, submit form
+    if (confirm('Bạn có chắc chắn muốn tạo hợp đồng mới cho nhân viên này?')) {
+        document.querySelector('form').submit();
+    }
+}
 </script>
 @endpush
-
 @endsection
 
 <script>

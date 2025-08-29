@@ -21,8 +21,7 @@
 .assignee-tooltip:hover,
 .follower-tooltip:hover {
     cursor: help !important;
-    transform: scale(1.05) !important;
-    transition: transform 0.2s ease !important;
+    transition: opacity 0.2s ease !important;
 }
 
 
@@ -253,19 +252,16 @@
 
 .drag-handle:hover {
   background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.05);
 }
 
 .drag-handle:active {
   cursor: grabbing;
-  transform: scale(0.95);
 }
 
 /* CSS cho giao diện Manager/Employee */
 .table-hover tbody tr:hover {
     background-color: #f8f9fa;
-    transform: scale(1.01);
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
 }
 
 
@@ -280,7 +276,6 @@
 }
 
 .btn-group .btn:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
@@ -595,7 +590,7 @@
             <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
             <th class="px-4 py-3 fw-semibold">Người theo dõi</th>
             <th class="px-4 py-3 fw-semibold">Trạng thái</th>
-            <th class="px-4 py-3 fw-semibold">Deadline</th>
+            <th class="px-4 py-3 fw-semibold">Hạn cuối</th>
             <th class="px-4 py-3 fw-semibold text-end">Hành động</th>
           </tr>
         </thead>
@@ -695,7 +690,7 @@
               <th class="px-4 py-3 fw-semibold">Người phụ trách</th>
               <th class="px-4 py-3 fw-semibold">Người theo dõi</th>
               <th class="px-4 py-3 fw-semibold">Ngày giao</th>
-              <th class="px-4 py-3 fw-semibold">Deadline</th>
+              <th class="px-4 py-3 fw-semibold">Hạn cuối</th>
               <th class="px-4 py-3 fw-semibold">Trạng thái</th>
               <th class="px-4 py-3 fw-semibold text-end">Hành động</th>
             </tr>

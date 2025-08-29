@@ -68,6 +68,12 @@
 }
 .comment-item strong { color: #5DA444; }
 
+/* Tooltip styling
+.creator-tooltip:hover {
+    cursor: help !important;
+    transition: opacity 0.2s ease !important;
+} */
+
 /* Modal styling */
 .modal-header {
     background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
@@ -174,7 +180,17 @@
                 {{ strtoupper($task->status) }}
             @endif
         </span>
-        <span class="badge badge-priority bg-warning text-dark" style="background:#5DA444; color:#fff;">Độ ưu tiên: {{ ucfirst($task->priority ?? 'Không rõ') }}</span>
+        <span class="badge badge-priority bg-warning text-dark" style="background:#5DA444; color:#fff;">Độ ưu tiên: 
+            @if($task->priority == 'high')
+                Cao
+            @elseif($task->priority == 'medium')
+                Trung bình
+            @elseif($task->priority == 'low')
+                Thấp
+            @else
+                Không rõ
+            @endif
+        </span>
     </div>
     <a href="{{ route('dashboard') }}" class="btn btn-light" style="position:absolute;top:24px;right:32px; background:#558EC1; color:#fff; border-color:#558EC1;">&larr; Quay lại</a>
 </div>
@@ -184,8 +200,18 @@
         <div class="card card-custom p-4 mb-4">
             <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>Thông tin chung</h5>
             <div class="row mb-2">
-                <div class="col-md-6 mb-2"><i class="bi bi-person-badge me-1"></i> <strong>Người giao:</strong> {{ $task->creator->name }}</div>
+                {{-- Cột bên trái --}}
+                <div class="col-md-6 mb-2">
+                    <i class="bi bi-person-badge me-1"></i> <strong>Người giao:</strong>
+                    <span class="badge bg-success creator-tooltip" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="Người tạo: {{ $task->creator->name }}">
+                        {{ $task->creator->name }}
+                    </span>
+                </div>
                 <div class="col-md-6 mb-2"><i class="bi bi-calendar-date me-1"></i> <strong>Ngày giao:</strong> {{ $task->created_at->format('d/m/Y') }}</div>
+                
                 <div class="col-md-6 mb-2">
                     <i class="bi bi-person me-1"></i> <strong>Người nhận:</strong>
                     @if($task->assignees->count() > 0)
@@ -200,25 +226,60 @@
                         <span class="text-muted">—</span>
                     @endif
                 </div>
-                <div class="col-md-6 mb-2"><i class="bi bi-calendar2-week me-1"></i> <strong>Deadline:</strong> {{ $task->deadline? $task->deadline->format('d/m/Y'):'—' }}</div>
-                <div class="col-md-6 mb-2"><i class="bi bi-exclamation-triangle me-1"></i> <strong>Độ ưu tiên:</strong> <span class="text-danger">{{ ucfirst($task->priority ?? 'Không rõ') }}</span></div>
-                <div class="col-md-6 mb-2"><i class="bi bi-check2-circle me-1"></i> <strong>Trạng thái:</strong> <span class="text-dark">
-                    @if($task->status == 'in_progress')
-                        Đang làm
-                    @elseif($task->status == 'completed')
-                        Chờ duyệt
-                    @elseif($task->status == 'rejected')
-                        Từ chối
-                    @elseif($task->status == 'overdue')
-                        Trễ hạn
-                </div>
-
-                    @elseif($task->status == 'finished')
-                        Kết thúc
+                <div class="col-md-6 mb-2"><i class="bi bi-calendar2-week me-1"></i> <strong>Hạn cuối:</strong> {{ $task->deadline? $task->deadline->format('d/m/Y'):'—' }}</div>
+                
+                <div class="col-md-6 mb-2"><i class="bi bi-building me-1"></i> <strong>Phòng ban:</strong> 
+                    @if($task->departments->count() > 0)
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach($task->departments as $department)
+                                <span class="badge bg-info">{{ $department->name }}</span>
+                            @endforeach
+                        </div>
+                    @elseif($task->department)
+                        <span class="badge bg-info">{{ $task->department->name }}</span>
                     @else
-                        {{ strtoupper($task->status) }}
+                        <span class="text-muted">—</span>
                     @endif
-                </span></div>
+                </div>
+                <div class="col-md-6 mb-2"><i class="bi bi-exclamation-triangle me-1"></i> <strong>Độ ưu tiên:</strong> 
+                    @if($task->priority == 'high')
+                        <span class="text-danger">Cao</span>
+                    @elseif($task->priority == 'medium')
+                        <span class="text-warning">Trung bình</span>
+                    @elseif($task->priority == 'low')
+                        <span class="text-success">Thấp</span>
+                    @else
+                        <span class="text-muted">Không rõ</span>
+                    @endif
+                </div>
+                
+                <div class="col-md-6 mb-2">
+                    <i class="bi bi-eye me-1"></i> <strong>Người theo dõi:</strong>
+                    @if($task->followers->count() > 0)
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach($task->followers as $follower)
+                                <span class="badge bg-secondary">{{ $follower->name }}</span>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </div>
+                <div class="col-md-6 mb-2"><i class="bi bi-check2-circle me-1"></i> <strong>Trạng thái:</strong> 
+                    @if($task->status == 'in_progress')
+                        <span class="text-primary">Đang làm</span>
+                    @elseif($task->status == 'completed')
+                        <span class="text-warning">Chờ duyệt</span>
+                    @elseif($task->status == 'rejected')
+                        <span class="text-danger">Từ chối</span>
+                    @elseif($task->status == 'overdue')
+                        <span class="text-danger">Trễ hạn</span>
+                    @elseif($task->status == 'finished')
+                        <span class="text-success">Kết thúc</span>
+                    @else
+                        <span class="text-muted">{{ strtoupper($task->status) }}</span>
+                    @endif
+                </div>
                 
                 {{-- Thông báo task lặp lại --}}
                 @if($task->is_recurring)

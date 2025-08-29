@@ -176,6 +176,9 @@ class UserController extends Controller
             abort(404, 'Vui lòng sử dụng form chỉnh sửa nhân viên mới.');
         }
         
+        // Load các relationship cần thiết
+        $user->load(['department', 'contracts.images', 'activeContract']);
+        
         $departments = Department::orderBy('name')->get();
         return view('admin.users.edit-official', compact('user', 'departments'));
     }
@@ -267,54 +270,77 @@ class UserController extends Controller
             abort(403, 'Bạn không có quyền tạo tài khoản admin.');
         }
         
+        // Xử lý chuyển trạng thái nhân viên
+        $oldPosition = $user->position;
+        $newPosition = $data['position'];
+        
+        // Nếu chuyển từ "Nhân Viên Chính Thức" sang "Nhân Viên Thử Việc"
+        if ($oldPosition == 'Nhân Viên Chính Thức' && $newPosition == 'Nhân Viên Thử Việc') {
+            $data['employee_type'] = 'new';
+        }
+        // Nếu chuyển từ "Nhân Viên Thử Việc" sang "Nhân Viên Chính Thức"
+        elseif ($oldPosition == 'Nhân Viên Thử Việc' && $newPosition == 'Nhân Viên Chính Thức') {
+            $data['employee_type'] = 'official';
+        }
+        
         // Xử lý cập nhật thông tin hợp đồng
-        if ($user->activeContract) {
-            $contractData = [];
+        $contractData = [];
+        
+        if ($request->filled('contract_salary')) {
+            $contractData['probation_salary'] = $request->contract_salary;
+        }
+        if ($request->filled('contract_period')) {
+            $contractData['probation_period'] = $request->contract_period;
+        }
+        if ($request->filled('contract_start_date')) {
+            $contractData['start_date'] = $request->contract_start_date;
+        }
+        if ($request->filled('contract_status')) {
+            $contractData['status'] = $request->contract_status;
+        }
+        
+        // Tính toán ngày kết thúc nếu có đủ thông tin
+        if ($request->filled('contract_start_date') && $request->filled('contract_period')) {
+            $contractData['end_date'] = \Carbon\Carbon::parse($request->contract_start_date)->addMonths($request->contract_period);
+        }
+        
+        // Nếu có hợp đồng hiện tại, cập nhật
+        if ($user->activeContract && !empty($contractData)) {
+            $user->activeContract->update($contractData);
+        }
+        // Nếu chưa có hợp đồng và có thông tin hợp đồng, tạo mới
+        elseif (!$user->activeContract && !empty($contractData)) {
+            // Đảm bảo có đủ thông tin cần thiết
+            if (!isset($contractData['status'])) {
+                $contractData['status'] = 'active';
+            }
+            if (!isset($contractData['start_date'])) {
+                $contractData['start_date'] = now();
+            }
             
-            if ($request->filled('contract_salary')) {
-                $contractData['probation_salary'] = $request->contract_salary;
-            }
-            if ($request->filled('contract_period')) {
-                $contractData['probation_period'] = $request->contract_period;
-                // Cập nhật ngày kết thúc dựa trên ngày bắt đầu và thời gian hợp đồng
-                if ($request->filled('contract_start_date')) {
-                    $startDate = $request->contract_start_date;
-                } else {
-                    $startDate = $user->activeContract->start_date->format('Y-m-d');
-                }
-                $contractData['end_date'] = \Carbon\Carbon::parse($startDate)->addMonths($request->contract_period);
-            }
-            if ($request->filled('contract_start_date')) {
-                $contractData['start_date'] = $request->contract_start_date;
-                // Cập nhật ngày kết thúc nếu có thời gian hợp đồng
-                if ($request->filled('contract_period')) {
-                    $contractData['end_date'] = \Carbon\Carbon::parse($request->contract_start_date)->addMonths($request->contract_period);
-                }
-            }
-            if ($request->filled('contract_status')) {
-                $contractData['status'] = $request->contract_status;
-            }
-            
-            // Cập nhật hợp đồng nếu có dữ liệu thay đổi
-            if (!empty($contractData)) {
-                $user->activeContract->update($contractData);
-            }
+            $user->contracts()->create($contractData);
         }
 
-        // Xử lý upload hình ảnh hợp đồng (chỉ cho nhân viên chính thức)
+        // Xử lý upload hình ảnh hợp đồng (cho tất cả nhân viên)
         if ($request->hasFile('contract_images')) {
             $activeContract = $user->contracts()->where('status', 'active')->first();
             
-            if ($activeContract) {
-                foreach ($request->file('contract_images') as $index => $image) {
-                    $fileName = time() . '_contract_' . $user->id . '_' . ($index + 1) . '.' . $image->getClientOriginalExtension();
-                    $image->storeAs('public/contracts', $fileName);
-                    
-                    $activeContract->images()->create([
-                        'image_path' => asset('storage/contracts/' . $fileName),
-                        'page_number' => $activeContract->images()->count() + $index + 1,
-                    ]);
-                }
+            // Nếu chưa có hợp đồng active, tạo mới
+            if (!$activeContract) {
+                $activeContract = $user->contracts()->create([
+                    'status' => 'active',
+                    'start_date' => now(),
+                ]);
+            }
+            
+            foreach ($request->file('contract_images') as $index => $image) {
+                $fileName = time() . '_contract_' . $user->id . '_' . ($index + 1) . '.' . $image->getClientOriginalExtension();
+                $image->storeAs('public/contracts', $fileName);
+                
+                $activeContract->images()->create([
+                    'image_path' => asset('storage/contracts/' . $fileName),
+                    'page_number' => $activeContract->images()->count() + $index + 1,
+                ]);
             }
         }
         
@@ -323,8 +349,24 @@ class UserController extends Controller
         $user->update($data);
         
         $message = 'Cập nhật thông tin thành công.';
-        if ($user->activeContract && ($request->filled('contract_salary') || $request->filled('contract_period') || $request->filled('contract_start_date') || $request->filled('contract_status'))) {
-            $message = 'Cập nhật thông tin và hợp đồng thành công.';
+        
+        // Kiểm tra xem có tạo hợp đồng mới không
+        $hasNewContract = false;
+        if (!$user->activeContract && (!empty($contractData) || $request->hasFile('contract_images'))) {
+            $hasNewContract = true;
+        }
+        
+        if (!empty($contractData) || $request->hasFile('contract_images')) {
+            if ($hasNewContract) {
+                $message = 'Cập nhật thông tin và tạo hợp đồng mới thành công.';
+            } else {
+                $message = 'Cập nhật thông tin và hợp đồng thành công.';
+            }
+        }
+        
+        // Thông báo chuyển trạng thái
+        if ($oldPosition != $newPosition) {
+            $message .= ' Đã chuyển trạng thái từ "' . $oldPosition . '" sang "' . $newPosition . '".';
         }
         
         return redirect()->route('users.index')->with('success', $message);

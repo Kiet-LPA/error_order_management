@@ -43,7 +43,7 @@
           <i class="bi bi-calendar-check"></i>Ngày giao: <strong>{{ $task->created_at->format('d/m/Y') }}</strong>
         </div>
         <div class="col-6">
-          <i class="bi bi-calendar-event"></i>Deadline: <strong>{{ $task->deadline ? $task->deadline->format('d/m/Y') : 'Không có' }}</strong>
+                          <i class="bi bi-calendar-event"></i>Hạn cuối: <strong>{{ $task->deadline ? $task->deadline->format('d/m/Y') : 'Không có' }}</strong>
         </div>
         <div class="col-6">
           <i class="bi bi-check-circle"></i>Trạng thái: <strong>{{ __("statuses.$task->status") ?? strtoupper($task->status) }}</strong>
