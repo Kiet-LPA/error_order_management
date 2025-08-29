@@ -20,12 +20,21 @@ class WorkReport extends Model
         'daily_work',
         'difficulties',
         'comments',
-        'custom_fields'
+        'custom_fields',
+        'is_read',
+        'read_at',
+        'read_by',
+        'rejected_at',
+        'rejected_by',
+        'rejection_reason'
     ];
 
     protected $casts = [
         'report_date' => 'date',
         'custom_fields' => 'array',
+        'is_read' => 'boolean',
+        'read_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -39,6 +48,16 @@ class WorkReport extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function readBy()
+    {
+        return $this->belongsTo(User::class, 'read_by');
+    }
+
+    public function rejectedBy()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     // Scopes

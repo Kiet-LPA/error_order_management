@@ -116,6 +116,43 @@
     color: #718096;
     font-style: italic;
 }
+
+/* CSS cho nút reject */
+.btn-outline-danger.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-outline-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+/* CSS cho badge đã từ chối */
+.badge.bg-danger.small {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Đảm bảo layout của cột trạng thái */
+.d-flex.align-items-center.justify-content-center.gap-2 {
+    gap: 0.5rem !important;
+}
+
+/* CSS cho cột trạng thái */
+.status-column {
+    width: 120px;
+}
 </style>
 @endpush
 
@@ -189,9 +226,16 @@
                             <th style="color: #000; font-weight: bold;">Tên</th>
                             <th style="color: #000; font-weight: bold;">Phòng ban</th>
                             <th style="color: #000; font-weight: bold;">Vị trí</th>
-                            <th style="color: #000; font-weight: bold;">Công việc trong ngày</th>
-                            <th style="color: #000; font-weight: bold;">Khó khăn</th>
-                            <th style="color: #000; font-weight: bold;">Nhận xét</th>
+                            <th style="color: #000; font-weight: bold;">Nội dung</th>
+                            <th style="color: #000; font-weight: bold; width: 120px;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Trạng thái</span>
+                                    <div class="form-check ms-2">
+                                        <input class="form-check-input" type="checkbox" id="selectAllReports" onchange="toggleAllReports(this)">
+                                        <label class="form-check-label small" for="selectAllReports">Tất cả</label>
+                                    </div>
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="reports-table-body">
@@ -423,21 +467,40 @@ function renderReportsTable(reports) {
         let html = '';
         reports.forEach((report, index) => {
             html += `
-                <tr>
+                <tr data-report-id="${report.id}">
                     <td>${index + 1}</td>
                     <td>${formatDate(report.report_date)}</td>
                     <td>${report.user.name}</td>
                     <td>${report.department ? report.department.name : 'N/A'}</td>
                     <td>${report.user.position || 'Nhân viên'}</td>
                     <td>${report.daily_work}</td>
-                    <td>${report.difficulties || '-'}</td>
-                    <td>${report.comments || '-'}</td>
+                    <td>
+                        <div class="d-flex align-items-center justify-content-center gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" 
+                                       id="report_${report.id}" 
+                                       value="${report.id}"
+                                       ${report.is_read ? 'checked' : ''}
+                                       ${report.rejected_at ? 'disabled' : ''}
+                                       onchange="markReportAsRead(${report.id}, this.checked)">
+                                <label class="form-check-label small" for="report_${report.id}">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                </label>
+                            </div>
+                            <button type="button" class="btn ${report.rejected_at ? 'btn-danger' : 'btn-outline-danger'} btn-sm" 
+                                    onclick="rejectReport(${report.id})" 
+                                    title="${report.rejected_at ? 'Click để hoàn tác từ chối' : 'Từ chối báo cáo'}">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            ${report.rejected_at ? '<span class="badge bg-danger small ms-2">Đã từ chối</span>' : ''}
+                        </div>
+                    </td>
                 </tr>
             `;
         });
         tbody.innerHTML = html;
     } else {
-        tbody.innerHTML = '<tr><td colspan="8" class="no-reports">Chưa có báo cáo nào cho tuần này</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="no-reports">Chưa có báo cáo nào cho tuần này</td></tr>';
     }
 }
 
@@ -481,6 +544,190 @@ function resetHierarchy() {
     selectedYear = null;
     selectedMonth = null;
     selectedWeek = null;
+}
+
+// Hàm tick hàng loạt tất cả báo cáo
+function toggleAllReports(checkbox) {
+    const reportCheckboxes = document.querySelectorAll('.report-checkbox');
+    let checkedCount = 0;
+    let totalCount = 0;
+    
+    reportCheckboxes.forEach(reportCheckbox => {
+        // Chỉ tick những báo cáo chưa bị từ chối
+        const row = reportCheckbox.closest('tr');
+        const rejectButton = row.querySelector('button[onclick*="rejectReport"]');
+        const isRejected = rejectButton && rejectButton.disabled;
+        
+        if (!isRejected) {
+            totalCount++;
+            reportCheckbox.checked = checkbox.checked;
+            // Gọi hàm markReportAsRead cho từng checkbox
+            markReportAsRead(reportCheckbox.value, checkbox.checked);
+            if (checkbox.checked) checkedCount++;
+        }
+    });
+    
+    // Cập nhật trạng thái checkbox "Tất cả"
+    if (checkedCount === 0) {
+        document.getElementById('selectAllReports').checked = false;
+        document.getElementById('selectAllReports').indeterminate = false;
+    } else if (checkedCount === totalCount) {
+        document.getElementById('selectAllReports').checked = true;
+        document.getElementById('selectAllReports').indeterminate = false;
+    } else {
+        document.getElementById('selectAllReports').indeterminate = true;
+    }
+}
+
+// Hàm từ chối báo cáo
+function rejectReport(reportId) {
+    if (confirm('Bạn có chắc chắn muốn từ chối báo cáo này?')) {
+        // Gửi request đến server để từ chối báo cáo
+        fetch(`{{ route('work-reports.reject') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                report_id: reportId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cập nhật giao diện ngay lập tức
+                const row = document.querySelector(`tr[data-report-id="${reportId}"]`);
+                if (row) {
+                    const checkbox = row.querySelector('.report-checkbox');
+                    const rejectButton = row.querySelector('button[onclick*="rejectReport"]');
+                    const statusCell = row.querySelector('td:last-child');
+                    
+                    if (data.action === 'reject') {
+                        // Khi từ chối: disable checkbox, thêm badge
+                        if (checkbox) {
+                            checkbox.checked = false;
+                            checkbox.disabled = true;
+                        }
+                        
+                        if (rejectButton) {
+                            rejectButton.classList.remove('btn-outline-danger');
+                            rejectButton.classList.add('btn-danger');
+                            rejectButton.title = 'Click để hoàn tác từ chối';
+                        }
+                        
+                        // Thêm badge "Đã từ chối"
+                        if (statusCell) {
+                            const existingBadge = statusCell.querySelector('.badge');
+                            if (!existingBadge) {
+                                const badge = document.createElement('span');
+                                badge.className = 'badge bg-danger small ms-2';
+                                badge.textContent = 'Đã từ chối';
+                                statusCell.querySelector('.d-flex').appendChild(badge);
+                            }
+                        }
+                    } else if (data.action === 'undo') {
+                        // Khi hoàn tác: enable checkbox, bỏ badge
+                        if (checkbox) {
+                            checkbox.disabled = false;
+                        }
+                        
+                        if (rejectButton) {
+                            rejectButton.classList.remove('btn-danger');
+                            rejectButton.classList.add('btn-outline-danger');
+                            rejectButton.title = 'Từ chối báo cáo';
+                        }
+                        
+                        // Bỏ badge "Đã từ chối"
+                        if (statusCell) {
+                            const existingBadge = statusCell.querySelector('.badge');
+                            if (existingBadge) {
+                                existingBadge.remove();
+                            }
+                        }
+                    }
+                }
+                
+                // Hiển thị thông báo
+                showNotification(data.message, 'success');
+            } else {
+                showNotification(data.message || 'Có lỗi xảy ra khi từ chối báo cáo', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Có lỗi xảy ra khi từ chối báo cáo', 'error');
+        });
+    }
+}
+
+// Hàm đánh dấu báo cáo đã đọc
+function markReportAsRead(reportId, isRead) {
+    // Kiểm tra xem báo cáo có bị từ chối không
+    const checkbox = document.getElementById(`report_${reportId}`);
+    if (!checkbox) return;
+    
+    const row = checkbox.closest('tr');
+    const rejectButton = row.querySelector('button[onclick*="rejectReport"]');
+    const isRejected = rejectButton && rejectButton.disabled;
+    
+    if (isRejected) {
+        showNotification('Không thể thay đổi trạng thái báo cáo đã bị từ chối', 'warning');
+        checkbox.checked = false;
+        return;
+    }
+    
+    // Gửi request đến server để cập nhật trạng thái
+    fetch(`{{ route('work-reports.mark-as-read') }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            report_id: reportId,
+            is_read: isRead
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cập nhật trạng thái checkbox
+            const checkbox = document.getElementById(`report_${reportId}`);
+            if (checkbox) {
+                checkbox.checked = isRead;
+            }
+            
+            // Hiển thị thông báo
+            showNotification(isRead ? 'Đã đánh dấu báo cáo đã đọc' : 'Đã bỏ đánh dấu báo cáo đã đọc', 'success');
+        } else {
+            showNotification('Có lỗi xảy ra khi cập nhật trạng thái', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Có lỗi xảy ra khi cập nhật trạng thái', 'error');
+    });
+}
+
+// Hàm hiển thị thông báo
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Tự động ẩn sau 3 giây
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
 }
 </script>
 @endpush

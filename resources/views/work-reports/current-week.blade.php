@@ -82,14 +82,13 @@
                     @if($reports->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Ngày</th>
-                                        <th>Nội dung công việc</th>
-                                        <th>Thời gian tạo</th>
-                                        <th>Thao tác</th>
-                                    </tr>
-                                </thead>
+                                                                 <thead>
+                                     <tr>
+                                         <th>Ngày</th>
+                                         <th>Nội dung công việc</th>
+                                         <th>Trạng thái</th>
+                                     </tr>
+                                 </thead>
                                 <tbody>
                                     @foreach($reports as $report)
                                         <tr>
@@ -115,24 +114,13 @@
                                                         Thu gọn
                                                     </button>
                                                 </div>
-                                            </td>
-                                                                        <td>
-                                <small class="text-muted">
-                                    {{ $report->created_at->format('d/m/Y H:i') }}
-                                </small>
-                            </td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="{{ route('work-reports.edit', $report) }}" 
-                                                       class="btn btn-outline-primary btn-sm">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <button type="button" 
-                                                            class="btn btn-outline-danger btn-sm"
-                                                            onclick="deleteReport({{ $report->id }})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
+                                                                                         </td>
+                                             <td class="text-center">
+                                                @if($report->rejected_at)
+                                                    <i class="bi bi-x-circle-fill text-danger" title="Báo cáo bị từ chối bởi admin"></i>
+                                                @elseif($report->is_read)
+                                                    <i class="bi bi-check-circle-fill text-success" title="Admin đã xem báo cáo này"></i>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -212,6 +200,25 @@ function deleteReport(reportId) {
 .btn-group-sm .btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
+}
+
+/* Đảm bảo icons hiển thị đúng kích thước */
+.bi {
+    font-size: 1.2rem;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.bi-check-circle-fill {
+    font-size: 1.3rem;
+}
+
+.bi-x-circle-fill {
+    font-size: 1.3rem;
+}
+
+.bi-circle {
+    font-size: 1.1rem;
 }
 </style>
 @endsection

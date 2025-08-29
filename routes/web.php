@@ -124,6 +124,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/work-reports/current-week', [WorkReportController::class, 'currentWeek'])->name('work-reports.current-week');
         Route::get('/work-reports/current-month', [WorkReportController::class, 'currentMonth'])->name('work-reports.current-month');
         Route::get('/work-reports/my-activity', [WorkReportController::class, 'myActivity'])->name('work-reports.my-activity');
+        Route::post('/work-reports/mark-as-read', [WorkReportController::class, 'markAsRead'])->name('work-reports.mark-as-read');
+        Route::post('/work-reports/reject', [WorkReportController::class, 'reject'])->name('work-reports.reject');
     });
 });
 

@@ -88,7 +88,7 @@ class UserController extends Controller
         // Get departments for filter
         $departments = Department::orderBy('name')->get();
         
-        return view('admin.users.index', compact('users', 'stats', 'departments'));
+        return view('employees.index', compact('users', 'stats', 'departments'));
     }
 
     public function create()

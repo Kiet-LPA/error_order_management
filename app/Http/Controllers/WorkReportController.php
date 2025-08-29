@@ -568,4 +568,104 @@ class WorkReportController extends Controller
             'selectedDays'
         ));
     }
+
+    // Đánh dấu báo cáo đã đọc
+    public function markAsRead(Request $request)
+    {
+        try {
+            $request->validate([
+                'report_id' => 'required|exists:work_reports,id',
+                'is_read' => 'required|boolean'
+            ]);
+
+            $report = WorkReport::findOrFail($request->report_id);
+
+            // Chỉ admin mới có thể đánh dấu báo cáo đã đọc
+            if (!Auth::user()->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền thực hiện hành động này'
+                ], 403);
+            }
+
+            // Cập nhật trạng thái đã đọc
+            $report->update([
+                'is_read' => $request->is_read,
+                'read_at' => $request->is_read ? now() : null,
+                'read_by' => $request->is_read ? Auth::id() : null,
+                'rejected_at' => null, // Reset rejected status if marked as read
+                'rejected_by' => null,
+                'rejection_reason' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $request->is_read ? 'Đã đánh dấu báo cáo đã đọc' : 'Đã bỏ đánh dấu báo cáo đã đọc'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Từ chối/Hoàn tác từ chối báo cáo
+    public function reject(Request $request)
+    {
+        try {
+            $request->validate([
+                'report_id' => 'required|exists:work_reports,id'
+            ]);
+
+            $report = WorkReport::findOrFail($request->report_id);
+
+            // Chỉ admin mới có thể từ chối báo cáo
+            if (!Auth::user()->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền thực hiện hành động này'
+                ], 403);
+            }
+
+            // Nếu đã bị từ chối thì hoàn tác, nếu chưa thì từ chối
+            if ($report->rejected_at) {
+                // Hoàn tác từ chối
+                $report->update([
+                    'rejected_at' => null,
+                    'rejected_by' => null,
+                    'rejection_reason' => null,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Đã hoàn tác từ chối báo cáo',
+                    'action' => 'undo'
+                ]);
+            } else {
+                // Từ chối báo cáo
+                $report->update([
+                    'is_read' => false,
+                    'read_at' => null,
+                    'read_by' => null,
+                    'rejected_at' => now(),
+                    'rejected_by' => Auth::id(),
+                    'rejection_reason' => 'Báo cáo bị từ chối bởi admin'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Đã từ chối báo cáo thành công',
+                    'action' => 'reject'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
