@@ -580,14 +580,38 @@ class WorkReportController extends Controller
 
             $report = WorkReport::findOrFail($request->report_id);
 
-            // Chỉ admin mới có thể đánh dấu báo cáo đã đọc
-            if (!Auth::user()->isAdmin()) {
+            // Chỉ admin và manager mới có thể đánh dấu báo cáo đã đọc
+            if (!Auth::user()->isAdmin() && !Auth::user()->isManager()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền thực hiện hành động này'
                 ], 403);
             }
 
+            // Nếu là manager, kiểm tra xem báo cáo có thuộc phòng ban của manager không
+            if (Auth::user()->isManager()) {
+                if ($report->user->department_id !== Auth::user()->department_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn chỉ có thể quản lý báo cáo của nhân viên trong phòng ban của mình'
+                    ], 403);
+                }
+            }
+
+            // Kiểm tra quyền thay đổi
+            $currentUser = Auth::user();
+            
+            // Nếu admin đã check và người hiện tại là manager, không cho phép thay đổi
+            if ($currentUser->isManager() && $report->read_by) {
+                $checker = User::find($report->read_by);
+                if ($checker && $checker->isAdmin()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Manager không thể thay đổi trạng thái đã được admin check'
+                    ], 403);
+                }
+            }
+            
             // Cập nhật trạng thái đã đọc
             $report->update([
                 'is_read' => $request->is_read,
@@ -621,14 +645,38 @@ class WorkReportController extends Controller
 
             $report = WorkReport::findOrFail($request->report_id);
 
-            // Chỉ admin mới có thể từ chối báo cáo
-            if (!Auth::user()->isAdmin()) {
+            // Chỉ admin và manager mới có thể từ chối báo cáo
+            if (!Auth::user()->isAdmin() && !Auth::user()->isManager()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền thực hiện hành động này'
                 ], 403);
             }
 
+            // Nếu là manager, kiểm tra xem báo cáo có thuộc phòng ban của manager không
+            if (Auth::user()->isManager()) {
+                if ($report->user->department_id !== Auth::user()->department_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn chỉ có thể quản lý báo cáo của nhân viên trong phòng ban của mình'
+                    ], 403);
+                }
+            }
+
+            // Kiểm tra quyền thay đổi
+            $currentUser = Auth::user();
+            
+            // Nếu admin đã reject và người hiện tại là manager, không cho phép thay đổi
+            if ($currentUser->isManager() && $report->rejected_by) {
+                $rejecter = User::find($report->rejected_by);
+                if ($rejecter && $rejecter->isAdmin()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Manager không thể thay đổi trạng thái đã được admin reject'
+                    ], 403);
+                }
+            }
+            
             // Nếu đã bị từ chối thì hoàn tác, nếu chưa thì từ chối
             if ($report->rejected_at) {
                 // Hoàn tác từ chối
@@ -651,7 +699,7 @@ class WorkReportController extends Controller
                     'read_by' => null,
                     'rejected_at' => now(),
                     'rejected_by' => Auth::id(),
-                    'rejection_reason' => 'Báo cáo bị từ chối bởi admin'
+                    'rejection_reason' => 'Báo cáo bị từ chối bởi ' . ($currentUser->isAdmin() ? 'admin' : 'manager')
                 ]);
 
                 return response()->json([

@@ -376,7 +376,7 @@ function loadMonths() {
             const reports = data.reports || [];
             console.log('Reports for months:', reports);
             
-            const months = [...new Set(reports.filter(report => report.year == year).map(report => report.month))].sort((a, b) => a - b);
+            const months = [...new Set(reports.filter(report => report.year == year).map(report => report.month))].sort((a, b) => b - a);
             console.log('Months found for year', year, ':', months);
             
             months.forEach(month => {
@@ -412,7 +412,7 @@ function loadWeeks() {
             
             // Lấy các tuần có báo cáo trong năm và tháng được chọn
             const reports = data.reports || [];
-            const weeks = [...new Set(reports.filter(report => report.year == selectedYear && report.month == month).map(report => report.week))].sort((a, b) => a - b);
+            const weeks = [...new Set(reports.filter(report => report.year == selectedYear && report.month == month).map(report => report.week))].sort((a, b) => b - a);
             
             weeks.forEach(week => {
                 weekSelect.innerHTML += `<option value="${week}">Tuần ${week}</option>`;
@@ -482,6 +482,8 @@ function renderReportsTable(reports) {
                                        value="${report.id}"
                                        ${report.is_read ? 'checked' : ''}
                                        ${report.rejected_at ? 'disabled' : ''}
+                                       ${report.rejected_at ? 'disabled' : ''}
+                                       data-checked-by-admin="${report.read_by_admin ? 'true' : 'false'}"
                                        onchange="markReportAsRead(${report.id}, this.checked)">
                                 <label class="form-check-label small" for="report_${report.id}">
                                     <i class="bi bi-check-circle-fill text-success"></i>
@@ -493,6 +495,8 @@ function renderReportsTable(reports) {
                                 <i class="bi bi-x"></i>
                             </button>
                             ${report.rejected_at ? '<span class="badge bg-danger small ms-2">Đã từ chối</span>' : ''}
+                            ${report.is_read && report.read_by_user ? '<small class="text-muted ms-2">(' + report.read_by_user.name + ')</small>' : ''}
+                            ${report.rejected_at && report.rejected_by_user ? '<small class="text-muted ms-2">(' + report.rejected_by_user.name + ')</small>' : ''}
                         </div>
                     </td>
                 </tr>
@@ -676,6 +680,8 @@ function markReportAsRead(reportId, isRead) {
         checkbox.checked = false;
         return;
     }
+    
+    // Admin có thể thay đổi tất cả trạng thái (không cần kiểm tra)
     
     // Gửi request đến server để cập nhật trạng thái
     fetch(`{{ route('work-reports.mark-as-read') }}`, {

@@ -60,6 +60,27 @@ class WorkReport extends Model
         return $this->belongsTo(User::class, 'rejected_by');
     }
 
+    // Accessors
+    public function getReadByAdminAttribute()
+    {
+        return $this->readBy && $this->readBy->isAdmin();
+    }
+
+    public function getRejectedByAdminAttribute()
+    {
+        return $this->rejectedBy && $this->rejectedBy->isAdmin();
+    }
+
+    public function getReadByUserAttribute()
+    {
+        return $this->readBy;
+    }
+
+    public function getRejectedByUserAttribute()
+    {
+        return $this->rejectedBy;
+    }
+
     // Scopes
     public function scopeByYear($query, $year)
     {

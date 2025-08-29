@@ -1102,6 +1102,7 @@ function showWeekReportModal(data) {
                             '<th style="color: #000; font-weight: bold;">Công việc trong ngày</th>' +
                             '<th style="color: #000; font-weight: bold;">Khó khăn</th>' +
                             '<th style="color: #000; font-weight: bold;">Nhận xét</th>' +
+                            '<th style="color: #000; font-weight: bold;">Trạng thái</th>' +
                         '</tr>' +
                     '</thead>' +
                     '<tbody>';
@@ -1114,9 +1115,34 @@ function showWeekReportModal(data) {
                     '<td>' + report.user.name + '</td>' +
                     '<td>' + report.department.name + '</td>' +
                     '<td>' + (report.user.position || 'Nhân viên') + '</td>' +
-                    '<td>' + report.daily_work + '</td>' +
-                    '<td>' + (report.difficulties || '-') + '</td>' +
-                    '<td>' + (report.comments || '-') + '</td>' +
+                                    '<td>' + report.daily_work + '</td>' +
+                '<td>' + (report.difficulties || '-') + '</td>' +
+                '<td>' + (report.comments || '-') + '</td>' +
+                '<td>' +
+                    '<div class="d-flex align-items-center justify-content-center gap-2">' +
+                        '<div class="form-check">' +
+                            '<input class="form-check-input report-checkbox" type="checkbox" ' +
+                                   'id="report_' + report.id + '" ' +
+                                   'value="' + report.id + '" ' +
+                                   (report.is_read ? 'checked' : '') + ' ' +
+                                   (report.rejected_at ? 'disabled' : '') + ' ' +
+                                   (report.read_by_admin ? 'disabled' : '') + ' ' +
+                                   'data-checked-by-admin="' + (report.read_by_admin ? 'true' : 'false') + '" ' +
+                                   'onchange="markReportAsRead(' + report.id + ', this.checked)">' +
+                            '<label class="form-check-label small" for="report_' + report.id + '">' +
+                                '<i class="bi bi-check-circle-fill text-success"></i>' +
+                            '</label>' +
+                        '</div>' +
+                        '<button type="button" class="btn ' + (report.rejected_at ? 'btn-danger' : 'btn-outline-danger') + ' btn-sm" ' +
+                                'onclick="rejectReport(' + report.id + ')" ' +
+                                'title="' + (report.rejected_at ? 'Click để hoàn tác từ chối' : 'Từ chối báo cáo') + '">' +
+                            '<i class="bi bi-x"></i>' +
+                        '</button>' +
+                        (report.rejected_at ? '<span class="badge bg-danger small ms-2">Đã từ chối</span>' : '') +
+                        (report.is_read && report.read_by_user ? '<small class="text-muted ms-2">(' + report.read_by_user.name + ')</small>' : '') +
+                        (report.rejected_at && report.rejected_by_user ? '<small class="text-muted ms-2">(' + report.rejected_by_user.name + ')</small>' : '') +
+                    '</div>' +
+                '</td>' +
                 '</tr>';
         });
         
@@ -1187,6 +1213,165 @@ document.addEventListener('keydown', function(e) {
         closeWeekSelection();
     }
 });
+
+// Hàm từ chối báo cáo
+function rejectReport(reportId) {
+    if (confirm('Bạn có chắc chắn muốn từ chối báo cáo này?')) {
+        // Gửi request đến server để từ chối báo cáo
+        fetch(`{{ route('work-reports.reject') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                report_id: reportId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cập nhật giao diện ngay lập tức
+                const row = document.querySelector(`tr[data-report-id="${reportId}"]`);
+                if (row) {
+                    const checkbox = row.querySelector('.report-checkbox');
+                    const rejectButton = row.querySelector('button[onclick*="rejectReport"]');
+                    const statusCell = row.querySelector('td:last-child');
+                    
+                    if (data.action === 'reject') {
+                        // Khi từ chối: disable checkbox, thêm badge
+                        if (checkbox) {
+                            checkbox.checked = false;
+                            checkbox.disabled = true;
+                        }
+                        
+                        if (rejectButton) {
+                            rejectButton.classList.remove('btn-outline-danger');
+                            rejectButton.classList.add('btn-danger');
+                            rejectButton.title = 'Click để hoàn tác từ chối';
+                        }
+                        
+                        // Thêm badge "Đã từ chối"
+                        if (statusCell) {
+                            const existingBadge = statusCell.querySelector('.badge');
+                            if (!existingBadge) {
+                                const badge = document.createElement('span');
+                                badge.className = 'badge bg-danger small ms-2';
+                                badge.textContent = 'Đã từ chối';
+                                statusCell.querySelector('.d-flex').appendChild(badge);
+                            }
+                        }
+                    } else if (data.action === 'undo') {
+                        // Khi hoàn tác: enable checkbox, bỏ badge
+                        if (checkbox) {
+                            checkbox.disabled = false;
+                        }
+                        
+                        if (rejectButton) {
+                            rejectButton.classList.remove('btn-danger');
+                            rejectButton.classList.add('btn-outline-danger');
+                            rejectButton.title = 'Từ chối báo cáo';
+                        }
+                        
+                        // Bỏ badge "Đã từ chối"
+                        if (statusCell) {
+                            const existingBadge = statusCell.querySelector('.badge');
+                            if (existingBadge) {
+                                existingBadge.remove();
+                            }
+                        }
+                    }
+                }
+                
+                // Hiển thị thông báo
+                showNotification(data.message, 'success');
+            } else {
+                showNotification(data.message || 'Có lỗi xảy ra khi từ chối báo cáo', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Có lỗi xảy ra khi từ chối báo cáo', 'error');
+        });
+    }
+}
+
+// Hàm đánh dấu báo cáo đã đọc
+function markReportAsRead(reportId, isRead) {
+    // Kiểm tra xem báo cáo có bị từ chối không
+    const checkbox = document.getElementById(`report_${reportId}`);
+    if (!checkbox) return;
+    
+    const row = checkbox.closest('tr');
+    const rejectButton = row.querySelector('button[onclick*="rejectReport"]');
+    const isRejected = rejectButton && rejectButton.disabled;
+    
+    if (isRejected) {
+        showNotification('Không thể thay đổi trạng thái báo cáo đã bị từ chối', 'warning');
+        checkbox.checked = false;
+        return;
+    }
+    
+    // Kiểm tra xem có phải admin đã check không (chỉ áp dụng cho manager)
+    const currentUserRole = '{{ Auth::user()->role }}';
+    if (currentUserRole === 'manager' && checkbox.dataset.checkedByAdmin === 'true') {
+        showNotification('Manager không thể thay đổi trạng thái đã được admin check', 'warning');
+        checkbox.checked = !isRead; // Revert checkbox state
+        return;
+    }
+    
+    // Gửi request đến server để cập nhật trạng thái
+    fetch(`{{ route('work-reports.mark-as-read') }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            report_id: reportId,
+            is_read: isRead
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cập nhật trạng thái checkbox
+            const checkbox = document.getElementById(`report_${reportId}`);
+            if (checkbox) {
+                checkbox.checked = isRead;
+            }
+            
+            // Hiển thị thông báo
+            showNotification(isRead ? 'Đã đánh dấu báo cáo đã đọc' : 'Đã bỏ đánh dấu báo cáo đã đọc', 'success');
+        } else {
+            showNotification('Có lỗi xảy ra khi cập nhật trạng thái', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Có lỗi xảy ra khi cập nhật trạng thái', 'error');
+    });
+}
+
+// Hàm hiển thị thông báo
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Tự động ẩn sau 3 giây
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
 </script>
 @endpush
 @endsection

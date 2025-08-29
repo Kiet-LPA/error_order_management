@@ -346,7 +346,7 @@
         </div>
         
         <div class="week-grid" id="weekGrid">
-            @for($week = 1; $week <= 5; $week++)
+            @for($week = 5; $week >= 1; $week--)
                 <div class="week-option" data-week="{{ $week }}" onclick="selectWeek({{ $week }})">
                     <div class="week-option-number">{{ $week }}</div>
                     <div class="week-option-label">Tuần</div>
@@ -380,7 +380,7 @@
                             <label for="year" class="form-label">Năm</label>
                             <select class="form-select" id="year" name="year" required>
                                 <option value="">Chọn năm</option>
-                                @for($y = $currentYear - 2; $y <= $currentYear + 1; $y++)
+                                @for($y = $currentYear + 1; $y >= $currentYear - 2; $y--)
                                     <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>
                                         {{ $y }}
                                     </option>
@@ -391,7 +391,7 @@
                             <label for="month" class="form-label">Tháng</label>
                             <select class="form-select" id="month" name="month" required>
                                 <option value="">Chọn tháng</option>
-                                @for($m = 1; $m <= 12; $m++)
+                                @for($m = 12; $m >= 1; $m--)
                                     <option value="{{ $m }}" {{ $m == now()->month ? 'selected' : '' }}>
                                         Tháng {{ $m }}
                                     </option>
@@ -402,7 +402,7 @@
                             <label for="week" class="form-label">Tuần</label>
                             <select class="form-select" id="week" name="week" required>
                                 <option value="">Chọn tuần</option>
-                                @for($w = 1; $w <= 5; $w++)
+                                @for($w = 5; $w >= 1; $w--)
                                     <option value="{{ $w }}" {{ $w == now()->weekOfYear ? 'selected' : '' }}>
                                         Tuần {{ $w }}
                                     </option>
