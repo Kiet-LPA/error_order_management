@@ -611,11 +611,11 @@
     <div class="tab-container">
         <div class="tab-header">
             <button class="tab-button active" onclick="switchTab('create')">
-                <i class="fas fa-plus"></i>
+                <i class="bi bi-plus-circle"></i>
                 Tạo báo cáo
             </button>
             <button class="tab-button" onclick="switchTab('manage')">
-                <i class="fas fa-users"></i>
+                <i class="bi bi-people"></i>
                 Quản lý báo cáo
             </button>
         </div>
@@ -624,19 +624,19 @@
         <div id="create-tab" class="tab-content active">
             <div class="management-section">
                 <div class="section-title">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="bi bi-graph-up"></i>
                     Tạo báo cáo mới
                 </div>
                 
                 <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
+                    <i class="bi bi-info-circle"></i>
                     Bạn sẽ tạo báo cáo cho chính mình. Hệ thống sẽ tự động tính toán tuần dựa trên ngày bạn chọn.
                 </div>
                 
                 <!-- Nút tạo báo cáo -->
                 <div class="create-action-container">
                     <button class="create-new-btn" onclick="selectDateForReport()">
-                        <i class="fas fa-calendar"></i>
+                        <i class="bi bi-calendar"></i>
                         Chọn ngày để tạo báo cáo
                     </button>
                 </div>
@@ -647,7 +647,7 @@
         <div id="manage-tab" class="tab-content">
             <div class="management-section">
                 <div class="section-title">
-                    <i class="fas fa-users"></i>
+                    <i class="bi bi-people"></i>
                     Nhân viên phòng ban
                 </div>
                 
@@ -662,11 +662,11 @@
                                 <div class="employee-position">{{ $employee->position ?? 'Nhân viên' }}</div>
                                 <div class="employee-stats">
                                     <div class="stat-item">
-                                        <i class="fas fa-file-alt"></i>
+                                        <i class="bi bi-file-text"></i>
                                         <span id="report-count-{{ $employee->id }}">Đang tải...</span>
                                     </div>
                                     <div class="stat-item">
-                                        <i class="fas fa-calendar"></i>
+                                        <i class="bi bi-calendar"></i>
                                         <span id="week-count-{{ $employee->id }}">Đang tải...</span>
                                     </div>
                                 </div>
@@ -676,7 +676,7 @@
                 @else
                     <div class="empty-state">
                         <div class="empty-state-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="bi bi-people"></i>
                         </div>
                         <div class="empty-state-title">Chưa có nhân viên</div>
                         <div class="empty-state-desc">
@@ -689,7 +689,7 @@
             <!-- Cây báo cáo -->
             <div class="report-tree" id="report-tree" style="display: none;">
                 <div class="section-title">
-                    <i class="fas fa-sitemap"></i>
+                    <i class="bi bi-diagram-3"></i>
                     Báo cáo của <span id="selected-employee-name"></span>
                 </div>
                 
@@ -709,7 +709,7 @@
                 Chọn tuần cho <span id="selectedMonthText"></span>
             </div>
             <button class="week-selection-close" onclick="closeWeekSelection()">
-                <i class="fas fa-times"></i>
+                <i class="bi bi-x-lg"></i>
             </button>
         </div>
         
@@ -980,7 +980,7 @@ function renderReportTree(data) {
             html += 
                 '<div class="tree-item">' +
                     '<button class="tree-toggle" onclick="toggleTreeItem(this)">' +
-                        '<i class="fas fa-chevron-right"></i>' +
+                        '<i class="bi bi-chevron-right"></i>' +
                         'Năm ' + year +
                     '</button>' +
                     '<div class="tree-content">';
@@ -992,7 +992,7 @@ function renderReportTree(data) {
                 html += 
                     '<div class="month-item">' +
                         '<button class="tree-toggle" onclick="toggleTreeItem(this)">' +
-                            '<i class="fas fa-chevron-right"></i>' +
+                            '<i class="bi bi-chevron-right"></i>' +
                             'Tháng ' + month +
                         '</button>' +
                         '<div class="tree-content">';
@@ -1004,7 +1004,7 @@ function renderReportTree(data) {
                     const reportCount = groupedReports[year][month][week].length;
                     html += 
                         '<div class="week-item" onclick="viewWeekReports(' + year + ', ' + month + ', ' + week + ')">' +
-                            '<i class="fas fa-calendar-week"></i>' +
+                            '<i class="bi bi-calendar-week"></i>' +
                             'Tuần ' + week + ' (' + reportCount + ' báo cáo)' +
                         '</div>';
                 });
@@ -1125,7 +1125,7 @@ function showWeekReportModal(data) {
                 '</table>' +
             '</div>';
     } else {
-        modalHtml += '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Chưa có báo cáo nào cho tuần này</div>';
+        modalHtml += '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Chưa có báo cáo nào cho tuần này</div>';
     }
     
     modalHtml += 

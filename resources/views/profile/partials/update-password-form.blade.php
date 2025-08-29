@@ -12,7 +12,7 @@
             <div class="input-group">
                 <input type="password" name="current_password" id="update_password_current_password" class="form-control @error('current_password', 'updatePassword') is-invalid @enderror" autocomplete="current-password">
                 <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('update_password_current_password', 'currentPasswordToggle', 'currentPasswordIcon')">
-                    <i class="fas fa-eye" id="currentPasswordIcon"></i>
+                    <i class="bi bi-eye" id="currentPasswordIcon"></i>
                 </button>
             </div>
             @error('current_password', 'updatePassword')
@@ -25,7 +25,7 @@
             <div class="input-group">
                 <input type="password" name="password" id="update_password_password" class="form-control @error('password', 'updatePassword') is-invalid @enderror" autocomplete="new-password">
                 <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('update_password_password', 'newPasswordToggle', 'newPasswordIcon')">
-                    <i class="fas fa-eye" id="newPasswordIcon"></i>
+                    <i class="bi bi-eye" id="newPasswordIcon"></i>
                 </button>
             </div>
             @error('password', 'updatePassword')
@@ -38,7 +38,7 @@
             <div class="input-group">
                 <input type="password" name="password_confirmation" id="update_password_password_confirmation" class="form-control @error('password_confirmation', 'updatePassword') is-invalid @enderror" autocomplete="new-password">
                 <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('update_password_password_confirmation', 'confirmPasswordToggle', 'confirmPasswordIcon')">
-                    <i class="fas fa-eye" id="confirmPasswordIcon"></i>
+                    <i class="bi bi-eye" id="confirmPasswordIcon"></i>
                 </button>
             </div>
             @error('password_confirmation', 'updatePassword')

@@ -7,29 +7,29 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="fas fa-chart-line text-primary"></i>
+                    <i class="bi bi-graph-up text-primary"></i>
                     Hoạt động của tôi
                 </h2>
                 <div class="d-flex gap-2">
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="timeRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-calendar-alt"></i>
+                            <i class="bi bi-calendar"></i>
                             {{ $selectedDays }} ngày gần nhất
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="timeRangeDropdown">
                             <li><a class="dropdown-item {{ $selectedDays == 30 ? 'active' : '' }}" href="{{ route('work-reports.my-activity', ['days' => 30]) }}">
-                                <i class="fas fa-calendar-day"></i> 30 ngày gần nhất
+                                <i class="bi bi-calendar-day"></i> 30 ngày gần nhất
                             </a></li>
                             <li><a class="dropdown-item {{ $selectedDays == 60 ? 'active' : '' }}" href="{{ route('work-reports.my-activity', ['days' => 60]) }}">
-                                <i class="fas fa-calendar-week"></i> 60 ngày gần nhất
+                                <i class="bi bi-calendar-week"></i> 60 ngày gần nhất
                             </a></li>
                             <li><a class="dropdown-item {{ $selectedDays == 90 ? 'active' : '' }}" href="{{ route('work-reports.my-activity', ['days' => 90]) }}">
-                                <i class="fas fa-calendar-month"></i> 90 ngày gần nhất
+                                <i class="bi bi-calendar-month"></i> 90 ngày gần nhất
                             </a></li>
                         </ul>
                     </div>
                     <a href="{{ route('work-reports.select-date') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
+                        <i class="bi bi-plus-circle"></i>
                         Tạo báo cáo mới
                     </a>
                 </div>
@@ -43,7 +43,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <div class="stat-icon">
-                        <i class="fas fa-file-alt fa-2x text-primary"></i>
+                        <i class="bi bi-file-text fa-2x text-primary"></i>
                     </div>
                     <h3 class="stat-number">{{ $totalReports }}</h3>
                     <p class="stat-label">Tổng báo cáo</p>
@@ -54,7 +54,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <div class="stat-icon">
-                        <i class="fas fa-calendar-week fa-2x text-success"></i>
+                        <i class="bi bi-calendar-week fa-2x text-success"></i>
                     </div>
                     <h3 class="stat-number">{{ $thisWeekReports }}</h3>
                     <p class="stat-label">Tuần này</p>
@@ -65,7 +65,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <div class="stat-icon">
-                        <i class="fas fa-calendar-alt fa-2x text-info"></i>
+                        <i class="bi bi-calendar-month fa-2x text-info"></i>
                     </div>
                     <h3 class="stat-number">{{ $thisMonthReports }}</h3>
                     <p class="stat-label">Tháng này</p>
@@ -76,7 +76,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <div class="stat-icon">
-                        <i class="fas fa-chart-line fa-2x text-warning"></i>
+                        <i class="bi bi-graph-up fa-2x text-warning"></i>
                     </div>
                     <h3 class="stat-number">{{ $recentReports->count() }}</h3>
                     <p class="stat-label">{{ $selectedDays }} ngày qua</p>
@@ -91,7 +91,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-history"></i>
+                        <i class="bi bi-clock-history"></i>
                         Báo cáo gần đây ({{ $selectedDays }} ngày qua)
                     </h5>
                 </div>
@@ -146,7 +146,7 @@
                         </div>
                     @else
                         <div class="text-center py-4">
-                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <i class="bi bi-file-text fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">Chưa có báo cáo nào trong {{ $selectedDays }} ngày qua</h5>
                             <p class="text-muted">Hãy tạo báo cáo để bắt đầu theo dõi hoạt động</p>
                         </div>
@@ -160,7 +160,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-bar"></i>
+                        <i class="bi bi-bar-chart"></i>
                         Thống kê theo tuần
                     </h5>
                 </div>
@@ -191,7 +191,7 @@
             <div class="card mt-3">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-pie"></i>
+                        <i class="bi bi-pie-chart"></i>
                         Thống kê theo tháng
                     </h5>
                 </div>

@@ -160,7 +160,7 @@
 <div class="work-report-container">
     <div class="management-section">
         <div class="section-title">
-            <i class="fas fa-sitemap"></i>
+            <i class="bi bi-diagram-3"></i>
             Quản lý báo cáo theo phân cấp
         </div>
         
@@ -213,7 +213,7 @@
         <!-- Bảng báo cáo -->
         <div class="reports-table-container" id="reports-table-container" style="display: none;">
             <div class="section-title">
-                <i class="fas fa-table"></i>
+                <i class="bi bi-table"></i>
                 Báo cáo tuần <span id="selected-week-info"></span>
             </div>
             

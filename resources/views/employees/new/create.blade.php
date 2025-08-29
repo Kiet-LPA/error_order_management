@@ -64,7 +64,7 @@
                                         <input type="password" class="form-control @error('password') is-invalid @enderror" 
                                                id="password" name="password" required>
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
-                                            <i class="fas fa-eye" id="passwordIcon"></i>
+                                            <i class="bi bi-eye" id="passwordIcon"></i>
                                         </button>
                                     </div>
                                     @error('password')
@@ -78,7 +78,7 @@
                                         <input type="password" class="form-control" 
                                                id="password_confirmation" name="password_confirmation" required>
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
-                                            <i class="fas fa-eye" id="passwordConfirmIcon"></i>
+                                            <i class="bi bi-eye" id="passwordConfirmIcon"></i>
                                         </button>
                                     </div>
                                 </div>

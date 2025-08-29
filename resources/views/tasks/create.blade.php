@@ -60,13 +60,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   <div class="row mb-4">
     <div class="col-6">
       <h2 class="text-primary mb-0">
-        <i class="fas fa-plus-circle me-2"></i>
+        <i class="bi bi-plus-circle me-2"></i>
         + Tạo công việc mới
       </h2>
     </div>
     <div class="col-6 text-end">
       <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i>
+        <i class="bi bi-arrow-left me-2"></i>
         ← Quay lại
       </a>
     </div>
@@ -154,7 +154,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               <div class="file-drop-zone border-2 border-dashed rounded-3 p-4 text-center"
                    id="fileDropZone"
                    style="border-color: #dee2e6; background-color: #f8f9fa; cursor: pointer; transition: all 0.3s ease;">
-                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                <i class="bi bi-cloud-upload fa-2x text-muted mb-2"></i>
                 <p class="mb-1 fw-medium">Kéo & thả file vào đây</p>
                 <small class="text-muted">hoặc click để chọn file</small>
                 <div class="mt-2">
@@ -240,7 +240,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               
               @if(auth()->user()->isManager())
                 <div class="form-text text-info">
-                  <i class="fas fa-info-circle me-1"></i>
+                  <i class="bi bi-info-circle me-1"></i>
                   Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban
                 </div>
               @endif
@@ -262,11 +262,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="is_recurring" id="is_recurring" value="1" {{ old('is_recurring') ? 'checked' : '' }}>
                 <label class="form-check-label fw-bold text-dark" for="is_recurring">
-                  <i class="fas fa-redo me-2"></i>Lặp lại công việc
+                  <i class="bi bi-arrow-clockwise me-2"></i>Lặp lại công việc
                 </label>
               </div>
               <small class="text-muted">
-                <i class="fas fa-info-circle me-1"></i>
+                <i class="bi bi-info-circle me-1"></i>
                 Công việc sẽ được tự động tạo lại với deadline mới mỗi khi hoàn thành
               </small>
             </div>
@@ -346,7 +346,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         <div class="row mt-5">
           <div class="col-12 text-center">
             <button type="submit" class="btn btn-success btn-lg px-5 py-3 fw-bold shadow-sm">
-              <i class="fas fa-rocket me-2"></i>
+              <i class="bi bi-rocket me-2"></i>
               🚀 Giao việc
             </button>
           </div>
@@ -590,12 +590,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 fileDiv.className = 'alert alert-info d-flex align-items-center justify-content-between mb-2';
                 fileDiv.innerHTML = `
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-file me-2"></i>
+                        <i class="bi bi-file me-2"></i>
                         <span class="fw-medium">${file.name}</span>
                         <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${i})">
-                        <i class="fas fa-times"></i>
+                        <i class="bi bi-x-lg"></i>
                     </button>
                 `;
                 fileList.appendChild(fileDiv);

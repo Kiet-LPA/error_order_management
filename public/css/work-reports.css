@@ -27,6 +27,84 @@
     color: #558EC1;
 }
 
+/* Bootstrap Icons sizing */
+.bi {
+    font-size: 1em;
+    font-family: "bootstrap-icons" !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    vertical-align: middle;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.bi.fa-2x {
+    font-size: 2em;
+}
+
+.bi.fa-3x {
+    font-size: 3em;
+}
+
+/* Fallback cho trường hợp Bootstrap Icons không load */
+.bi::before {
+    content: attr(data-icon);
+}
+
+/* Đảm bảo icons hiển thị đúng */
+.bi.bi-graph-up::before { content: "\F4CA"; }
+.bi.bi-plus-circle::before { content: "\F4F8"; }
+.bi.bi-calendar-week::before { content: "\F4E8"; }
+.bi.bi-calendar-month::before { content: "\F4E7"; }
+.bi.bi-list-ul::before { content: "\F4F9"; }
+.bi.bi-x-lg::before { content: "\F659"; }
+
+/* Quick action icons */
+.quick-action-icon .bi {
+    font-size: 2rem;
+    color: #558EC1;
+}
+
+/* Stat icons */
+.stat-icon .bi {
+    font-size: 2.5rem;
+}
+
+/* Week selection modal icons */
+.week-selection-close .bi {
+    font-size: 1.2rem;
+}
+
+/* Additional Bootstrap Icons sizing */
+.bi.fa-4x {
+    font-size: 4em;
+}
+
+/* Ensure proper icon alignment */
+.bi {
+    vertical-align: middle;
+}
+
+/* Icon colors for specific contexts */
+.bi.text-warning {
+    color: #ffc107 !important;
+}
+
+.bi.text-success {
+    color: #198754 !important;
+}
+
+.bi.text-info {
+    color: #0dcaf0 !important;
+}
+
+.bi.text-primary {
+    color: #0d6efd !important;
+}
+
 .year-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -233,6 +311,13 @@
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    /* Fallback cho trường hợp JavaScript không hoạt động */
+    pointer-events: none;
+}
+
+/* Fallback: Ẩn modal khi JavaScript không hoạt động */
+.no-js .week-selection-modal {
+    display: none !important;
 }
 
 .week-selection-modal.show {

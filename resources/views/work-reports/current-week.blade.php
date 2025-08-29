@@ -7,11 +7,11 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="fas fa-calendar-week text-primary"></i>
+                    <i class="bi bi-calendar-week text-primary"></i>
                     Báo cáo tuần này
                 </h2>
                 <a href="{{ route('work-reports.select-date') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
+                    <i class="bi bi-plus-circle"></i>
                     Tạo báo cáo mới
                 </a>
             </div>
@@ -24,7 +24,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="fas fa-info-circle text-info"></i>
+                        <i class="bi bi-info-circle text-info"></i>
                         Thông tin tuần
                     </h5>
                     <div class="row">
@@ -46,7 +46,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="fas fa-chart-pie text-success"></i>
+                        <i class="bi bi-pie-chart text-success"></i>
                         Thống kê tuần
                     </h5>
                                          <div class="row text-center">
@@ -74,7 +74,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-list"></i>
+                        <i class="bi bi-list-ul"></i>
                         Báo cáo trong tuần này
                     </h5>
                 </div>
@@ -129,11 +129,11 @@
                         </div>
                     @else
                         <div class="text-center py-4">
-                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <i class="bi bi-file-text fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">Chưa có báo cáo nào trong tuần này</h5>
                             <p class="text-muted">Hãy tạo báo cáo đầu tiên để bắt đầu theo dõi công việc của bạn</p>
                             <a href="{{ route('work-reports.select-date') }}" class="btn btn-primary">
-                                <i class="fas fa-plus"></i>
+                                <i class="bi bi-plus-circle"></i>
                                 Tạo báo cáo đầu tiên
                             </a>
                         </div>

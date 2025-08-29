@@ -42,7 +42,7 @@
                                     </span>
                                     <x-text-input id="password" class="form-control border-start-0 ps-0" type="password" name="password" required autocomplete="current-password" placeholder="Nhập mật khẩu" />
                                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
-                                        <i class="fas fa-eye" id="passwordIcon"></i>
+                                        <i class="bi bi-eye" id="passwordIcon"></i>
                                     </button>
                                 </div>
                                 <x-input-error :messages="$errors->get('password')" class="mt-2" />

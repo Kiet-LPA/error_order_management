@@ -2,23 +2,298 @@
 @section('title', 'Báo cáo công việc')
 
 @section('content')
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<style>
+/* Inline CSS để đảm bảo styling hoạt động */
+.work-report-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.navigation-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.navigation-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navigation-title i {
+    color: #558EC1;
+}
+
+.create-new-btn {
+    background: linear-gradient(135deg, #558EC1 0%, #4A90E2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: box-shadow 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.create-new-btn:hover {
+    box-shadow: 0 4px 15px rgba(85, 142, 193, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.quick-action-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: box-shadow 0.3s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-card:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-icon {
+    font-size: 48px;
+    color: #558EC1;
+    margin-bottom: 16px;
+}
+
+.quick-action-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 8px;
+}
+
+.quick-action-desc {
+    color: #000000;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Modal styling */
+.week-selection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+}
+
+.week-selection-modal.show {
+    display: flex;
+}
+
+.week-selection-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.week-selection-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.week-selection-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #000000;
+}
+
+.week-selection-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #000000;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.week-selection-close:hover {
+    background: #f7fafc;
+    color: #000000;
+}
+
+.week-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.week-option {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+    font-weight: 600;
+    color: #000000;
+}
+
+.week-option:hover {
+    border-color: #558EC1;
+    background: linear-gradient(135deg, #e6f3ff 0%, #d1e7ff 100%);
+    box-shadow: 0 4px 12px rgba(85, 142, 193, 0.2);
+}
+
+.week-option.selected {
+    border-color: #558EC1;
+    background: linear-gradient(135deg, #558EC1 0%, #4A90E2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(85, 142, 193, 0.3);
+}
+
+.week-option-number {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.week-option-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.week-selection-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.week-selection-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.week-selection-btn.cancel {
+    background: #f7fafc;
+    color: #4a5568;
+    border: 2px solid #e2e8f0;
+}
+
+.week-selection-btn.cancel:hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.week-selection-btn.confirm {
+    background: linear-gradient(135deg, #558EC1 0%, #4A90E2 100%);
+    color: white;
+}
+
+.week-selection-btn.confirm:hover {
+    box-shadow: 0 4px 12px rgba(85, 142, 193, 0.3);
+}
+
+.week-selection-btn.confirm:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Bootstrap Icons fallback */
+.bi {
+    font-family: "bootstrap-icons" !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    vertical-align: middle;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.bi.bi-graph-up::before { content: "\F4CA"; }
+.bi.bi-plus-circle::before { content: "\F4F8"; }
+.bi.bi-calendar-week::before { content: "\F4E8"; }
+.bi.bi-calendar-month::before { content: "\F4E7"; }
+.bi.bi-list-ul::before { content: "\F4F9"; }
+.bi.bi-x-lg::before { content: "\F659"; }
+</style>
 <div class="work-report-container">
     <div class="navigation-card">
         <div class="navigation-title">
-            <i class="fas fa-chart-line"></i>
+            <i class="bi bi-graph-up"></i>
             Báo cáo công việc
         </div>
         
-        <div class="create-new-btn" onclick="selectDateForReport()">
-            <i class="fas fa-plus"></i>
+        <div class="create-new-btn" onclick="selectDateForReport()" onmouseover="this.style.cursor='pointer'" onmouseout="this.style.cursor='default'">
+            <i class="bi bi-plus-circle"></i>
             Tạo báo cáo mới
         </div>
+        <!-- Fallback link nếu JavaScript không hoạt động -->
+        <noscript>
+            <a href="{{ route('work-reports.select-date') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Tạo báo cáo mới (JavaScript disabled)
+            </a>
+        </noscript>
     </div>
 
     <div class="quick-actions">
         <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.current-week') }}'">
             <div class="quick-action-icon">
-                <i class="fas fa-calendar-week"></i>
+                <i class="bi bi-calendar-week"></i>
             </div>
             <div class="quick-action-title">Báo cáo tuần này</div>
             <div class="quick-action-desc">
@@ -28,7 +303,7 @@
         
         <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.current-month') }}'">
             <div class="quick-action-icon">
-                <i class="fas fa-calendar-alt"></i>
+                <i class="bi bi-calendar-month"></i>
             </div>
             <div class="quick-action-title">Báo cáo tháng này</div>
             <div class="quick-action-desc">
@@ -38,7 +313,7 @@
         
         <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.my-activity') }}'">
             <div class="quick-action-icon">
-                <i class="fas fa-chart-line"></i>
+                <i class="bi bi-graph-up"></i>
             </div>
             <div class="quick-action-title">Hoạt động của tôi</div>
             <div class="quick-action-desc">
@@ -48,7 +323,7 @@
         
         <div class="quick-action-card" onclick="window.location.href='{{ route('work-reports.index') }}'">
             <div class="quick-action-icon">
-                <i class="fas fa-list"></i>
+                <i class="bi bi-list-ul"></i>
             </div>
             <div class="quick-action-title">Quản lý báo cáo</div>
             <div class="quick-action-desc">
@@ -59,14 +334,14 @@
 </div>
 
 <!-- Week Selection Modal -->
-<div class="week-selection-modal" id="weekSelectionModal">
+<div class="week-selection-modal" id="weekSelectionModal" style="display: none;">
     <div class="week-selection-content">
         <div class="week-selection-header">
             <div class="week-selection-title">
                 Chọn tuần cho <span id="selectedMonthText"></span>
             </div>
             <button class="week-selection-close" onclick="closeWeekSelection()">
-                <i class="fas fa-times"></i>
+                <i class="bi bi-x-lg"></i>
             </button>
         </div>
         
@@ -148,11 +423,33 @@
 
 @push('scripts')
 <script>
+// Kiểm tra JavaScript có hoạt động không
+console.log('Work Reports JavaScript loaded successfully');
+
 let selectedYear = null;
 let selectedMonth = null;
 let selectedWeek = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Work Reports page');
+    
+    // Force reload CSS nếu cần
+    const links = document.querySelectorAll('link[rel="stylesheet"]');
+    links.forEach(link => {
+        if (link.href.includes('work-reports.css')) {
+            console.log('Reloading work-reports.css');
+            link.href = link.href.split('?')[0] + '?v=' + Date.now();
+        }
+    });
+    
+    // Initialize modal
+    const modal = document.getElementById('weekSelectionModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.style.pointerEvents = 'none';
+        console.log('Modal initialized');
+    }
+    
     // Xử lý click vào năm
     document.querySelectorAll('.year-card').forEach(card => {
         card.addEventListener('click', function() {
@@ -195,11 +492,17 @@ function showWeekSelection(year, month) {
     document.querySelector('.week-selection-btn.confirm').disabled = true;
     
     // Hiển thị modal
-    document.getElementById('weekSelectionModal').classList.add('show');
+    const modal = document.getElementById('weekSelectionModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    modal.style.pointerEvents = 'auto';
 }
 
 function closeWeekSelection() {
-    document.getElementById('weekSelectionModal').classList.remove('show');
+    const modal = document.getElementById('weekSelectionModal');
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    modal.style.pointerEvents = 'none';
 }
 
 function selectWeek(week) {
@@ -224,6 +527,12 @@ function confirmWeekSelection() {
 
 function selectDateForReport() {
     // Chuyển đến trang chọn ngày
+    window.location.href = `{{ route('work-reports.select-date') }}`;
+}
+
+// Fallback function nếu JavaScript không hoạt động
+function fallbackSelectDate() {
+    console.log('Fallback: Redirecting to select date page');
     window.location.href = `{{ route('work-reports.select-date') }}`;
 }
 
@@ -267,5 +576,80 @@ document.addEventListener('click', function(e) {
         });
     }
 });
+
+// Kiểm tra xem JavaScript có hoạt động không
+setTimeout(function() {
+    console.log('JavaScript check: Modal functionality test');
+    
+    // Kiểm tra xem modal có tồn tại không
+    const modal = document.getElementById('weekSelectionModal');
+    if (modal) {
+        console.log('Modal found:', modal);
+        // Thêm class để cho phép pointer events
+        modal.style.pointerEvents = 'auto';
+    } else {
+        console.error('Modal not found!');
+    }
+    
+    // Kiểm tra xem Bootstrap có sẵn không
+    if (typeof bootstrap !== 'undefined') {
+        console.log('Bootstrap is available');
+    } else {
+        console.warn('Bootstrap is not available');
+    }
+    
+    // Kiểm tra Bootstrap Icons
+    const testIcon = document.createElement('i');
+    testIcon.className = 'bi bi-x-lg';
+    document.body.appendChild(testIcon);
+    
+    const computedStyle = window.getComputedStyle(testIcon, '::before');
+    const content = computedStyle.getPropertyValue('content');
+    
+    console.log('Bootstrap Icons test - content:', content);
+    
+    if (content && content !== 'none' && content !== 'normal') {
+        console.log('Bootstrap Icons are working:', content);
+    } else {
+        console.warn('Bootstrap Icons may not be loading properly - adding fallback');
+        // Thêm fallback CSS với !important
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                .bi.bi-graph-up::before { content: "📈" !important; }
+                .bi.bi-plus-circle::before { content: "➕" !important; }
+                .bi.bi-calendar-week::before { content: "📅" !important; }
+                .bi.bi-calendar-month::before { content: "📆" !important; }
+                .bi.bi-list-ul::before { content: "📋" !important; }
+                .bi.bi-x-lg::before { content: "❌" !important; }
+            </style>
+        `);
+        console.log('Fallback CSS added');
+    }
+    
+    document.body.removeChild(testIcon);
+    
+    // Kiểm tra CSS styling
+    const testCard = document.querySelector('.quick-action-card');
+    if (testCard) {
+        const cardStyle = window.getComputedStyle(testCard);
+        console.log('Card background:', cardStyle.backgroundColor);
+        console.log('Card border-radius:', cardStyle.borderRadius);
+        console.log('Card box-shadow:', cardStyle.boxShadow);
+        
+        if (cardStyle.backgroundColor === 'rgba(0, 0, 0, 0)' || cardStyle.backgroundColor === 'transparent') {
+            console.warn('CSS may not be loading properly - adding inline styles');
+            // Thêm inline styles nếu CSS không load
+            document.querySelectorAll('.quick-action-card').forEach(card => {
+                card.style.background = 'white';
+                card.style.borderRadius = '12px';
+                card.style.padding = '20px';
+                card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                card.style.textAlign = 'center';
+                card.style.transition = 'box-shadow 0.3s ease';
+                card.style.cursor = 'pointer';
+            });
+        }
+    }
+}, 1000);
 </script>
 @endpush

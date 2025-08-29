@@ -42,7 +42,7 @@
                                                  autocomplete="new-password" 
                                                  placeholder="Nhập mật khẩu mới" />
                                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
-                                        <i class="fas fa-eye" id="passwordIcon"></i>
+                                        <i class="bi bi-eye" id="passwordIcon"></i>
                                     </button>
                                 </div>
                                 <small class="text-muted">Mật khẩu phải có ít nhất 8 ký tự</small>
@@ -64,7 +64,7 @@
                                                  autocomplete="new-password" 
                                                  placeholder="Nhập lại mật khẩu mới" />
                                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
-                                        <i class="fas fa-eye" id="passwordConfirmIcon"></i>
+                                        <i class="bi bi-eye" id="passwordConfirmIcon"></i>
                                     </button>
                                 </div>
                                 <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />

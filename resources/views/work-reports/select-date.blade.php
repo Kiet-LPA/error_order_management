@@ -8,13 +8,13 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="mb-0">
-                        <i class="fas fa-calendar-alt"></i>
+                        <i class="bi bi-calendar-month"></i>
                         Chọn ngày báo cáo
                     </h4>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
+                        <i class="bi bi-info-circle"></i>
                         Chọn ngày bạn muốn tạo báo cáo. Hệ thống sẽ tự động tính toán tuần tương ứng.
                     </div>
                     
@@ -35,7 +35,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Thông tin tuần</label>
                                     <div id="weekInfo" class="form-control-plaintext">
-                                        <i class="fas fa-clock"></i>
+                                        <i class="bi bi-clock"></i>
                                         <span id="weekInfoText">Chọn ngày để xem thông tin tuần</span>
                                     </div>
                                 </div>
@@ -48,11 +48,11 @@
                         
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-                                <i class="fas fa-arrow-right"></i>
+                                <i class="bi bi-arrow-right"></i>
                                 Tiếp tục tạo báo cáo
                             </button>
                             <a href="{{ route('work-reports.index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i>
+                                <i class="bi bi-arrow-left"></i>
                                 Quay lại
                             </a>
                         </div>

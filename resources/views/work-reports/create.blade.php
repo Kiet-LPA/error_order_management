@@ -291,12 +291,12 @@
 
         <div class="form-section">
             <div class="section-title">
-                <i class="fas fa-calendar"></i>
+                <i class="bi bi-calendar"></i>
                 Thông tin tuần báo cáo
             </div>
             
             <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
+                <i class="bi bi-info-circle"></i>
                 <strong>Thông tin tuần hiện tại</strong><br>
                 <small>Tuần {{ $week }} của năm {{ $year }} ({{ $weekInfo['start_formatted'] }} đến {{ $weekInfo['end_formatted'] }})</small>
             </div>
@@ -304,12 +304,12 @@
 
         <div class="form-section">
             <div class="section-title">
-                <i class="fas fa-tasks"></i>
+                <i class="bi bi-list-task"></i>
                 Báo cáo công việc
             </div>
             
             <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
+                <i class="bi bi-info-circle"></i>
                 <strong>Hướng dẫn:</strong> Bạn có thể tạo nhiều báo cáo cho các ngày khác nhau. 
                 Hệ thống sẽ tự động phân loại báo cáo theo tuần dựa trên ngày bạn chọn.
                 <br><small>Ví dụ: Ngày 26/8 sẽ thuộc tuần 35, ngày 1/9 sẽ thuộc tuần 36.</small>
@@ -362,7 +362,7 @@
                         </td>
                         <td>
                             <button type="button" class="remove-row-btn" onclick="removeRow(this)" style="display: none;">
-                                <i class="fas fa-trash"></i>
+                                <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>
@@ -370,7 +370,7 @@
             </table>
             
             <button type="button" class="add-row-btn" onclick="addRow()">
-                <i class="fas fa-plus"></i>
+                <i class="bi bi-plus-circle"></i>
                 Thêm hàng báo cáo
             </button>
         </div>
@@ -378,7 +378,7 @@
         <!-- Custom fields theo phòng ban -->
         <div class="form-section" id="customFieldsSection" style="display: none;">
             <div class="section-title">
-                <i class="fas fa-cogs"></i>
+                <i class="bi bi-gear"></i>
                 Thông tin bổ sung ({{ auth()->user()->department->name ?? 'Phòng ban' }})
             </div>
             
@@ -392,7 +392,7 @@
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="replace_existing" name="replace_existing" value="1">
                 <label class="form-check-label" for="replace_existing">
-                    <i class="fas fa-exchange-alt text-warning"></i>
+                    <i class="bi bi-arrow-left-right text-warning"></i>
                     <strong>Thay thế báo cáo cũ</strong>
                     <br>
                     <small class="text-muted">Nếu đã có báo cáo cho ngày này, hệ thống sẽ xóa báo cáo cũ và tạo báo cáo mới</small>
@@ -402,11 +402,11 @@
 
         <div class="form-actions">
             <a href="{{ route('work-reports.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i>
+                <i class="bi bi-arrow-left"></i>
                 Quay lại
             </a>
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i>
+                <i class="bi bi-save"></i>
                 Lưu báo cáo
             </button>
         </div>
@@ -458,7 +458,7 @@ function addRow() {
         </td>
         <td>
             <button type="button" class="remove-row-btn" onclick="removeRow(this)">
-                <i class="fas fa-trash"></i>
+                <i class="bi bi-trash"></i>
             </button>
         </td>
     `;

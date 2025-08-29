@@ -8,13 +8,13 @@
             <div class="card border-warning">
                 <div class="card-header bg-warning text-dark">
                     <h4 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>
+                        <i class="bi bi-clock me-2"></i>
                         Tài khoản đang chờ phê duyệt
                     </h4>
                 </div>
                 <div class="card-body text-center">
                     <div class="mb-4">
-                        <i class="fas fa-user-clock fa-4x text-warning mb-3"></i>
+                        <i class="bi bi-person-clock fa-4x text-warning mb-3"></i>
                         <h5 class="text-muted">Xin chào, {{ $user->name }}!</h5>
                     </div>
                     
@@ -32,7 +32,7 @@
                             <div class="card border-light">
                                 <div class="card-body">
                                     <h6 class="card-title">
-                                        <i class="fas fa-info-circle text-info me-2"></i>
+                                        <i class="bi bi-info-circle text-info me-2"></i>
                                         Thông tin tài khoản
                                     </h6>
                                     <ul class="list-unstyled">
@@ -49,14 +49,14 @@
                             <div class="card border-light">
                                 <div class="card-body">
                                     <h6 class="card-title">
-                                        <i class="fas fa-tasks text-success me-2"></i>
+                                        <i class="bi bi-list-task text-success me-2"></i>
                                         Các chức năng sẽ có
                                     </h6>
                                     <ul class="list-unstyled">
-                                        <li><i class="fas fa-check text-success me-2"></i>Quản lý công việc</li>
-                                        <li><i class="fas fa-check text-success me-2"></i>Tạo báo cáo công việc</li>
-                                        <li><i class="fas fa-check text-success me-2"></i>Xem lịch sử hoạt động</li>
-                                        <li><i class="fas fa-check text-success me-2"></i>Tham gia thảo luận</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Quản lý công việc</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Tạo báo cáo công việc</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Xem lịch sử hoạt động</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Tham gia thảo luận</li>
                                     </ul>
                                 </div>
                             </div>
@@ -66,7 +66,7 @@
                     <div class="mt-4">
                         <div class="alert alert-warning">
                             <h6 class="alert-heading">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <i class="bi bi-exclamation-triangle me-2"></i>
                                 Lưu ý quan trọng
                             </h6>
                             <p class="mb-2">
@@ -82,11 +82,11 @@
                     
                     <div class="mt-4">
                         <a href="{{ route('dashboard') }}" class="btn btn-primary me-2">
-                            <i class="fas fa-home me-1"></i>
+                            <i class="bi bi-house me-1"></i>
                             Về trang chủ
                         </a>
                         <button onclick="window.location.reload()" class="btn btn-outline-secondary">
-                            <i class="fas fa-sync-alt me-1"></i>
+                            <i class="bi bi-arrow-clockwise me-1"></i>
                             Kiểm tra lại
                         </button>
                     </div>

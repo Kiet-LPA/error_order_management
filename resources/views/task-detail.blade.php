@@ -398,7 +398,7 @@
         <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn hoàn tác công việc này?')">
           @csrf
           <button type="submit" class="btn btn-undo w-100">
-            <i class="fas fa-undo me-2"></i>Hoàn tác
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Hoàn tác
           </button>
         </form>
       @endif

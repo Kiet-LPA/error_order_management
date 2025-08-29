@@ -8,13 +8,13 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="mb-0">
-                        <i class="fas fa-edit"></i>
+                        <i class="bi bi-pencil"></i>
                         Chỉnh sửa báo cáo
                     </h4>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
+                        <i class="bi bi-info-circle"></i>
                         <strong>Ngày báo cáo:</strong> {{ \Carbon\Carbon::parse($workReport->report_date)->format('d/m/Y') }}
                         <br>
                         <strong>Tuần:</strong> {{ $workReport->week }} ({{ $workReport->year }})
@@ -26,7 +26,7 @@
                         
                         <div class="mb-3">
                             <label for="daily_work" class="form-label">
-                                <i class="fas fa-tasks"></i>
+                                <i class="bi bi-list-task"></i>
                                 Nội dung công việc <span class="text-danger">*</span>
                             </label>
                             <textarea 
@@ -44,7 +44,7 @@
 
                         <div class="mb-3">
                             <label for="difficulties" class="form-label">
-                                <i class="fas fa-exclamation-triangle"></i>
+                                <i class="bi bi-exclamation-triangle"></i>
                                 Khó khăn gặp phải
                             </label>
                             <textarea 
@@ -61,7 +61,7 @@
 
                         <div class="mb-3">
                             <label for="comments" class="form-label">
-                                <i class="fas fa-comment"></i>
+                                <i class="bi bi-chat"></i>
                                 Ghi chú bổ sung
                             </label>
                             <textarea 
@@ -78,11 +78,11 @@
 
                         <div class="d-flex justify-content-between">
                             <a href="{{ route('work-reports.index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i>
+                                <i class="bi bi-arrow-left"></i>
                                 Quay lại
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i>
+                                <i class="bi bi-save"></i>
                                 Cập nhật báo cáo
                             </button>
                         </div>
