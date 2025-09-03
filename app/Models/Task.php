@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class Task extends Model
 {
@@ -328,6 +329,72 @@ class Task extends Model
     public function scopeSingleDepartment($query)
     {
         return $query->where('is_multi_department', false);
+    }
+
+    /**
+     * Kiểm tra task có bị trễ hạn không
+     */
+    public function isOverdue(): bool
+    {
+        return $this->deadline && $this->deadline->isPast() && $this->status !== 'completed';
+    }
+
+    /**
+     * Kiểm tra task có cần cập nhật trạng thái overdue không
+     */
+    public function needsOverdueUpdate(): bool
+    {
+        return $this->status === 'in_progress' && $this->isOverdue();
+    }
+
+    /**
+     * Cập nhật trạng thái thành overdue nếu cần
+     */
+    public function updateOverdueStatusIfNeeded(): bool
+    {
+        if (!$this->needsOverdueUpdate()) {
+            return false;
+        }
+
+        $this->status = 'overdue';
+        
+        // Ghi log activity (sử dụng system user hoặc bỏ qua nếu không có)
+        try {
+            $systemUser = User::where('role', 'admin')->first();
+            if ($systemUser) {
+                $this->activities()->create([
+                    'action' => 'updated_status',
+                    'meta' => json_encode([
+                        'description' => 'Trạng thái tự động chuyển thành "Trễ hạn" do vượt quá deadline',
+                        'old_status' => 'in_progress',
+                        'new_status' => 'overdue',
+                        'auto_updated' => true
+                    ]),
+                    'user_id' => $systemUser->id
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Bỏ qua nếu không thể tạo activity
+        }
+
+        return $this->save();
+    }
+
+    /**
+     * Scope để lọc task đang trễ hạn
+     */
+    public function scopeOverdue($query)
+    {
+        return $query->where('status', 'overdue');
+    }
+
+    /**
+     * Scope để lọc task cần cập nhật trạng thái overdue
+     */
+    public function scopeNeedsOverdueUpdate($query)
+    {
+        return $query->where('status', 'in_progress')
+                    ->where('deadline', '<', now());
     }
 }
 

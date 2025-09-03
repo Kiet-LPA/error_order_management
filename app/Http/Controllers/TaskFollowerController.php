@@ -23,7 +23,7 @@ class TaskFollowerController extends Controller
         $targetUser = User::find($request->user_id);
 
         // Kiểm tra quyền (chỉ Admin/Manager)
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền thêm Task Follower'], 403);
         }
 
@@ -70,7 +70,7 @@ class TaskFollowerController extends Controller
         $targetUser = User::find($request->user_id);
 
         // Kiểm tra quyền (chỉ Admin/Manager)
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa Task Follower'], 403);
         }
 
@@ -94,7 +94,7 @@ class TaskFollowerController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền (chỉ Admin/Manager)
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền xem danh sách này'], 403);
         }
 
@@ -188,7 +188,7 @@ class TaskFollowerController extends Controller
     {
         $user = auth()->user();
         
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             return response()->json(['success' => false, 'message' => 'Không có quyền'], 403);
         }
 
@@ -228,7 +228,7 @@ class TaskFollowerController extends Controller
     {
         $user = auth()->user();
         
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             return response()->json(['success' => false, 'message' => 'Không có quyền'], 403);
         }
 

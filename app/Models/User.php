@@ -104,6 +104,11 @@ class User extends Authenticatable
         return $this->role === 'admin'; 
     }
     
+    public function isDirector()
+    { 
+        return $this->role === 'director'; 
+    }
+    
     public function isManager()
     { 
         return $this->role === 'manager'; 
@@ -123,6 +128,14 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->isDirector()) {
+            // Director có thể quản lý tất cả user (như Admin), chỉ không thể chỉ định vào Admin
+            if ($targetUser->isAdmin()) {
+                return false;
+            }
+            return true;
+        }
+
         if ($this->isManager()) {
             return $targetUser->department_id === $this->department_id;
         }
@@ -139,11 +152,48 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->isDirector()) {
+            // Director có thể giao việc cho tất cả user (như Admin), chỉ không thể chỉ định vào Admin
+            if ($targetUser->isAdmin()) {
+                return false;
+            }
+            return true;
+        }
+
         if ($this->isManager()) {
             return $targetUser->department_id === $this->department_id;
         }
 
         return false;
+    }
+
+    /**
+     * Kiểm tra Director có thể quản lý phòng ban này không
+     */
+    public function canManageDepartment($departmentId): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isDirector()) {
+            // Director có thể quản lý tất cả phòng ban (như Admin)
+            return true;
+        }
+
+        if ($this->isManager()) {
+            return $this->department_id === $departmentId;
+        }
+
+        return false;
+    }
+
+    /**
+     * Lấy danh sách phòng ban mà Director được quản lý
+     */
+    public function managedDepartments()
+    {
+        return $this->belongsToMany(Department::class, 'user_departments');
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Http\Controllers\WorkReportController;
 use App\Http\Controllers\TaskFollowerController;
 use App\Http\Controllers\TaskApprovalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SupportRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,8 +28,8 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard: đổ dữ liệu động (controller trả về view 'welcome')
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Chỉ Admin: quản lý user
-    Route::middleware('role:admin')->group(function () {
+    // Admin & Director: quản lý user
+    Route::middleware('role:admin,director')->group(function () {
         Route::resource('users', UserController::class);
         Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except(['show']);
         // Nếu có DepartmentController thì thêm ở đây
@@ -36,27 +37,64 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Manager & Admin: CRUD Task (tránh trùng, bỏ 'show' vì dùng alias riêng)
-    Route::middleware('role:admin,manager')->group(function () {
+    Route::middleware('role:admin,director,manager')->group(function () {
         Route::resource('tasks', TaskController::class)->except(['show']);
         
-        // Task Followers routes (Admin/Manager only)
+        // Kanban Board - chỉ Admin/Director/Manager có thể cập nhật status
+        Route::post('/tasks/{task}/update-status', [TaskController::class, 'updateStatusAjax'])->name('tasks.update-status-ajax');
+    });
+    
+    // Kanban Board - tất cả role có thể xem (nhưng chỉ Admin/Director/Manager có thể drag & drop)
+    Route::get('/kanban', [TaskController::class, 'kanban'])->name('kanban');
+    
+    // Task Followers routes (Admin/Director/Manager only)
+    Route::middleware('role:admin,director,manager')->group(function () {
         Route::post('/tasks/{task}/followers/add', [TaskFollowerController::class, 'add'])->name('tasks.followers.add');
         Route::delete('/tasks/{task}/followers/remove', [TaskFollowerController::class, 'remove'])->name('tasks.followers.remove');
-        Route::get('/tasks/{task}/followers/available', [TaskFollowerController::class, 'available'])->name('tasks.followers.available');
-        Route::get('/tasks/{task}/followers/list', [TaskFollowerController::class, 'list'])->name('tasks.followers.list');
-        Route::get('/followers/users-by-department', [TaskFollowerController::class, 'getUsersByDepartment'])->name('followers.users-by-department');
-        Route::get('/followers/departments-by-user', [TaskFollowerController::class, 'getDepartmentsByUser'])->name('followers.departments-by-user');
         
-        // Task Approval routes
+        // Task Approvals routes (Admin/Director/Manager only)
         Route::get('/task-approvals', [TaskApprovalController::class, 'index'])->name('task-approvals.index');
         Route::get('/task-approvals/{approval}', [TaskApprovalController::class, 'show'])->name('task-approvals.show');
         Route::post('/task-approvals/{approval}/approve', [TaskApprovalController::class, 'approve'])->name('task-approvals.approve');
         Route::post('/task-approvals/{approval}/reject', [TaskApprovalController::class, 'reject'])->name('task-approvals.reject');
     });
     
+    // Support Request routes
+    Route::middleware('role:admin,director,manager,employee')->group(function () {
+        Route::get('/support-requests', [SupportRequestController::class, 'index'])->name('support-requests.index');
+        Route::get('/support-requests/create', [SupportRequestController::class, 'create'])->name('support-requests.create');
+        Route::post('/support-requests', [SupportRequestController::class, 'store'])->name('support-requests.store');
+        
+        // Yêu cầu của tôi - Employee, Manager (phải đặt trước {supportRequest})
+        Route::get('/support-requests/my-requests', [SupportRequestController::class, 'myRequests'])->name('support-requests.my-requests');
+        
+        // Yêu cầu phòng ban - Manager (phải đặt trước {supportRequest})
+        Route::get('/support-requests/department-requests', [SupportRequestController::class, 'departmentRequests'])->name('support-requests.department-requests');
+        
+        Route::get('/support-requests/{supportRequest}', [SupportRequestController::class, 'show'])->name('support-requests.show');
+        Route::post('/support-requests/{supportRequest}/comment', [SupportRequestController::class, 'comment'])->name('support-requests.comment');
+    });
+
+    // Admin & Director & Manager: Approve/Reject/Forward support requests
+    Route::middleware('role:admin,director,manager')->group(function () {
+        Route::get('/support-requests-quest-detail', [SupportRequestController::class, 'questDetail'])->name('support-requests.quest-detail');
+        
+        Route::post('/support-requests/{supportRequest}/approve', [SupportRequestController::class, 'approve'])->name('support-requests.approve');
+        Route::post('/support-requests/{supportRequest}/reject', [SupportRequestController::class, 'reject'])->name('support-requests.reject');
+        Route::post('/support-requests/{supportRequest}/forward', [SupportRequestController::class, 'forward'])->name('support-requests.forward');
+        
+        // Hoàn tác (undo) approve/reject
+        Route::post('/support-requests/{supportRequest}/undo', [SupportRequestController::class, 'undoApprovalRejection'])->name('support-requests.undo');
+    });
+
+    // Employee: Hủy yêu cầu hỗ trợ (trong 3 giờ)
+    Route::middleware('role:employee')->group(function () {
+        Route::post('/support-requests/{supportRequest}/cancel', [SupportRequestController::class, 'cancelRequest'])->name('support-requests.cancel');
+    });
+
     // Lưu task (nút "Giao việc") - áp dụng middleware kiểm tra phòng ban
     Route::post('/tasks', [TaskController::class, 'store'])
-        ->middleware(['role:admin,manager', 'department.permission'])
+        ->middleware(['role:admin,director,manager', 'department.permission'])
         ->name('tasks.store');
 
     // Alias để khớp link của giao diện cũ (mọi role đều có thể xem chi tiết)
@@ -69,8 +107,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks/{task}/remove-file', [TaskController::class, 'removeFile'])->name('tasks.removeFile');
     Route::post('/tasks/{task}/undo-completion', [TaskController::class, 'undoCompletion'])->name('tasks.undo-completion');
     
-    // Employee/Manager/Admin: trang "my tasks" & comment trên task
-    Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
+    // Employee/Manager/Admin/Director: trang "my tasks" & comment trên task
+    Route::middleware(['role:employee,manager,admin,director', 'employee.type'])->group(function () {
         Route::get('/my-tasks', [TaskController::class, 'myTasks'])->name('tasks.mine');
     });
 
@@ -97,13 +135,13 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/comment-attachments/{attachment}', [App\Http\Controllers\CommentController::class, 'deleteAttachment'])->name('comment.attachments.delete');
     });
 
-    // Báo cáo tổng quan (thường cho manager & admin)
-    Route::middleware('role:admin,manager')->group(function () {
+    // Báo cáo tổng quan (thường cho manager & admin & director)
+    Route::middleware('role:admin,director,manager')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     });
 
     // Báo cáo công việc - cho tất cả role
-    Route::middleware(['role:employee,manager,admin', 'employee.type'])->group(function () {
+    Route::middleware(['role:employee,manager,admin,director', 'employee.type'])->group(function () {
         Route::get('/work-reports', [WorkReportController::class, 'index'])->name('work-reports.index');
         Route::get('/work-reports/select-date', [WorkReportController::class, 'selectDate'])->name('work-reports.select-date');
         Route::get('/work-reports/create', [WorkReportController::class, 'create'])->name('work-reports.create');
@@ -130,7 +168,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Quản lý nhân viên mới
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:admin,director'])->group(function () {
     Route::get('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesIndex'])->name('employees.new.index');
     Route::get('/employees/new/create', [App\Http\Controllers\EmployeeController::class, 'newEmployeesCreate'])->name('employees.new.create');
     Route::post('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesStore'])->name('employees.new.store');
@@ -145,7 +183,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Quản lý lương
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'role:admin,director'])->group(function () {
     Route::get('/employees/salary', [App\Http\Controllers\EmployeeController::class, 'salaryIndex'])->name('employees.salary.index');
     Route::get('/employees/salary/{salary}/edit', [App\Http\Controllers\EmployeeController::class, 'salaryEdit'])->name('employees.salary.edit');
     Route::put('/employees/salary/{salary}', [App\Http\Controllers\EmployeeController::class, 'salaryUpdate'])->name('employees.salary.update');

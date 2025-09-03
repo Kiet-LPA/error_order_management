@@ -38,10 +38,10 @@ class DashboardController extends Controller
                   });
             });
         }
-        // Admin thấy tất cả tasks (không cần filter)
+        // Admin và Director thấy tất cả tasks (không cần filter)
         
-        // Filter theo phòng ban (chỉ Admin và Manager có thể filter)
-        if (($user->isAdmin() || $user->isManager()) && $req->filled('department_filter')) {
+        // Filter theo phòng ban (chỉ Admin, Director và Manager có thể filter)
+        if (($user->isAdmin() || $user->isDirector() || $user->isManager()) && $req->filled('department_filter')) {
             $departmentId = $req->department_filter;
             $query->where(function($q) use ($departmentId) {
                 $q->where('department_id', $departmentId)
@@ -102,7 +102,7 @@ class DashboardController extends Controller
                   });
             });
         }
-        // Admin thấy stats của tất cả tasks
+        // Admin và Director thấy stats của tất cả tasks
         
         $stats = [
             'doing'   => (clone $statsQuery)->where('status','in_progress')->count(),
@@ -112,9 +112,9 @@ class DashboardController extends Controller
             'finished' => (clone $statsQuery)->where('status','finished')->count(),
         ];
         
-        // Lấy danh sách phòng ban cho filter (chỉ Admin và Manager)
+        // Lấy danh sách phòng ban cho filter (chỉ Admin, Director và Manager)
         $departments = collect();
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isDirector()) {
             $departments = Department::orderBy('name')->get();
         } elseif ($user->isManager()) {
             $departments = Department::where('id', $user->department_id)->get();

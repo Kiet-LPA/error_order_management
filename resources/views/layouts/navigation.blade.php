@@ -16,7 +16,19 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
                     
-                    @if(Auth::user()->isAdmin())
+                    <!-- Support Requests - Tất cả users đều thấy -->
+                    <x-nav-link :href="route('support-requests.index')" :active="request()->routeIs('support-requests.index')">
+                        {{ __('Yêu cầu hỗ trợ') }}
+                    </x-nav-link>
+
+                    <!-- Tạo yêu cầu hỗ trợ - Chỉ Employee -->
+                    @if(Auth::user()->isEmployee())
+                    <x-nav-link :href="route('support-requests.create')" :active="request()->routeIs('support-requests.create')">
+                        {{ __('Tạo yêu cầu hỗ trợ') }}
+                    </x-nav-link>
+                    @endif
+
+                    @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
                     <!-- Employee Management Dropdown -->
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" 
@@ -56,6 +68,32 @@
                         </div>
                     </div>
                     @endif
+
+                    @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
+                    <!-- Task Management -->
+                    <x-nav-link :href="route('tasks.create')" :active="request()->routeIs('tasks.*')">
+                        {{ __('Giao việc') }}
+                    </x-nav-link>
+                    @endif
+
+                    @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
+                    <!-- Quản lý yêu cầu hỗ trợ -->
+                    <x-nav-link :href="route('support-requests.quest-detail')" :active="request()->routeIs('support-requests.quest-detail')">
+                        {{ __('Quản lý yêu cầu') }}
+                    </x-nav-link>
+                    @endif
+
+                    <!-- Work Reports -->
+                    <x-nav-link :href="route('work-reports.index')" :active="request()->routeIs('work-reports.*')">
+                        {{ __('Báo cáo công việc') }}
+                    </x-nav-link>
+
+                    @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
+                    <!-- Reports -->
+                    <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                        {{ __('Báo cáo tổng quan') }}
+                    </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -67,7 +105,7 @@
                             <div>{{ Auth::user()->name }}</div>
 
                             <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </div>
@@ -112,19 +150,53 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
             
-            @if(Auth::user()->isAdmin())
+            <!-- Support Requests - Tất cả users -->
+            <x-responsive-nav-link :href="route('support-requests.index')" :active="request()->routeIs('support-requests.index')">
+                {{ __('Yêu cầu hỗ trợ') }}
+            </x-responsive-nav-link>
+
+            <!-- Tạo yêu cầu hỗ trợ - Chỉ Employee -->
+            @if(Auth::user()->isEmployee())
+            <x-responsive-nav-link :href="route('support-requests.create')" :active="request()->routeIs('support-requests.create')">
+                {{ __('Tạo yêu cầu hỗ trợ') }}
+            </x-responsive-nav-link>
+            @endif
+
+            @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
+            <!-- Task Management -->
+            <x-responsive-nav-link :href="route('tasks.create')" :active="request()->routeIs('tasks.*')">
+                {{ __('Giao việc') }}
+            </x-responsive-nav-link>
+
+            <!-- Quản lý yêu cầu hỗ trợ -->
+            <x-responsive-nav-link :href="route('support-requests.quest-detail')" :active="request()->routeIs('support-requests.quest-detail')">
+                {{ __('Quản lý yêu cầu') }}
+            </x-responsive-nav-link>
+            @endif
+
+            <!-- Work Reports -->
+            <x-responsive-nav-link :href="route('work-reports.index')" :active="request()->routeIs('work-reports.*')">
+                {{ __('Báo cáo công việc') }}
+            </x-responsive-nav-link>
+
+            @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
+            <!-- Reports -->
+            <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                {{ __('Báo cáo tổng quan') }}
+            </x-responsive-nav-link>
+            @endif
+            
+            @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
             <!-- Mobile Employee Management -->
             <div class="pt-2 pb-1 border-t border-gray-200">
                 <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {{ __('Quản lý nhân viên') }}
                 </div>
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
-                    <i class="bi bi-person-check-fill me-2"></i>
-                    {{ __('Nhân viên chính thức') }}
+                    {{ __('Danh sách nhân viên') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('employees.new.index')" :active="request()->routeIs('employees.new.*')">
-                    <i class="bi bi-person-plus-fill me-2"></i>
-                    {{ __('Nhân viên mới') }}
+                <x-responsive-nav-link :href="route('users.create')" :active="request()->routeIs('users.create')">
+                    {{ __('Thêm nhân viên') }}
                 </x-responsive-nav-link>
             </div>
             @endif
@@ -150,7 +222,7 @@
                             onclick="event.preventDefault();
                                         this.closest('form').submit();">
                         {{ __('Log Out') }}
-                    </x-responsive-nav-link>
+                    </x-dropdown-link>
                 </form>
             </div>
         </div>

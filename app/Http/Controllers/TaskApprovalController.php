@@ -37,7 +37,7 @@ class TaskApprovalController extends Controller
     {
         $user = auth()->user();
         
-        if ($approval->manager_id !== $user->id && !$user->isAdmin()) {
+        if ($approval->manager_id !== $user->id && !$user->isAdmin() && !$user->isDirector()) {
             abort(403, 'Bạn không có quyền xem phê duyệt này');
         }
 
@@ -51,7 +51,7 @@ class TaskApprovalController extends Controller
     {
         $user = auth()->user();
         
-        if ($approval->manager_id !== $user->id && !$user->isAdmin()) {
+        if ($approval->manager_id !== $user->id && !$user->isAdmin() && !$user->isDirector()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Bạn không có quyền phê duyệt task này'
@@ -90,7 +90,7 @@ class TaskApprovalController extends Controller
     {
         $user = auth()->user();
         
-        if ($approval->manager_id !== $user->id && !$user->isAdmin()) {
+        if ($approval->manager_id !== $user->id && !$user->isAdmin() && !$user->isDirector()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Bạn không có quyền từ chối task này'
@@ -137,17 +137,25 @@ class TaskApprovalController extends Controller
                            ->get();
 
             foreach ($managers as $manager) {
-                // Create approval request
-                TaskApproval::create([
-                    'task_id' => $task->id,
-                    'department_id' => $department->id,
-                    'manager_id' => $manager->id,
-                    'status' => 'pending'
-                ]);
+                // Create or update approval request (avoid duplicate)
+                TaskApproval::updateOrCreate(
+                    [
+                        'task_id' => $task->id,
+                        'department_id' => $department->id,
+                        'manager_id' => $manager->id,
+                    ],
+                    [
+                        'status' => 'pending',
+                        'updated_at' => now()
+                    ]
+                );
             }
         }
 
-        // Set task status to pending approval
-        $task->update(['status' => 'pending_approval']);
+        // Set task status to pending approval only if not already pending
+        // Chỉ set pending_approval khi task đang ở trạng thái in_progress hoặc completed
+        if ($task->status !== 'pending_approval' && in_array($task->status, ['in_progress', 'completed'])) {
+            $task->update(['status' => 'pending_approval']);
+        }
     }
 }

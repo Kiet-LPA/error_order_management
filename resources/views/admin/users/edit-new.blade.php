@@ -43,6 +43,14 @@
                 </div>
             </div>
 
+            <!-- Cảnh báo khi Director cố gắng sửa Admin -->
+            @if(auth()->user()->isDirector() && $user->role == 'admin')
+                <div class="alert alert-warning mb-4">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Cảnh báo:</strong> Bạn không thể chỉnh sửa thông tin của Admin. Chỉ có thể xem thông tin.
+                </div>
+            @endif
+
             <form action="{{ route('employees.new.update', $user) }}" method="POST">
                 @csrf
                 @method('PUT')
@@ -59,27 +67,32 @@
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="name" class="form-label">Họ tên <span class="text-danger">*</span></label>
-                                    <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
+                                    <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required
+                                           @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                                    <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
+                                    <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required
+                                           @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                     @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="phone" class="form-label">Số điện thoại</label>
-                                    <input type="tel" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}" placeholder="0123456789">
+                                    <input type="tel" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}" placeholder="0123456789"
+                                           @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                     @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="password" class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
                                     <div class="input-group">
-                                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
+                                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror"
+                                               @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')"
+                                                @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                             <i class="bi bi-eye" id="passwordIcon"></i>
                                         </button>
                                     </div>
@@ -89,8 +102,10 @@
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
                                     <div class="input-group">
-                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
+                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control"
+                                               @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')"
+                                                @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                             <i class="bi bi-eye" id="passwordConfirmIcon"></i>
                                         </button>
                                     </div>
@@ -110,7 +125,8 @@
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="department_id" class="form-label">Phòng ban <span class="text-danger">*</span></label>
-                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" required>
+                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" required
+                                            @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                         <option value="">-- Chọn phòng ban --</option>
                                         @foreach($departments as $department)
                                             <option value="{{ $department->id }}" {{ old('department_id', $user->department_id)==$department->id?'selected':'' }}>{{ $department->name }}</option>
@@ -118,14 +134,46 @@
                                     </select>
                                     @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
+
+                                <!-- Chọn nhiều phòng ban cho Director -->
+                                <div class="mb-3" id="managed_departments_section" style="display: none;">
+                                    <label class="form-label">Phòng ban được quản lý (tùy chọn)</label>
+                                    <div class="alert alert-info">
+                                        <small>
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Chọn các phòng ban mà Director này sẽ quản lý. Nếu không chọn phòng ban nào, Director sẽ quản lý tất cả phòng ban.
+                                        </small>
+                                    </div>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                        @foreach($departments as $department)
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="managed_departments[]" 
+                                                       value="{{ $department->id }}" 
+                                                       id="dept_{{ $department->id }}"
+                                                       {{ in_array($department->id, old('managed_departments', $user->managedDepartments->pluck('id')->toArray())) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="dept_{{ $department->id }}">
+                                                    {{ $department->name }}
+                                                </label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Tích vào các phòng ban mà Director sẽ quản lý
+                                    </small>
+                                </div>
                                 
                                 <div class="mb-3">
                                     <label for="role" class="form-label">Vai trò <span class="text-danger">*</span></label>
-                                    <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
+                                    <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required
+                                            @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                         <option value="">-- Chọn vai trò --</option>
                                         <option value="employee" {{ old('role', $user->role) == 'employee' ? 'selected' : '' }}>Nhân viên</option>
-                                        @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
                                             <option value="manager" {{ old('role', $user->role) == 'manager' ? 'selected' : '' }}>Quản lý</option>
+                                        @endif
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isDirector())
+                                            <option value="director" {{ old('role', $user->role) == 'director' ? 'selected' : '' }}>Director</option>
                                         @endif
                                         @if(auth()->user()->isAdmin())
                                             <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Quản trị viên</option>
@@ -250,9 +298,15 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">
-                                <i class="bi bi-check-circle me-1"></i>Cập nhật
-                            </button>
+                            @if(auth()->user()->isDirector() && $user->role == 'admin')
+                                <button type="button" class="btn btn-secondary" disabled>
+                                    <i class="bi bi-lock me-1"></i>Không thể cập nhật
+                                </button>
+                            @else
+                                <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">
+                                    <i class="bi bi-check-circle me-1"></i>Cập nhật
+                                </button>
+                            @endif
                             <a href="{{ route('employees.new.index') }}" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">
                                 <i class="bi bi-x-circle me-1"></i>Hủy
                             </a>
@@ -307,5 +361,62 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Xử lý hiển thị/ẩn phần chọn nhiều phòng ban cho Director
+    const roleSelect = document.getElementById('role');
+    const managedDepartmentsSection = document.getElementById('managed_departments_section');
+    const departmentSelect = document.getElementById('department_id');
+    
+    if (roleSelect && managedDepartmentsSection) {
+        // Kiểm tra trạng thái ban đầu
+        toggleManagedDepartmentsSection();
+        
+        // Xử lý sự kiện thay đổi role (chỉ khi không bị disable)
+        if (!roleSelect.disabled) {
+            roleSelect.addEventListener('change', toggleManagedDepartmentsSection);
+        }
+    }
+    
+    function toggleManagedDepartmentsSection() {
+        const selectedRole = roleSelect.value;
+        const isDirector = selectedRole === 'director';
+        
+        if (isDirector) {
+            managedDepartmentsSection.style.display = 'block';
+            // Làm cho phòng ban chính không bắt buộc khi là Director
+            departmentSelect.required = false;
+            departmentSelect.classList.remove('is-invalid');
+            // Xóa validation error nếu có
+            const errorElement = departmentSelect.parentNode.querySelector('.invalid-feedback');
+            if (errorElement) {
+                errorElement.remove();
+            }
+        } else {
+            managedDepartmentsSection.style.display = 'none';
+            // Làm cho phòng ban chính bắt buộc khi không phải Director
+            departmentSelect.required = true;
+        }
+    }
+    
+    // Disable tất cả form fields khi Director không thể sửa
+    function disableFormFields() {
+        const isDirectorRestricted = {{ auth()->user()->isDirector() && $user->role == 'admin' ? 'true' : 'false' }};
+        
+        if (isDirectorRestricted) {
+            const allInputs = document.querySelectorAll('input, select, textarea');
+            allInputs.forEach(input => {
+                input.disabled = true;
+            });
+            
+            // Disable tất cả buttons trừ nút "Quay lại"
+            const allButtons = document.querySelectorAll('button:not([href])');
+            allButtons.forEach(button => {
+                button.disabled = true;
+            });
+        }
+    }
+    
+    // Gọi function khi trang load
+    disableFormFields();
 });
 </script>

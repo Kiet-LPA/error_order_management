@@ -379,32 +379,43 @@
       <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('role') ? ' active' : '' }}">Tất cả</button>
     </form>
 
-    <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-      <input type="hidden" name="search" value="{{ request('search') }}">
-      <input type="hidden" name="department" value="{{ request('department') }}">
-      <input type="hidden" name="sort" value="{{ request('sort') }}">
-      <input type="hidden" name="direction" value="{{ request('direction') }}">
-      <input type="hidden" name="role" value="admin">
-      <button type="submit" class="btn btn-sm btn-outline-danger{{ request('role') == 'admin' ? ' active' : '' }}">Quản trị viên</button>
-    </form>
+            <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
+          <input type="hidden" name="search" value="{{ request('search') }}">
+          <input type="hidden" name="department" value="{{ request('department') }}">
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="direction" value="{{ request('direction') }}">
+          <input type="hidden" name="role" value="admin">
+          <button type="submit" class="btn btn-sm btn-outline-danger{{ request('role') == 'admin' ? ' active' : '' }}">Quản trị viên</button>
+        </form>
 
-    <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-      <input type="hidden" name="search" value="{{ request('search') }}">
-      <input type="hidden" name="department" value="{{ request('department') }}">
-      <input type="hidden" name="sort" value="{{ request('sort') }}">
-      <input type="hidden" name="direction" value="{{ request('direction') }}">
-      <input type="hidden" name="role" value="manager">
-      <button type="submit" class="btn btn-sm btn-outline-warning{{ request('role') == 'manager' ? ' active' : '' }}">Quản lý</button>
-    </form>
+        <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
+          <input type="hidden" name="search" value="{{ request('search') }}">
+          <input type="hidden" name="department" value="{{ request('department') }}">
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="direction" value="{{ request('direction') }}">
+          <input type="hidden" name="role" value="director">
+          <button type="submit" class="btn btn-sm btn-outline-info{{ request('role') == 'director' ? ' active' : '' }}">Director</button>
+        </form>
 
-    <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-      <input type="hidden" name="search" value="{{ request('search') }}">
-      <input type="hidden" name="department" value="{{ request('department') }}">
-      <input type="hidden" name="sort" value="{{ request('sort') }}">
-      <input type="hidden" name="direction" value="{{ request('direction') }}">
-      <input type="hidden" name="role" value="employee">
-      <button type="submit" class="btn btn-sm btn-outline-success{{ request('role') == 'employee' ? ' active' : '' }}">Nhân viên</button>
-    </form>
+        <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
+          <input type="hidden" name="search" value="{{ request('search') }}">
+          <input type="hidden" name="department" value="{{ request('department') }}">
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="direction" value="{{ request('direction') }}">
+          <input type="hidden" name="role" value="manager">
+          <button type="submit" class="btn btn-sm btn-outline-warning{{ request('role') == 'manager' ? ' active' : '' }}">Quản lý</button>
+        </form>
+
+        <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
+          <input type="hidden" name="search" value="{{ request('search') }}">
+          <input type="hidden" name="department" value="{{ request('department') }}">
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="direction" value="{{ request('direction') }}">
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="direction" value="{{ request('direction') }}">
+          <input type="hidden" name="role" value="employee">
+          <button type="submit" class="btn btn-sm btn-outline-success{{ request('role') == 'employee' ? ' active' : '' }}">Nhân viên</button>
+        </form>
   </div>
 
   {{-- Search và Sort --}}
@@ -529,13 +540,14 @@
                 @endif
               </td>
               <td class="px-4 py-3">
-                @php
-                  $roleBadge = [
-                      'admin' => ['bg-danger', 'Quản trị viên'],
-                      'manager' => ['bg-warning', 'Quản lý'],
-                      'employee' => ['bg-success', 'Nhân viên']
-                  ][$user->role] ?? ['bg-secondary', 'Không xác định'];
-                @endphp
+                                 @php
+                   $roleBadge = [
+                       'admin' => ['bg-danger', 'Quản trị viên'],
+                       'director' => ['bg-info', 'Director'],
+                       'manager' => ['bg-warning', 'Quản lý'],
+                       'employee' => ['bg-success', 'Nhân viên']
+                   ][$user->role] ?? ['bg-secondary', 'Không xác định'];
+                 @endphp
                 <span class="badge {{ $roleBadge[0] }} bg-opacity-10 text-dark border border-{{ $roleBadge[0] }}">
                   <i class="bi bi-person-badge me-1"></i>{{ $roleBadge[1] }}
                 </span>
@@ -578,8 +590,78 @@
   
   @if($users->hasPages())
     <div class="card-footer bg-light border-0">
-      <div class="d-flex justify-content-center">
-        {{ $users->appends(request()->query())->links() }}
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+          Hiển thị {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
+          trong tổng số {{ $users->total() }} kết quả
+        </div>
+        
+        {{-- Pagination đơn giản --}}
+        <nav aria-label="Page navigation">
+          <ul class="pagination mb-0">
+            {{-- Previous Page Link --}}
+            @if ($users->onFirstPage())
+              <li class="page-item disabled">
+                <span class="page-link">« Previous</span>
+              </li>
+            @else
+              <li class="page-item">
+                <a class="page-link" href="{{ $users->previousPageUrl() }}" rel="prev">« Previous</a>
+              </li>
+            @endif
+
+            {{-- Pagination Elements - Chỉ hiển thị 5 trang gần nhất --}}
+            @php
+              $start = max(1, $users->currentPage() - 2);
+              $end = min($users->lastPage(), $users->currentPage() + 2);
+            @endphp
+            
+            @if($start > 1)
+              <li class="page-item">
+                <a class="page-link" href="{{ $users->url(1) }}">1</a>
+              </li>
+              @if($start > 2)
+                <li class="page-item disabled">
+                  <span class="page-link">...</span>
+                </li>
+              @endif
+            @endif
+            
+            @for ($page = $start; $page <= $end; $page++)
+              @if ($page == $users->currentPage())
+                <li class="page-item active">
+                  <span class="page-link">{{ $page }}</span>
+                </li>
+              @else
+                <li class="page-item">
+                  <a class="page-link" href="{{ $users->url($page) }}">{{ $page }}</a>
+                </li>
+              @endif
+            @endfor
+            
+            @if($end < $users->lastPage())
+              @if($end < $users->lastPage() - 1)
+                <li class="page-item disabled">
+                  <span class="page-link">...</span>
+                </li>
+              @endif
+              <li class="page-item">
+                <a class="page-link" href="{{ $users->url($users->lastPage()) }}">{{ $users->lastPage() }}</a>
+              </li>
+            @endif
+
+            {{-- Next Page Link --}}
+            @if ($users->hasMorePages())
+              <li class="page-item">
+                <a class="page-link" href="{{ $users->nextPageUrl() }}" rel="next">Next »</a>
+              </li>
+            @else
+              <li class="page-item disabled">
+                <span class="page-link">Next »</span>
+              </li>
+            @endif
+          </ul>
+        </nav>
       </div>
     </div>
   @endif

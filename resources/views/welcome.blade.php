@@ -357,6 +357,13 @@
     border-radius: 6px;
     font-weight: 500;
 }
+
+/* Custom color for pending_approval status */
+.bg-secondary.bg-opacity-10.text-dark.border.border-secondary {
+    background-color: rgba(139, 92, 246, 0.1) !important;
+    color: #8b5cf6 !important;
+    border-color: #8b5cf6 !important;
+}
 </style>
 @endpush
 
@@ -433,6 +440,9 @@
 
         <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
         <label class="btn btn-sm btn-outline-success" for="st_finished">Kết thúc</label>
+
+        <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
+        <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
       </div>
       <button type="submit" class="btn btn-sm btn-primary" style="background-color: #558EC1; border-color: #558EC1;">Áp dụng</button>
     </form>
@@ -648,7 +658,8 @@
                   @if($task->status == 'in_progress') Đang làm
                   @elseif($task->status == 'completed') Chờ duyệt
                   @elseif($task->status == 'finished') Kết thúc
-                  @else {{ strtoupper($task->status) }}
+                  @elseif($task->status == 'pending_approval') Chờ phê duyệt
+                  @else {{ __("statuses.$task->status") ?? strtoupper($task->status) }}
                   @endif
                 </span>
               </td>
@@ -704,7 +715,8 @@
                     'completed' => 'warning',
                     'rejected' => 'danger',
                     'overdue' => 'danger',
-                    'finished' => 'success'
+                    'finished' => 'success',
+                    'pending_approval' => 'secondary'
                 ][$st] ?? 'secondary';
               @endphp
               <tr class="border-bottom">
@@ -808,8 +820,10 @@
                       <i class="bi bi-exclamation-triangle me-1"></i>Trễ hạn
                     @elseif($st == 'finished')
                       <i class="bi bi-flag-checkered me-1"></i>Kết thúc
+                    @elseif($st == 'pending_approval')
+                      <i class="bi bi-clock me-1"></i>Chờ phê duyệt
                     @else
-                      {{ strtoupper($st) }}
+                      {{ __("statuses.$st") ?? strtoupper($st) }}
                     @endif
                   </span>
                 </td>

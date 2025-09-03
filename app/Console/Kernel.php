@@ -16,6 +16,9 @@ class Kernel extends ConsoleKernel
         
         // Reset recurring tasks every day at 7:00 AM
         $schedule->command('tasks:reset-recurring')->dailyAt('07:00');
+        
+        // Kiểm tra và cập nhật trạng thái overdue mỗi giờ
+        $schedule->command('tasks:update-overdue')->hourly();
     }
 
     /**

@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('css/work-reports.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('css/custom.css') }}?v={{ time() }}">
   <style>
     /* Dark mode variables */
     :root {
@@ -467,8 +468,26 @@
             <i class="bi bi-list-task me-2"></i> <span>Danh sách</span>
           </a>
 
+          <!-- Quản lý yêu cầu hỗ trợ - Admin, Director, Manager -->
+          @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
+          <a href="{{ route('support-requests.quest-detail') }}"
+             class="list-group-item {{ request()->routeIs('support-requests.quest-detail')?'active':'' }}"
+             data-title="Quản lý yêu cầu">
+            <i class="bi bi-gear me-2"></i> <span>Quản lý yêu cầu</span>
+          </a>
+          @endif
+
+          <!-- Tạo yêu cầu hỗ trợ - Employee, Manager, Director -->
+          @if(Auth::user()->isEmployee() || Auth::user()->isManager() || Auth::user()->isDirector())
+          <a href="{{ route('support-requests.create') }}"
+             class="list-group-item {{ request()->routeIs('support-requests.create')?'active':'' }}"
+             data-title="Tạo yêu cầu hỗ trợ">
+            <i class="bi bi-plus-circle me-2"></i> <span>Tạo yêu cầu hỗ trợ</span>
+          </a>
+          @endif
+
           @auth
-          @if(Auth::user()->isAdmin())
+          @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
             <!-- Quản lý nhân viên - Header -->
             <div class="list-group-item sidebar-section-header">
               <i class="bi bi-people me-2"></i> <span>Quản lý nhân viên</span>
@@ -495,7 +514,16 @@
               <i class="bi bi-building me-2"></i> <span>Phòng ban</span>
             </a>
           @endif
-          @if(Auth::user()->isAdmin() || Auth::user()->isManager())
+
+
+
+          <a href="{{ route('kanban') }}"
+             class="list-group-item {{ request()->routeIs('kanban')?'active':'' }}"
+             data-title="Kanban Board">
+            <i class="bi bi-columns me-2"></i> <span>Kanban Board</span>
+          </a>
+
+          @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
             <a href="{{ route('create-task') }}"
                class="list-group-item {{ request()->routeIs('create-task')?'active':'' }}"
                data-title="Tạo công việc">
@@ -504,7 +532,7 @@
           @endif
           @endauth
 
-          @if(Auth::user()->isAdmin() || Auth::user()->isManager())
+          @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
             <a href="{{ route('reports.index') }}"
                class="list-group-item {{ request()->routeIs('reports.index')?'active':'' }}"
                data-title="Báo cáo">
@@ -549,7 +577,7 @@
         </div>
         
         @auth
-        @if(Auth::user()->isAdmin())
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
           <div class="col nav-item">
             <a href="{{ route('users.index') }}" 
                class="nav-link {{ request()->routeIs('users.*')?'active':'' }}">
@@ -572,7 +600,15 @@
             </a>
           </div>
         @endif
-        @if(Auth::user()->isAdmin() || Auth::user()->isManager())
+        <div class="col nav-item">
+          <a href="{{ route('kanban') }}" 
+             class="nav-link {{ request()->routeIs('kanban')?'active':'' }}">
+            <i class="bi bi-columns"></i>
+            <span>Kanban</span>
+          </a>
+        </div>
+
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
           <div class="col nav-item">
             <a href="{{ route('create-task') }}" 
                class="nav-link {{ request()->routeIs('create-task')?'active':'' }}">
@@ -592,7 +628,7 @@
         </div>
         @endauth
 
-        @if(Auth::user()->isAdmin() || Auth::user()->isManager())
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
           <div class="col nav-item">
             <a href="{{ route('reports.index') }}" 
                class="nav-link {{ request()->routeIs('reports.index')?'active':'' }}">

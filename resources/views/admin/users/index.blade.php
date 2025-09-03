@@ -390,15 +390,14 @@
         </div>
     </div>
     
-    {{-- Pagination --}}
+    {{-- Thông tin kết quả --}}
     @if($users->hasPages())
         <div class="card-footer">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-center">
                 <div class="text-muted">
                     Hiển thị {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
                     trong tổng số {{ $users->total() }} kết quả
                 </div>
-                {{ $users->appends(request()->query())->links() }}
             </div>
         </div>
     @endif

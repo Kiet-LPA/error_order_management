@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\Department;
 use App\Models\TaskFollower;
 use App\Services\NotificationService;
+use App\Rules\FutureDate;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,11 +19,11 @@ class TaskController extends Controller
     {
         $user = auth()->user();
         
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền giao việc.');
         }
         
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isDirector()) {
             // Admin có thể giao việc cho tất cả users và departments
             $users = User::with('department')->orderBy('name')->get();
             $departments = \App\Models\Department::orderBy('name')->get();
@@ -44,7 +45,7 @@ class TaskController extends Controller
         $user = $r->user();
         
         // Kiểm tra quyền giao việc
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền giao việc.');
         }
         
@@ -59,7 +60,7 @@ class TaskController extends Controller
             'department_ids.*' => 'exists:departments,id',
             'is_multi_department' => 'nullable|boolean',
             'is_multi_user' => 'nullable|boolean',
-            'deadline'    => 'nullable|date',
+            'deadline'    => ['nullable', 'date', new FutureDate],
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
             'is_recurring' => 'nullable|boolean',
@@ -81,6 +82,24 @@ class TaskController extends Controller
                     $assignee = User::find($assigneeId);
                     if ($assignee && $assignee->role !== 'employee') {
                         abort(403, 'Manager chỉ có thể giao việc cho Employee.');
+                    }
+                }
+            }
+        } elseif ($user->isDirector()) {
+            // Director có quyền như Admin - có thể giao việc cho tất cả user (trừ Admin)
+            if ($data['assignee_id']) {
+                $assignee = User::find($data['assignee_id']);
+                if ($assignee && $assignee->isAdmin()) {
+                    abort(403, 'Director không thể giao việc cho Admin.');
+                }
+            }
+            
+            // Kiểm tra assignee_ids (multi-user)
+            if ($data['assignee_ids']) {
+                foreach ($data['assignee_ids'] as $assigneeId) {
+                    $assignee = User::find($assigneeId);
+                    if ($assignee && $assignee->isAdmin()) {
+                        abort(403, 'Director không thể giao việc cho Admin.');
                     }
                 }
             }
@@ -195,7 +214,7 @@ class TaskController extends Controller
         }
 
         // Xử lý approval system cho multi-department tasks
-        if ($task->is_multi_department && $user->isManager()) {
+        if ($task->is_multi_department && ($user->isManager() || $user->isDirector())) {
             // Tạo approval requests
             \App\Http\Controllers\TaskApprovalController::createApprovalRequests($task);
             return redirect()->route('task-detail', $task)->with('ok', 'Đã tạo công việc. Task đang chờ phê duyệt từ các Manager.');
@@ -209,8 +228,8 @@ class TaskController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền xem task
-        if ($user->isAdmin()) {
-            // Admin có thể xem mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể xem mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể xem task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -241,8 +260,8 @@ class TaskController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền chỉnh sửa task
-        if ($user->isAdmin()) {
-            // Admin có thể chỉnh sửa mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể chỉnh sửa mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể chỉnh sửa task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -264,8 +283,8 @@ class TaskController extends Controller
         $task->load(['assignees', 'departments', 'followers.department']);
         
         // Lấy danh sách users có thể assign
-        if ($user->isAdmin()) {
-            // Admin có thể giao việc cho tất cả users
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể giao việc cho tất cả users
             $users = User::with('department')->orderBy('name')->get(['id','name','department_id','role']);
         } elseif ($user->isManager()) {
             // Manager chỉ có thể giao việc cho Employee
@@ -290,8 +309,8 @@ class TaskController extends Controller
         $user = $request->user();
         
         // Kiểm tra quyền cập nhật task
-        if ($user->isAdmin()) {
-            // Admin có thể cập nhật mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể cập nhật mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể cập nhật task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -320,7 +339,7 @@ class TaskController extends Controller
             'department_ids.*' => 'exists:departments,id',
             'is_multi_user' => 'nullable|boolean',
             'is_multi_department' => 'nullable|boolean',
-            'deadline'    => 'nullable|date',
+            'deadline'    => ['nullable', 'date', new FutureDate],
             'priority'    => 'nullable|in:low,medium,high',
             'status'      => 'required|in:in_progress,completed,rejected,overdue,finished,pending_approval',
             'rejection_reason' => 'nullable|string|max:1000',
@@ -426,10 +445,38 @@ class TaskController extends Controller
 
 
 
+        // Lưu trạng thái cũ để kiểm tra
+        $oldStatus = $task->status;
+        $oldDeadline = $task->deadline;
+        
         $task->update($data);
+        
+        // Kiểm tra nếu deadline được cập nhật và task đang trễ hạn
+        if ($oldStatus === 'overdue' && 
+            $oldDeadline && 
+            $data['deadline'] && 
+            $oldDeadline->ne(\Carbon\Carbon::parse($data['deadline'])) && 
+            now()->lt(\Carbon\Carbon::parse($data['deadline']))) {
+            
+            // Tự động chuyển về trạng thái "Đang làm" nếu deadline mới trong tương lai
+            $task->update(['status' => 'in_progress']);
+            
+            // Ghi log hoạt động
+            $task->activities()->create([
+                'user_id' => $user->id,
+                'action'  => 'updated_status',
+                'meta'    => json_encode([
+                    'description' => 'Trạng thái tự động chuyển từ "Trễ hạn" về "Đang làm" do deadline được cập nhật',
+                    'old_status' => 'overdue',
+                    'new_status' => 'in_progress',
+                    'old_deadline' => $oldDeadline->format('Y-m-d H:i:s'),
+                    'new_deadline' => \Carbon\Carbon::parse($data['deadline'])->format('Y-m-d H:i:s')
+                ])
+            ]);
+        }
 
-        // Xử lý Task Followers (chỉ Admin/Manager)
-        if (($user->isAdmin() || $user->isManager()) && $request->has('followers')) {
+        // Xử lý Task Followers (chỉ Admin/Director/Manager)
+        if (($user->isAdmin() || $user->isDirector() || $user->isManager()) && $request->has('followers')) {
             // Xóa followers cũ
             $task->followers()->detach();
             
@@ -463,9 +510,12 @@ class TaskController extends Controller
         }
 
         // Xử lý approval system cho multi-department tasks
-        if ($task->is_multi_department && $user->isManager()) {
-            // Tạo approval requests
-            \App\Http\Controllers\TaskApprovalController::createApprovalRequests($task);
+        // Chỉ tạo approval requests khi task được tạo mới hoặc khi user chủ động chuyển sang pending_approval
+        if ($task->is_multi_department && ($user->isManager() || $user->isDirector()) && $data['status'] === 'pending_approval') {
+            // Chỉ tạo approval requests nếu task chưa có approval hoặc chưa pending
+            if (!$task->approvals()->exists() || $task->status !== 'pending_approval') {
+                \App\Http\Controllers\TaskApprovalController::createApprovalRequests($task);
+            }
         }
 
         // Gửi thông báo cho assignees và followers
@@ -486,8 +536,8 @@ class TaskController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền xóa task
-        if ($user->isAdmin()) {
-            // Admin có thể xóa mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể xóa mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể xóa task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -518,8 +568,8 @@ class TaskController extends Controller
         $user = $r->user();
         
         // Kiểm tra quyền cập nhật trạng thái task
-        if ($user->isAdmin()) {
-            // Admin có thể cập nhật mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể cập nhật mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể cập nhật task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -551,6 +601,14 @@ class TaskController extends Controller
             return back()->withErrors(['status' => 'Không thể chuyển sang trạng thái này']);
         }
         
+        // Kiểm tra đặc biệt cho trường hợp chuyển từ overdue về in_progress
+        if ($task->status === 'overdue' && $status === 'in_progress') {
+            // Bắt buộc phải cập nhật deadline thành ngày trong tương lai
+            if (!$task->deadline || $task->deadline->isPast()) {
+                return back()->withErrors(['status' => 'Không thể chuyển về "Đang làm" khi deadline vẫn trong quá khứ. Vui lòng cập nhật deadline trước.']);
+            }
+        }
+        
         // Cập nhật trạng thái
         $updateData = ['status' => $status];
         if ($status === 'rejected' && $rejectionReason) {
@@ -573,7 +631,8 @@ class TaskController extends Controller
             'completed' => 'Đã hoàn thành và gửi duyệt',
             'rejected' => 'Đã từ chối' . ($rejectionReason ? ': ' . $rejectionReason : ''),
             'overdue' => 'Đã trễ hạn',
-            'finished' => 'Đã kết thúc' . ($finishNote ? ': ' . $finishNote : '')
+            'finished' => 'Đã kết thúc' . ($finishNote ? ': ' . $finishNote : ''),
+            'pending_approval' => 'Đang chờ phê duyệt'
         ];
         
         $task->activities()->create([
@@ -603,14 +662,21 @@ class TaskController extends Controller
                     return ['completed'];
                 }
                 // Role cao có thể thay đổi trạng thái
-                if (in_array($userRole, ['admin', 'manager'])) {
+                if (in_array($userRole, ['admin', 'director', 'manager'])) {
                     return ['completed', 'approved', 'rejected'];
                 }
                 break;
                 
             case 'completed':
                 // Chỉ role cao mới có thể kết thúc hoặc từ chối
-                if (in_array($userRole, ['admin', 'manager'])) {
+                if (in_array($userRole, ['admin', 'director', 'manager'])) {
+                    return ['finished', 'rejected'];
+                }
+                break;
+                
+            case 'pending_approval':
+                // Chỉ role cao mới có thể kết thúc hoặc từ chối task đang chờ phê duyệt
+                if (in_array($userRole, ['admin', 'director', 'manager'])) {
                     return ['finished', 'rejected'];
                 }
                 break;
@@ -623,13 +689,18 @@ class TaskController extends Controller
                 break;
                 
             case 'overdue':
-                // Có thể chuyển về in_progress nếu bắt đầu làm
-                if ($userRole === 'employee' && $task->assignee_id === $user->id) {
-                    return ['in_progress'];
-                }
-                // Role cao có thể thay đổi trạng thái
-                if (in_array($userRole, ['admin', 'manager'])) {
-                    return ['in_progress', 'completed', 'approved', 'rejected'];
+                // Chỉ có thể chuyển về in_progress nếu deadline đã được cập nhật thành tương lai
+                // Hoặc nếu task được đánh dấu là recurring
+                if ($task->deadline && $task->deadline->isFuture()) {
+                    if ($userRole === 'employee' && $task->assignee_id === $user->id) {
+                        return ['in_progress'];
+                    }
+                    if (in_array($userRole, ['admin', 'director', 'manager'])) {
+                        return ['in_progress', 'completed', 'approved', 'rejected'];
+                    }
+                } else {
+                    // Nếu deadline vẫn trong quá khứ, chỉ cho phép cập nhật deadline
+                    return [];
                 }
                 break;
         }
@@ -641,8 +712,8 @@ class TaskController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->isAdmin()) {
-            // Admin thấy tất cả tasks
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director thấy tất cả tasks
             $query = Task::with(['assignee', 'creator']);
         } elseif ($user->isManager()) {
             // Manager chỉ thấy tasks của phòng ban mình
@@ -677,8 +748,8 @@ class TaskController extends Controller
     {
         $user = $r->user();
         
-        if ($user->isAdmin()) {
-            // Admin thấy tất cả tasks
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director thấy tất cả tasks
             $tasks = Task::with('assignee','creator')->latest()->paginate(10);
             
             $stats = [
@@ -745,8 +816,8 @@ class TaskController extends Controller
         $task->load('assignees');
         
         // Kiểm tra quyền comment trên task
-        if ($user->isAdmin()) {
-            // Admin có thể comment trên mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể comment trên mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể comment trên task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -845,8 +916,8 @@ class TaskController extends Controller
         $task->load('assignees');
         
         // Kiểm tra quyền xem lịch sử task
-        if ($user->isAdmin()) {
-            // Admin có thể xem lịch sử mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể xem lịch sử mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể xem lịch sử task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -878,8 +949,8 @@ class TaskController extends Controller
         $task->load('assignees');
         
         // Kiểm tra quyền xóa file
-        if ($user->isAdmin()) {
-            // Admin có thể xóa file của mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể xóa file của mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể xóa file của task phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -940,8 +1011,8 @@ class TaskController extends Controller
         $task->load('assignees');
         
         // Kiểm tra quyền hoàn tác
-        if ($user->isAdmin()) {
-            // Admin có thể hoàn tác mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể hoàn tác mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể hoàn tác task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
@@ -977,5 +1048,120 @@ class TaskController extends Controller
         }
         
         return back()->withErrors(['undo' => 'Không thể hoàn tác công việc. Vui lòng thử lại.']);
+    }
+
+    /**
+     * Show Kanban board
+     */
+    public function kanban()
+    {
+        $user = auth()->user();
+        
+        // Tất cả role đều có thể xem Kanban board
+        
+        // Lấy tasks theo quyền - giống như method index()
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director thấy tất cả tasks
+            $query = Task::with(['assignee', 'creator', 'assignees', 'departments']);
+        } elseif ($user->isManager()) {
+            // Manager chỉ thấy tasks của phòng ban mình
+            $query = Task::with(['assignee', 'creator', 'assignees', 'departments'])
+                        ->where(function($q) use ($user) {
+                            $q->whereHas('assignee', function($subQ) use ($user) {
+                                $subQ->where('department_id', $user->department_id);
+                            })
+                            ->orWhereHas('creator', function($subQ) use ($user) {
+                                $subQ->where('department_id', $user->department_id);
+                            })
+                            ->orWhereHas('assignees', function($subQ) use ($user) {
+                                $subQ->where('department_id', $user->department_id);
+                            });
+                        });
+        } else {
+            // Employee chỉ thấy tasks của mình
+            $query = Task::with(['assignee', 'creator', 'assignees', 'departments'])
+                        ->where(function($q) use ($user) {
+                            $q->where('assignee_id', $user->id)
+                              ->orWhere('creator_id', $user->id)
+                              ->orWhereHas('assignees', function($subQ) use ($user) {
+                                  $subQ->where('user_id', $user->id);
+                              });
+                        });
+        }
+        
+        $tasks = $query->orderBy('created_at', 'desc')->get();
+        
+        // Nhóm tasks theo status
+        $kanbanData = [
+            'in_progress' => $tasks->where('status', 'in_progress'),
+            'completed' => $tasks->where('status', 'completed'),
+            'pending_approval' => $tasks->where('status', 'pending_approval'),
+            'rejected' => $tasks->where('status', 'rejected'),
+            'overdue' => $tasks->where('status', 'overdue'),
+            'finished' => $tasks->where('status', 'finished'),
+        ];
+        
+        return view('tasks.kanban', compact('kanbanData'));
+    }
+
+    /**
+     * Update task status via AJAX (for Kanban drag & drop)
+     */
+    public function updateStatusAjax(Request $request, Task $task)
+    {
+        $user = $request->user();
+        
+        // Kiểm tra quyền cập nhật task
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền cập nhật task này.'], 403);
+        }
+        
+        // Kiểm tra quyền theo role
+        if ($user->isManager()) {
+            // Manager chỉ có thể cập nhật task của phòng ban mình
+            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
+                $task->creator && $task->creator->department_id !== $user->department_id) {
+                return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể cập nhật task của phòng ban mình.'], 403);
+            }
+        }
+        
+        $newStatus = $request->input('status');
+        
+        // Validate status
+        $validStatuses = ['in_progress', 'completed', 'rejected', 'overdue', 'finished', 'pending_approval'];
+        if (!in_array($newStatus, $validStatuses)) {
+            return response()->json(['success' => false, 'message' => 'Trạng thái không hợp lệ.'], 400);
+        }
+        
+        // Kiểm tra workflow hợp lệ
+        $validTransitions = $this->getValidStatusTransitions($task, $user);
+        if (!in_array($newStatus, $validTransitions)) {
+            return response()->json(['success' => false, 'message' => 'Không thể chuyển sang trạng thái này.'], 400);
+        }
+        
+        // Cập nhật trạng thái
+        $task->update(['status' => $newStatus]);
+        
+        // Ghi log hoạt động
+        $statusMessages = [
+            'in_progress' => 'Đã giao việc',
+            'completed' => 'Đã hoàn thành và gửi duyệt',
+            'rejected' => 'Đã từ chối',
+            'overdue' => 'Đã trễ hạn',
+            'finished' => 'Đã kết thúc',
+            'pending_approval' => 'Đang chờ phê duyệt'
+        ];
+        
+        $task->activities()->create([
+            'user_id' => $user->id,
+            'action'  => 'updated_status',
+            'meta'    => $statusMessages[$newStatus] ?? "Cập nhật trạng thái: $newStatus",
+        ]);
+        
+        return response()->json([
+            'success' => true, 
+            'message' => 'Đã cập nhật trạng thái công việc',
+            'task' => $task->load(['assignee', 'creator', 'assignees'])
+        ]);
     }
 }

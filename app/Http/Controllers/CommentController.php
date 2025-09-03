@@ -19,8 +19,8 @@ class CommentController extends Controller
         $task->load(['assignees', 'followers']);
         
         // Kiểm tra quyền comment trên task
-        if ($user->isAdmin()) {
-            // Admin có thể comment trên mọi task
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director có thể comment trên mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể comment trên task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&

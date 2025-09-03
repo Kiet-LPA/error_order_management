@@ -58,9 +58,16 @@
                 </div>
             </div>
 
-            <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data" @if(!$canEdit) onsubmit="return false;" @endif>
                 @csrf
                 @method('PUT')
+                
+                @if(!$canEdit)
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Chú ý:</strong> Bạn không có quyền chỉnh sửa thông tin {{ $user->isAdmin() ? 'Admin' : 'Director' }} này. Các trường bên dưới đã được vô hiệu hóa.
+                    </div>
+                @endif
                 
                 <div class="row">
                     <!-- Thông tin cơ bản -->
@@ -74,26 +81,26 @@
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="name" class="form-label">Họ tên <span class="text-danger">*</span></label>
-                                    <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
+                                    <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required @if(!$canEdit) disabled @endif>
                                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email <span class="text-muted">(tùy chọn nếu có số điện thoại)</span></label>
-                                    <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}">
+                                    <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" @if(!$canEdit) disabled @endif>
                                     @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="phone" class="form-label">Số điện thoại <span class="text-muted">(tùy chọn nếu có email)</span></label>
-                                    <input type="tel" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}" placeholder="0123456789">
+                                    <input type="tel" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}" placeholder="0123456789" @if(!$canEdit) disabled @endif>
                                     @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="password" class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
                                     <div class="input-group">
-                                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror">
+                                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" @if(!$canEdit) disabled @endif>
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
                                             <i class="bi bi-eye" id="passwordIcon"></i>
                                         </button>
@@ -104,7 +111,7 @@
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
                                     <div class="input-group">
-                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
+                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" @if(!$canEdit) disabled @endif>
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
                                             <i class="bi bi-eye" id="passwordConfirmIcon"></i>
                                         </button>
@@ -113,17 +120,18 @@
                                 
                                 <div class="mb-3">
                                     <label for="role" class="form-label">Vai trò <span class="text-danger">*</span></label>
-                                    <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
-                                        <option value="admin" {{ old('role', $user->role)=='admin'?'selected':'' }}>Admin</option>
-                                        <option value="manager" {{ old('role', $user->role)=='manager'?'selected':'' }}>Manager</option>
-                                        <option value="employee" {{ old('role', $user->role)=='employee'?'selected':'' }}>Employee</option>
+                                    <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required @if(!$canEdit) disabled @endif>
+                                                                        <option value="admin" {{ old('role', $user->role)=='admin'?'selected':'' }}>Admin</option>
+                                <option value="director" {{ old('role', $user->role)=='director'?'selected':'' }}>Director</option>
+                                <option value="manager" {{ old('role', $user->role)=='manager'?'selected':'' }}>Manager</option>
+                                <option value="employee" {{ old('role', $user->role)=='employee'?'selected':'' }}>Employee</option>
                                     </select>
                                     @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="department_id" class="form-label">Phòng ban (nếu có)</label>
-                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror">
+                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" @if(!$canEdit) disabled @endif>
                                         <option value="">-- Không chọn --</option>
                                         @foreach($departments as $department)
                                             <option value="{{ $department->id }}" {{ old('department_id', $user->department_id)==$department->id?'selected':'' }}>{{ $department->name }}</option>
@@ -146,7 +154,7 @@
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="position" class="form-label">Chức vụ</label>
-                                    <select name="position" id="position" class="form-select @error('position') is-invalid @enderror">
+                                    <select name="position" id="position" class="form-select @error('position') is-invalid @enderror" @if(!$canEdit) disabled @endif>
                                         <option value="">Chọn chức vụ</option>
                                         <option value="Nhân Viên Chính Thức" {{ old('position', $user->position) == 'Nhân Viên Chính Thức' ? 'selected' : '' }}>Nhân Viên Chính Thức</option>
                                         <option value="Nhân Viên Thử Việc" {{ old('position', $user->position) == 'Nhân Viên Thử Việc' ? 'selected' : '' }}>Nhân Viên Thử Việc</option>
@@ -157,19 +165,19 @@
                                 
                                 <div class="mb-3">
                                     <label for="social_insurance_number" class="form-label">Mã số BHXH</label>
-                                    <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}">
+                                    <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}" @if(!$canEdit) disabled @endif>
                                     @error('social_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="health_insurance_number" class="form-label">Mã số BHYT</label>
-                                    <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}">
+                                    <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}" @if(!$canEdit) disabled @endif>
                                     @error('health_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="personal_identification_number" class="form-label">Mã số định danh cá nhân</label>
-                                    <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}">
+                                    <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}" @if(!$canEdit) disabled @endif>
                                     @error('personal_identification_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
@@ -191,13 +199,13 @@
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="contract_salary" class="form-label">Lương chính thức (VNĐ)</label>
-                                            <input type="number" name="contract_salary" id="contract_salary" class="form-control @error('contract_salary') is-invalid @enderror" value="{{ old('contract_salary', $user->activeContract ? $user->activeContract->probation_salary : '') }}" placeholder="VD: 40000000" step="1000000" min="0">
+                                            <input type="number" name="contract_salary" id="contract_salary" class="form-control @error('contract_salary') is-invalid @enderror" value="{{ old('contract_salary', $user->activeContract ? $user->activeContract->probation_salary : '') }}" placeholder="VD: 40000000" step="1000000" min="0" @if(!$canEdit) disabled @endif>
                                             @error('contract_salary')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label for="contract_start_date" class="form-label">Ngày bắt đầu hợp đồng</label>
-                                            <input type="date" name="contract_start_date" id="contract_start_date" class="form-control @error('contract_start_date') is-invalid @enderror" value="{{ old('contract_start_date', $user->activeContract ? $user->activeContract->start_date->format('Y-m-d') : '') }}" onchange="calculateEndDate()">
+                                            <input type="date" name="contract_start_date" id="contract_start_date" class="form-control @error('contract_start_date') is-invalid @enderror" value="{{ old('contract_start_date', $user->activeContract ? $user->activeContract->start_date->format('Y-m-d') : '') }}" onchange="calculateEndDate()" @if(!$canEdit) disabled @endif>
                                             @error('contract_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
                                         
@@ -210,7 +218,7 @@
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="contract_period" class="form-label">Thời gian hợp đồng (tháng)</label>
-                                            <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror" onchange="calculateEndDate()">
+                                            <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror" onchange="calculateEndDate()" @if(!$canEdit) disabled @endif>
                                                 <option value="">Chọn thời gian</option>
                                                 <option value="6" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 6 ? 'selected' : '' }}>6 tháng</option>
                                                 <option value="12" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == 12 ? 'selected' : '' }}>12 tháng</option>
@@ -224,7 +232,7 @@
                                         
                                         <div class="mb-3">
                                             <label for="contract_status" class="form-label">Trạng thái hợp đồng</label>
-                                            <select name="contract_status" id="contract_status" class="form-select @error('contract_status') is-invalid @enderror">
+                                            <select name="contract_status" id="contract_status" class="form-select @error('contract_status') is-invalid @enderror" @if(!$canEdit) disabled @endif>
                                                 <option value="active" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'active' ? 'selected' : '' }}>Đang hoạt động</option>
                                                 <option value="completed" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'completed' ? 'selected' : '' }}>Đã hoàn thành</option>
                                                 <option value="terminated" {{ old('contract_period', $user->activeContract ? $user->activeContract->status : '') == 'terminated' ? 'selected' : '' }}>Đã chấm dứt</option>
@@ -265,7 +273,7 @@
                                     
                                     <div class="mb-3">
                                         <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
-                                        <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
+                                        <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" @if(!$canEdit) disabled @endif 
                                                id="contract_images" name="contract_images[]" multiple 
                                                accept="image/*">
                                         <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF. Tối đa 2MB mỗi file.</div>
@@ -304,7 +312,7 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">
+                            <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;" @if(!$canEdit) disabled @endif>
                                 <i class="bi bi-check-circle me-1"></i>Cập nhật
                             </button>
                             <a href="{{ route('users.index') }}" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">
@@ -353,6 +361,10 @@ document.getElementById('contract_images').addEventListener('change', function(e
 
 // Function tính toán thời gian kết thúc hợp đồng
 function calculateEndDate() {
+    @if(!$canEdit)
+        return; // Không thực hiện gì nếu không có quyền edit
+    @endif
+    
     const startDate = document.getElementById('contract_start_date').value;
     const period = document.getElementById('contract_period').value;
     const endDateDisplay = document.getElementById('contract_end_date_display');

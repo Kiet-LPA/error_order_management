@@ -254,8 +254,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 id="deadline"
                 class="form-control form-control-lg border-2"
                 value="{{ old('deadline') }}"
+                min="{{ now()->format('Y-m-d\TH:i') }}"
                 style="z-index: 9999; position: relative; background-color: white; cursor: pointer;"
               >
+              <small class="form-text text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                Không thể chọn ngày giờ trong quá khứ
+              </small>
             </div>
             
             <div class="mb-4">
@@ -265,10 +270,31 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                   <i class="bi bi-arrow-clockwise me-2"></i>Lặp lại công việc
                 </label>
               </div>
-              <small class="text-muted">
+              <small class="form-text text-muted">
                 <i class="bi bi-info-circle me-1"></i>
-                Công việc sẽ được tự động tạo lại với deadline mới mỗi khi hoàn thành
+                Công việc sẽ được tự động tạo lại với deadline mới mỗi X ngày sau khi hoàn thành
               </small>
+              
+              {{-- Recurring Days Input --}}
+              <div id="recurring_days_section" class="mt-2 {{ old('is_recurring') ? '' : 'd-none' }}">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="recurring_days" class="form-label">Số ngày lặp lại</label>
+                    <input type="number" name="recurring_days" id="recurring_days" 
+                           class="form-control" min="1" max="365"
+                           value="{{ old('recurring_days') }}" 
+                           placeholder="Ví dụ: 7 (mỗi tuần)">
+                    <small class="form-text text-muted">Số ngày sau deadline cũ để tạo deadline mới</small>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="recurring_start_date" class="form-label">Ngày bắt đầu lặp lại</label>
+                    <input type="date" name="recurring_start_date" id="recurring_start_date" 
+                           class="form-control"
+                           value="{{ old('recurring_start_date') }}">
+                    <small class="form-text text-muted">Ngày bắt đầu tính lặp lại (mặc định: ngày tạo task)</small>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="mb-4">
@@ -299,7 +325,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         </div>
 
         {{-- Chọn Task Followers (chỉ Admin/Manager) --}}
-        @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+                        @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
         <div class="card mb-4 border-success">
           <div class="card-header bg-success text-white">
             <h6 class="mb-0">
@@ -624,6 +650,81 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.files = dt.files;
         showFiles();
     };
+
+    // Validation cho deadline
+    const deadlineInput = document.getElementById('deadline');
+    const form = deadlineInput?.closest('form');
+    
+    if (deadlineInput && form) {
+        // Cập nhật min attribute mỗi giây để đảm bảo không chọn quá khứ
+        setInterval(function() {
+            const now = new Date();
+            const nowString = now.toISOString().slice(0, 16);
+            deadlineInput.min = nowString;
+        }, 1000);
+        
+        // Validation khi submit form
+        form.addEventListener('submit', function(e) {
+            const selectedDate = new Date(deadlineInput.value);
+            const now = new Date();
+            
+            if (selectedDate < now) {
+                e.preventDefault();
+                alert('Không thể chọn deadline là ngày giờ trong quá khứ!');
+                deadlineInput.focus();
+                return false;
+            }
+        });
+        
+        // Validation khi thay đổi deadline
+        deadlineInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const now = new Date();
+            
+            if (selectedDate < now) {
+                this.setCustomValidity('Không thể chọn ngày giờ trong quá khứ');
+                this.classList.add('is-invalid');
+                
+                // Hiển thị thông báo lỗi
+                let errorDiv = this.parentNode.querySelector('.deadline-error');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback deadline-error';
+                    errorDiv.textContent = 'Không thể chọn ngày giờ trong quá khứ';
+                    this.parentNode.appendChild(errorDiv);
+                }
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+                
+                // Xóa thông báo lỗi
+                const errorDiv = this.parentNode.querySelector('.deadline-error');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            }
+        });
+    }
+    
+    // Xử lý recurring task checkbox
+    const recurringCheckbox = document.getElementById('is_recurring');
+    const recurringDaysSection = document.getElementById('recurring_days_section');
+    
+    if (recurringCheckbox && recurringDaysSection) {
+        // Xử lý sự kiện thay đổi checkbox
+        recurringCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                recurringDaysSection.classList.remove('d-none');
+            } else {
+                recurringDaysSection.classList.add('d-none');
+            }
+        });
+        
+        // Kiểm tra trạng thái ban đầu
+        if (recurringCheckbox.checked) {
+            recurringDaysSection.classList.remove('d-none');
+        }
+    }
 });
 </script>
 @endpush

@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkReport;
+use App\Models\SupportRequest;
 
 class NotificationService
 {
@@ -110,6 +111,117 @@ class NotificationService
     }
 
     /**
+     * Gửi thông báo yêu cầu hỗ trợ được tạo
+     */
+    public static function supportRequestCreated(SupportRequest $supportRequest, User $requester)
+    {
+        // Thông báo cho người phê duyệt
+        if ($supportRequest->approver && $supportRequest->approver->id !== $requester->id) {
+            Notification::create([
+                'user_id' => $supportRequest->approver->id,
+                'type' => 'support_request_created',
+                'title' => 'Yêu cầu hỗ trợ mới',
+                'message' => "Bạn nhận được yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'requester_id' => $requester->id,
+                    'requester_name' => $requester->name,
+                    'priority' => $supportRequest->priority,
+                    'is_urgent' => $supportRequest->is_urgent
+                ]
+            ]);
+        }
+
+        // Thông báo cho Admin
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            if ($admin->id !== $requester->id) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'support_request_created',
+                    'title' => 'Yêu cầu hỗ trợ mới',
+                    'message' => "Có yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
+                    'data' => [
+                        'support_request_id' => $supportRequest->id,
+                        'requester_id' => $requester->id,
+                        'requester_name' => $requester->name,
+                        'priority' => $supportRequest->priority,
+                        'is_urgent' => $supportRequest->is_urgent
+                    ]
+                ]);
+            }
+        }
+
+        // Thông báo cho Director
+        $directors = User::where('role', 'director')->get();
+        foreach ($directors as $director) {
+            if ($director->id !== $requester->id) {
+                Notification::create([
+                    'user_id' => $director->id,
+                    'type' => 'support_request_created',
+                    'title' => 'Yêu cầu hỗ trợ mới',
+                    'message' => "Có yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
+                    'data' => [
+                        'support_request_id' => $supportRequest->id,
+                        'requester_id' => $requester->id,
+                        'requester_name' => $requester->name,
+                        'priority' => $supportRequest->priority,
+                        'is_urgent' => $supportRequest->is_urgent
+                    ]
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Gửi thông báo yêu cầu hỗ trợ được phê duyệt
+     */
+    public static function supportRequestApproved(SupportRequest $supportRequest, User $approver)
+    {
+        // Thông báo cho người yêu cầu
+        if ($supportRequest->requester && $supportRequest->requester->id !== $approver->id) {
+            Notification::create([
+                'user_id' => $supportRequest->requester->id,
+                'type' => 'support_request_approved',
+                'title' => 'Yêu cầu hỗ trợ được phê duyệt',
+                'message' => "Yêu cầu hỗ trợ của bạn đã được {$approver->name} phê duyệt: {$supportRequest->title}",
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'approver_id' => $approver->id,
+                    'approver_name' => $approver->name
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * Gửi thông báo yêu cầu hỗ trợ bị từ chối
+     */
+    public static function supportRequestRejected(SupportRequest $supportRequest, User $approver, $reason = null)
+    {
+        // Thông báo cho người yêu cầu
+        if ($supportRequest->requester && $supportRequest->requester->id !== $approver->id) {
+            $message = "Yêu cầu hỗ trợ của bạn đã bị {$approver->name} từ chối: {$supportRequest->title}";
+            if ($reason) {
+                $message .= " - Lý do: {$reason}";
+            }
+
+            Notification::create([
+                'user_id' => $supportRequest->requester->id,
+                'type' => 'support_request_rejected',
+                'title' => 'Yêu cầu hỗ trợ bị từ chối',
+                'message' => $message,
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'approver_id' => $approver->id,
+                    'approver_name' => $approver->name,
+                    'reason' => $reason
+                ]
+            ]);
+        }
+    }
+
+    /**
      * Gửi thông báo task được follow
      */
     public static function taskFollowed(Task $task, User $follower)
@@ -179,5 +291,60 @@ class NotificationService
                               'is_read' => true,
                               'read_at' => now()
                           ]);
+    }
+
+    /**
+     * Gửi thông báo yêu cầu hỗ trợ đã được hoàn tác (undo)
+     */
+    public static function supportRequestUndone(SupportRequest $supportRequest, User $user, $oldStatus)
+    {
+        // Thông báo cho người yêu cầu
+        if ($supportRequest->requester && $supportRequest->requester->id !== $user->id) {
+            $actionText = $oldStatus === 'approved' ? 'phê duyệt' : 'từ chối';
+            $message = "Yêu cầu hỗ trợ của bạn đã được {$user->name} hoàn tác {$actionText}: {$supportRequest->title}";
+
+            Notification::create([
+                'user_id' => $supportRequest->requester->id,
+                'type' => 'support_request_undone',
+                'title' => 'Yêu cầu hỗ trợ đã được hoàn tác',
+                'message' => $message,
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'old_status' => $oldStatus
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * Gửi thông báo yêu cầu hỗ trợ đã bị hủy
+     */
+    public static function supportRequestCancelled(SupportRequest $supportRequest, User $user)
+    {
+        // Thông báo cho tất cả người nhận yêu cầu
+        $recipients = $supportRequest->getRecipients();
+        
+        foreach ($recipients as $recipientId) {
+            if ($recipientId !== $user->id) {
+                $recipient = User::find($recipientId);
+                if ($recipient) {
+                    $message = "Yêu cầu hỗ trợ đã được {$user->name} hủy: {$supportRequest->title}";
+
+                    Notification::create([
+                        'user_id' => $recipientId,
+                        'type' => 'support_request_cancelled',
+                        'title' => 'Yêu cầu hỗ trợ đã bị hủy',
+                        'message' => $message,
+                        'data' => [
+                            'support_request_id' => $supportRequest->id,
+                            'cancelled_by_id' => $user->id,
+                            'cancelled_by_name' => $user->name
+                        ]
+                    ]);
+                }
+            }
+        }
     }
 }

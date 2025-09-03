@@ -111,7 +111,7 @@ class WorkReportController extends Controller
         $user = Auth::user();
         
         // Kiểm tra quyền
-        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isAdmin()) {
+        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isDirector() && !$user->isAdmin()) {
             abort(403, 'Bạn không có quyền chỉnh sửa báo cáo này.');
         }
 
@@ -131,7 +131,7 @@ class WorkReportController extends Controller
         $user = Auth::user();
         
         // Kiểm tra user có department_id không (trừ admin)
-        if (!$user->department_id && !$user->isAdmin()) {
+        if (!$user->department_id && !$user->isDirector() && !$user->isAdmin()) {
             return back()->withErrors(['department' => 'Bạn chưa được phân công vào phòng ban nào. Vui lòng liên hệ quản trị viên.'])->withInput();
         }
         
@@ -223,7 +223,7 @@ class WorkReportController extends Controller
         $user = Auth::user();
         
         // Kiểm tra quyền
-        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isAdmin()) {
+        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isDirector() && !$user->isAdmin()) {
             abort(403, 'Bạn không có quyền cập nhật báo cáo này.');
         }
 
@@ -441,7 +441,7 @@ class WorkReportController extends Controller
         $user = Auth::user();
         
         // Kiểm tra quyền
-        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isAdmin()) {
+        if ($workReport->user_id !== $user->id && !$user->isManager() && !$user->isDirector() && !$user->isAdmin()) {
             abort(403, 'Bạn không có quyền xóa báo cáo này.');
         }
 
@@ -581,7 +581,7 @@ class WorkReportController extends Controller
             $report = WorkReport::findOrFail($request->report_id);
 
             // Chỉ admin và manager mới có thể đánh dấu báo cáo đã đọc
-            if (!Auth::user()->isAdmin() && !Auth::user()->isManager()) {
+            if (!Auth::user()->isAdmin() && !Auth::user()->isDirector() && !Auth::user()->isManager()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền thực hiện hành động này'
@@ -604,7 +604,7 @@ class WorkReportController extends Controller
             // Nếu admin đã check và người hiện tại là manager, không cho phép thay đổi
             if ($currentUser->isManager() && $report->read_by) {
                 $checker = User::find($report->read_by);
-                if ($checker && $checker->isAdmin()) {
+                if ($checker && ($checker->isAdmin() || $checker->isDirector())) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Manager không thể thay đổi trạng thái đã được admin check'
@@ -646,7 +646,7 @@ class WorkReportController extends Controller
             $report = WorkReport::findOrFail($request->report_id);
 
             // Chỉ admin và manager mới có thể từ chối báo cáo
-            if (!Auth::user()->isAdmin() && !Auth::user()->isManager()) {
+            if (!Auth::user()->isAdmin() && !Auth::user()->isDirector() && !Auth::user()->isManager()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền thực hiện hành động này'
@@ -669,7 +669,7 @@ class WorkReportController extends Controller
             // Nếu admin đã reject và người hiện tại là manager, không cho phép thay đổi
             if ($currentUser->isManager() && $report->rejected_by) {
                 $rejecter = User::find($report->rejected_by);
-                if ($rejecter && $rejecter->isAdmin()) {
+                if ($rejecter && ($rejecter->isAdmin() || $rejecter->isDirector())) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Manager không thể thay đổi trạng thái đã được admin reject'
@@ -699,7 +699,7 @@ class WorkReportController extends Controller
                     'read_by' => null,
                     'rejected_at' => now(),
                     'rejected_by' => Auth::id(),
-                    'rejection_reason' => 'Báo cáo bị từ chối bởi ' . ($currentUser->isAdmin() ? 'admin' : 'manager')
+                    'rejection_reason' => 'Báo cáo bị từ chối bởi ' . ($currentUser->isAdmin() ? 'admin' : ($currentUser->isDirector() ? 'director' : 'manager'))
                 ]);
 
                 return response()->json([

@@ -22,7 +22,7 @@
   </div>
 
   @auth
-  @if(Auth::user()->isAdmin() || Auth::user()->isManager())
+          @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
     <a href="{{ route('create-task') }}"
        class="btn btn-success position-fixed"
        style="right:24px; bottom:24px; z-index:1050;">

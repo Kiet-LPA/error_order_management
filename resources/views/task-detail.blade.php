@@ -210,7 +210,7 @@
     @endif
 
     <!-- Quản lý Task Followers (chỉ Admin/Manager) -->
-    @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+                        @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
     <div class="card mb-3 border-success">
                       <div class="card-header bg-dark text-white">
                     <h6 class="mb-0">

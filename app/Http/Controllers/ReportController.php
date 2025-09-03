@@ -27,7 +27,7 @@ class ReportController extends Controller
                     $subQ->where('department_id', $user->department_id);
                 });
             });
-        } elseif (!$user->isAdmin()) {
+        } elseif (!$user->isAdmin() && !$user->isDirector()) {
             // Employee chỉ thấy tasks của mình
             $baseQuery->where(function($q) use ($user) {
                 $q->where('assignee_id', $user->id)
@@ -103,7 +103,7 @@ class ReportController extends Controller
                         $subSubQ->where('department_id', $user->department_id);
                     });
                 });
-            } elseif (!$user->isAdmin()) {
+            } elseif (!$user->isAdmin() && !$user->isDirector()) {
                 $q->where(function($subQ) use ($user) {
                     $subQ->where('assignee_id', $user->id)
                          ->orWhere('creator_id', $user->id);

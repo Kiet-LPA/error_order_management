@@ -13,7 +13,7 @@ class UserController extends Controller
     {
         $user = auth()->user();
         
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền xem danh sách người dùng.');
         }
         
@@ -71,6 +71,7 @@ class UserController extends Controller
         $stats = [
             'total' => User::where('employee_type', 'official')->count(),
             'admin' => User::where('employee_type', 'official')->where('role', 'admin')->count(),
+            'director' => User::where('employee_type', 'official')->where('role', 'director')->count(),
             'manager' => User::where('employee_type', 'official')->where('role', 'manager')->count(),
             'employee' => User::where('employee_type', 'official')->where('role', 'employee')->count(),
         ];
@@ -80,6 +81,7 @@ class UserController extends Controller
             $stats = [
                 'total' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->count(),
                 'admin' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'admin')->count(),
+                'director' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'director')->count(),
                 'manager' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'manager')->count(),
                 'employee' => User::where('employee_type', 'official')->where('department_id', $user->department_id)->where('role', 'employee')->count(),
             ];
@@ -95,12 +97,15 @@ class UserController extends Controller
     {
         $user = auth()->user();
         
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền tạo người dùng.');
         }
         
         if ($user->isAdmin()) {
             // Admin có thể tạo user cho bất kỳ phòng ban nào
+            $departments = Department::orderBy('name')->get();
+        } elseif ($user->isDirector()) {
+            // Director có thể tạo user cho tất cả phòng ban (như Admin)
             $departments = Department::orderBy('name')->get();
         } else {
             // Manager chỉ có thể tạo user cho phòng ban của mình
@@ -115,7 +120,7 @@ class UserController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền tạo user
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
             abort(403, 'Bạn không có quyền tạo người dùng.');
         }
         
@@ -124,7 +129,7 @@ class UserController extends Controller
             'email'=>['nullable','email','unique:users,email'],
             'phone'=>['nullable','string','max:20','unique:users,phone'],
             'password'=>'required|min:8|confirmed',
-            'role'=>'required|in:admin,manager,employee',
+            'role'=>'required|in:admin,director,manager,employee',
             'department_id'=>'nullable|exists:departments,id',
             'position'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
@@ -142,13 +147,23 @@ class UserController extends Controller
             return back()->withErrors(['department_id'=>'Bắt buộc chọn phòng ban.'])->withInput();
         }
         
+        // Director không bắt buộc phải có phòng ban
+        
         // Manager chỉ có thể tạo user cho phòng ban của mình
         if ($user->isManager() && $data['department_id'] !== $user->department_id) {
             abort(403, 'Bạn chỉ có thể tạo người dùng cho phòng ban của mình.');
         }
         
+        // Director có thể tạo user cho tất cả phòng ban (như Admin)
+        // Không cần kiểm tra gì thêm
+        
         // Manager không thể tạo admin
         if ($user->isManager() && $data['role'] === 'admin') {
+            abort(403, 'Bạn không có quyền tạo tài khoản admin.');
+        }
+        
+        // Director không thể tạo admin
+        if ($user->isDirector() && $data['role'] === 'admin') {
             abort(403, 'Bạn không có quyền tạo tài khoản admin.');
         }
         
@@ -162,7 +177,7 @@ class UserController extends Controller
         $currentUser = auth()->user();
         
         // Kiểm tra quyền chỉnh sửa user
-        if (!$currentUser->isAdmin() && !$currentUser->isManager()) {
+        if (!$currentUser->isAdmin() && !$currentUser->isDirector() && !$currentUser->isManager()) {
             abort(403, 'Bạn không có quyền chỉnh sửa người dùng.');
         }
         
@@ -170,6 +185,9 @@ class UserController extends Controller
         if ($currentUser->isManager() && $user->department_id !== $currentUser->department_id) {
             abort(403, 'Bạn chỉ có thể chỉnh sửa người dùng cùng phòng ban.');
         }
+        
+        // Director không thể chỉnh sửa Admin hoặc Director khác - sẽ disable các trường thay vì abort
+        $canEdit = !($currentUser->isDirector() && ($user->isAdmin() || $user->isDirector()));
         
         // Chỉ xử lý nhân viên chính thức
         if ($user->employee_type === 'new') {
@@ -180,7 +198,7 @@ class UserController extends Controller
         $user->load(['department', 'contracts.images', 'activeContract']);
         
         $departments = Department::orderBy('name')->get();
-        return view('admin.users.edit-official', compact('user', 'departments'));
+        return view('admin.users.edit-official', compact('user', 'departments', 'canEdit'));
     }
 
     public function show(User $user)
@@ -188,13 +206,18 @@ class UserController extends Controller
         $currentUser = auth()->user();
         
         // Kiểm tra quyền xem user
-        if (!$currentUser->isAdmin() && !$currentUser->isManager()) {
+        if (!$currentUser->isAdmin() && !$currentUser->isDirector() && !$currentUser->isManager()) {
             abort(403, 'Bạn không có quyền xem thông tin người dùng.');
         }
         
         // Manager chỉ có thể xem user cùng phòng ban
         if ($currentUser->isManager() && $user->department_id !== $currentUser->department_id) {
             abort(403, 'Bạn chỉ có thể xem thông tin người dùng cùng phòng ban.');
+        }
+        
+        // Director không thể xem Admin
+        if ($currentUser->isDirector() && $user->isAdmin()) {
+            abort(403, 'Director không thể xem thông tin Admin.');
         }
         
         // Load các relationship cần thiết
@@ -208,13 +231,18 @@ class UserController extends Controller
         $currentUser = auth()->user();
         
         // Kiểm tra quyền cập nhật user
-        if (!$currentUser->isAdmin() && !$currentUser->isManager()) {
+        if (!$currentUser->isAdmin() && !$currentUser->isDirector() && !$currentUser->isManager()) {
             abort(403, 'Bạn không có quyền cập nhật người dùng.');
         }
         
         // Manager chỉ có thể cập nhật user cùng phòng ban
         if ($currentUser->isManager() && $user->department_id !== $currentUser->department_id) {
             abort(403, 'Bạn chỉ có thể cập nhật người dùng cùng phòng ban.');
+        }
+        
+        // Director không thể cập nhật Admin hoặc Director khác - return về trang edit với thông báo
+        if ($currentUser->isDirector() && ($user->isAdmin() || $user->isDirector())) {
+            return redirect()->route('users.edit', $user)->with('error', 'Director không thể chỉnh sửa Admin hoặc Director khác.');
         }
         
         // Chỉ xử lý nhân viên chính thức
@@ -227,7 +255,7 @@ class UserController extends Controller
             'email'=>['nullable','email', Rule::unique('users','email')->ignore($user->id)],
             'phone'=>['nullable','string','max:20', Rule::unique('users','phone')->ignore($user->id)],
             'password'=>'nullable|min:8|confirmed',
-            'role'=>'required|in:admin,manager,employee',
+            'role'=>'required|in:admin,director,manager,employee',
             'department_id'=>'nullable|exists:departments,id',
             'position'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
@@ -260,6 +288,8 @@ class UserController extends Controller
             return back()->withErrors(['department_id'=>'Bắt buộc chọn phòng ban.'])->withInput();
         }
         
+        // Director không bắt buộc phải có phòng ban
+        
         // Manager chỉ có thể cập nhật user cho phòng ban của mình
         if ($currentUser->isManager() && $data['department_id'] !== $currentUser->department_id) {
             abort(403, 'Bạn chỉ có thể cập nhật người dùng cho phòng ban của mình.');
@@ -268,6 +298,11 @@ class UserController extends Controller
         // Manager không thể tạo admin
         if ($currentUser->isManager() && $data['role'] === 'admin') {
             abort(403, 'Bạn không có quyền tạo tài khoản admin.');
+        }
+        
+        // Director không thể tạo admin
+        if ($currentUser->isDirector() && $data['role'] === 'admin') {
+            abort(403, 'Director không có quyền tạo tài khoản admin.');
         }
         
         // Xử lý chuyển trạng thái nhân viên
@@ -318,11 +353,14 @@ class UserController extends Controller
                 $contractData['start_date'] = now();
             }
             
-            $user->contracts()->create($contractData);
+            // Chỉ tạo hợp đồng nếu có đủ thông tin bắt buộc
+            if (isset($contractData['probation_salary']) && isset($contractData['probation_period'])) {
+                $user->contracts()->create($contractData);
+            }
         }
 
-        // Xử lý upload hình ảnh hợp đồng (cho tất cả nhân viên)
-        if ($request->hasFile('contract_images')) {
+        // Xử lý upload hình ảnh hợp đồng (chỉ cho nhân viên có phòng ban)
+        if ($request->hasFile('contract_images') && $user->department_id) {
             $activeContract = $user->contracts()->where('status', 'active')->first();
             
             // Nếu chưa có hợp đồng active, tạo mới
@@ -330,6 +368,8 @@ class UserController extends Controller
                 $activeContract = $user->contracts()->create([
                     'status' => 'active',
                     'start_date' => now(),
+                    'probation_salary' => 0, // Giá trị mặc định
+                    'probation_period' => 12, // Giá trị mặc định
                 ]);
             }
             
@@ -377,13 +417,18 @@ class UserController extends Controller
         $currentUser = auth()->user();
         
         // Kiểm tra quyền xóa user
-        if (!$currentUser->isAdmin() && !$currentUser->isManager()) {
+        if (!$currentUser->isAdmin() && !$currentUser->isDirector() && !$currentUser->isManager()) {
             abort(403, 'Bạn không có quyền xóa người dùng.');
         }
         
         // Manager chỉ có thể xóa user cùng phòng ban
         if ($currentUser->isManager() && $user->department_id !== $currentUser->department_id) {
             abort(403, 'Bạn chỉ có thể xóa người dùng cùng phòng ban.');
+        }
+        
+        // Director không thể xóa Admin
+        if ($currentUser->isDirector() && $user->isAdmin()) {
+            abort(403, 'Director không thể xóa Admin.');
         }
         
         // Không thể xóa chính mình

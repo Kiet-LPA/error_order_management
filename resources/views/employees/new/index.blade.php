@@ -70,29 +70,33 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->activeContract)
-                                                {{ number_format($employee->activeContract->probation_salary) }} VNĐ
+                                            @if($employee->contracts->isNotEmpty())
+                                                @php $activeContract = $employee->contracts->first(); @endphp
+                                                {{ number_format($activeContract->probation_salary) }} VNĐ
                                             @else
                                                 <span class="text-muted">Chưa có</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->activeContract)
-                                                {{ $employee->activeContract->probation_period }} tháng
+                                            @if($employee->contracts->isNotEmpty())
+                                                @php $activeContract = $employee->contracts->first(); @endphp
+                                                {{ $activeContract->probation_period }} tháng
                                             @else
                                                 <span class="text-muted">Chưa có</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->activeContract)
-                                                {{ $employee->activeContract->start_date->format('d/m/Y') }}
+                                            @if($employee->contracts->isNotEmpty())
+                                                @php $activeContract = $employee->contracts->first(); @endphp
+                                                {{ $activeContract->start_date->format('d/m/Y') }}
                                             @else
                                                 <span class="text-muted">Chưa có</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->activeContract)
-                                                @switch($employee->activeContract->status)
+                                            @if($employee->contracts->isNotEmpty())
+                                                @php $activeContract = $employee->contracts->first(); @endphp
+                                                @switch($activeContract->status)
                                                     @case('active')
                                                         <span class="badge bg-success">Đang thử việc</span>
                                                         @break
@@ -115,7 +119,7 @@
                                                 <a href="{{ route('employees.new.edit', $employee) }}" class="btn btn-sm btn-outline-warning">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                                @if($employee->activeContract && $employee->activeContract->status == 'active')
+                                                @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
                                                     <button type="button" class="btn btn-sm btn-outline-success" 
                                                             data-bs-toggle="modal" data-bs-target="#convertModal{{ $employee->id }}">
                                                         <i class="bi bi-check-circle"></i>
@@ -139,13 +143,63 @@
                     </div>
                 </div>
             </div>
+            <!-- Pagination -->
+            @if($newEmployees->hasPages())
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {{-- Previous Page Link --}}
+                            @if ($newEmployees->onFirstPage())
+                                <li class="page-item disabled">
+                                    <span class="page-link">« Previous</span>
+                                </li>
+                            @else
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $newEmployees->previousPageUrl() }}" rel="prev">« Previous</a>
+                                </li>
+                            @endif
+
+                            {{-- Pagination Elements --}}
+                            @foreach ($newEmployees->getUrlRange(1, $newEmployees->lastPage()) as $page => $url)
+                                @if ($page == $newEmployees->currentPage())
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ $page }}</span>
+                                    </li>
+                                @else
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                    </li>
+                                @endif
+                            @endforeach
+
+                            {{-- Next Page Link --}}
+                            @if ($newEmployees->hasMorePages())
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $newEmployees->nextPageUrl() }}" rel="next">Next »</a>
+                                </li>
+                            @else
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next »</span>
+                                </li>
+                            @endif
+                        </ul>
+                    </nav>
+                    
+                    {{-- Page Info --}}
+                    <div class="text-center mt-2">
+                        <small class="text-muted">
+                            Showing {{ $newEmployees->firstItem() ?? 0 }} to {{ $newEmployees->lastItem() ?? 0 }} of {{ $newEmployees->total() }} results
+                        </small>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </div>
 
 <!-- Modals for converting employees -->
 @foreach($newEmployees as $employee)
-    @if($employee->activeContract && $employee->activeContract->status == 'active')
+    @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
     <div class="modal fade" id="convertModal{{ $employee->id }}" tabindex="-1" aria-labelledby="convertModalLabel{{ $employee->id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -173,7 +227,7 @@
                                 <option value="">Chọn vai trò</option>
                                 <option value="employee" {{ ($employee->role ?? 'employee') == 'employee' ? 'selected' : '' }}>Nhân viên</option>
                                 <option value="manager" {{ ($employee->role ?? 'employee') == 'manager' ? 'selected' : '' }}>Quản lý</option>
-                                @if(auth()->user()->isAdmin())
+                                @if(auth()->user()->isAdmin() || auth()->user()->isDirector())
                                     <option value="admin" {{ ($employee->role ?? 'employee') == 'admin' ? 'selected' : '' }}>Quản trị viên</option>
                                 @endif
                             </select>
@@ -206,7 +260,7 @@
                         <div class="alert alert-info">
                             <small>
                                 <i class="bi bi-info-circle me-1"></i>
-                                Lương thử việc hiện tại: {{ $employee->activeContract ? number_format($employee->activeContract->probation_salary) : 'N/A' }} VNĐ
+                                Lương thử việc hiện tại: {{ $employee->contracts->isNotEmpty() ? number_format($employee->contracts->first()->probation_salary) : 'N/A' }} VNĐ
                             </small>
                         </div>
                     </div>

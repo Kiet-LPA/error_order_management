@@ -1,0 +1,120 @@
+/* Custom CSS để sửa lỗi pagination Bootstrap */
+
+/* Sửa lỗi mũi tên pagination */
+.pagination .page-link {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border: 1px solid #dee2e6;
+    background-color: #fff;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #0a58ca;
+}
+
+.pagination .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    outline: 0;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: #fff;
+    border-color: #dee2e6;
+    color: #6c757d;
+    pointer-events: none;
+}
+
+/* Sửa lỗi mũi tên Previous/Next */
+.pagination .page-item:first-child .page-link,
+.pagination .page-item:last-child .page-link {
+    border-radius: 0.375rem;
+}
+
+/* Ẩn các input fields không cần thiết */
+.pagination input[type="text"] {
+    display: none !important;
+}
+
+/* Sửa lỗi hiển thị mũi tên */
+.pagination .page-link[aria-label="Previous"]::before {
+    content: "«";
+    font-weight: bold;
+}
+
+.pagination .page-link[aria-label="Next"]::after {
+    content: "»";
+    font-weight: bold;
+}
+
+/* Đảm bảo pagination hiển thị đúng */
+.pagination {
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+    border-radius: 0.375rem;
+    margin: 0;
+}
+
+.pagination .page-item {
+    margin: 0 2px;
+}
+
+/* Sửa lỗi responsive */
+@media (max-width: 576px) {
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .pagination .page-item {
+        margin: 2px;
+    }
+}
+
+/* Pagination trong card-footer */
+.card-footer .pagination {
+    margin-bottom: 0;
+}
+
+.card-footer .pagination .page-link {
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Ellipsis cho pagination */
+.pagination .page-item.disabled .page-link {
+    background-color: transparent;
+    border-color: transparent;
+    color: #6c757d;
+    padding: 0.5rem 0.25rem;
+}
+
+/* Hover effect cho pagination */
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #0a58ca;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+/* Active page styling */
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+}

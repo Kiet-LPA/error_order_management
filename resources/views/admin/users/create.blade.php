@@ -72,9 +72,10 @@
                 <label for="role" class="form-label">Vai trò</label>
                 <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
                     <option value="">-- Chọn vai trò --</option>
-                    <option value="admin" {{ old('role')=='admin'?'selected':'' }}>Admin</option>
-                    <option value="manager" {{ old('role')=='manager'?'selected':'' }}>Manager</option>
-                    <option value="employee" {{ old('role')=='employee'?'selected':'' }}>Employee</option>
+                                                    <option value="admin" {{ old('role')=='admin'?'selected':'' }}>Admin</option>
+                                <option value="director" {{ old('role')=='director'?'selected':'' }}>Director</option>
+                                <option value="manager" {{ old('role')=='manager'?'selected':'' }}>Manager</option>
+                                <option value="employee" {{ old('role')=='employee'?'selected':'' }}>Employee</option>
                 </select>
                 @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>

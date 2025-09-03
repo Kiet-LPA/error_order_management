@@ -17,9 +17,11 @@ class EmployeeController extends Controller
     public function newEmployeesIndex()
     {
         $newEmployees = User::where('employee_type', 'new')
-                           ->with(['department', 'contracts'])
+                           ->with(['department', 'contracts' => function($query) {
+                               $query->where('status', 'active')->latest();
+                           }])
                            ->orderBy('created_at', 'desc')
-                           ->get();
+                           ->paginate(15); // Thêm pagination
 
         return view('employees.new.index', compact('newEmployees'));
     }
@@ -196,7 +198,7 @@ class EmployeeController extends Controller
     public function newEmployeesEdit(User $user)
     {
         // Kiểm tra quyền
-        if (!auth()->user()->isAdmin()) {
+        if (!auth()->user()->isAdmin() && !auth()->user()->isDirector()) {
             abort(403, 'Bạn không có quyền chỉnh sửa nhân viên.');
         }
         
@@ -215,7 +217,7 @@ class EmployeeController extends Controller
     public function newEmployeesUpdate(Request $request, User $user)
     {
         // Kiểm tra quyền
-        if (!auth()->user()->isAdmin()) {
+        if (!auth()->user()->isAdmin() && !auth()->user()->isDirector()) {
             abort(403, 'Bạn không có quyền cập nhật nhân viên.');
         }
         

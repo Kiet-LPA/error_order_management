@@ -165,6 +165,7 @@
             @elseif($task->status == 'rejected') background:#ef4444; color:#fff;
             @elseif($task->status == 'overdue') background:#dc2626; color:#fff;
             @elseif($task->status == 'finished') background:#059669; color:#fff;
+            @elseif($task->status == 'pending_approval') background:#8b5cf6; color:#fff;
             @else background:#6b7280; color:#fff; @endif">
             @if($task->status == 'in_progress')
                 Đang làm
@@ -176,6 +177,8 @@
                 Trễ hạn
             @elseif($task->status == 'finished')
                 Kết thúc
+            @elseif($task->status == 'pending_approval')
+                Chờ phê duyệt
             @else
                 {{ strtoupper($task->status) }}
             @endif
@@ -266,19 +269,21 @@
                     @endif
                 </div>
                 <div class="col-md-6 mb-2"><i class="bi bi-check2-circle me-1"></i> <strong>Trạng thái:</strong> 
-                    @if($task->status == 'in_progress')
-                        <span class="text-primary">Đang làm</span>
-                    @elseif($task->status == 'completed')
-                        <span class="text-warning">Chờ duyệt</span>
-                    @elseif($task->status == 'rejected')
-                        <span class="text-danger">Từ chối</span>
-                    @elseif($task->status == 'overdue')
-                        <span class="text-danger">Trễ hạn</span>
-                    @elseif($task->status == 'finished')
-                        <span class="text-success">Kết thúc</span>
-                    @else
-                        <span class="text-muted">{{ strtoupper($task->status) }}</span>
-                    @endif
+                                @if($task->status == 'in_progress')
+                <span class="text-primary">Đang làm</span>
+            @elseif($task->status == 'completed')
+                <span class="text-warning">Chờ duyệt</span>
+            @elseif($task->status == 'rejected')
+                <span class="text-danger">Từ chối</span>
+            @elseif($task->status == 'overdue')
+                <span class="text-danger">Trễ hạn</span>
+            @elseif($task->status == 'finished')
+                <span class="text-success">Kết thúc</span>
+            @elseif($task->status == 'pending_approval')
+                <span class="text-info">Chờ phê duyệt</span>
+            @else
+                <span class="text-muted">{{ strtoupper($task->status) }}</span>
+            @endif
                 </div>
                 
                 {{-- Thông báo task lặp lại --}}
@@ -312,6 +317,19 @@
                         <div class="alert alert-success">
                             <i class="bi bi-check-circle me-2"></i>
                             <strong>Ghi chú kết thúc:</strong> {{ $task->finish_note }}
+                        </div>
+                    </div>
+                @endif
+                
+                {{-- Cảnh báo task trễ hạn --}}
+                @if($task->status == 'overdue')
+                    <div class="col-12 mb-2">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Cảnh báo:</strong> Task này đã quá hạn deadline. 
+                            @if($task->deadline && $task->deadline->isPast())
+                                Để chuyển về trạng thái "Đang làm", vui lòng cập nhật deadline thành ngày trong tương lai.
+                            @endif
                         </div>
                     </div>
                 @endif
@@ -739,13 +757,13 @@ function deleteAttachment(attachmentId, fileName) {
                 @if($task->assignee_id == auth()->id())
                     <a href="{{ route('tasks.updateStatus',[$task,'status'=>'completed']) }}" class="btn action-btn action-btn-green w-100 mb-2">✅ Hoàn thành & gửi duyệt</a>
                 @endif
-                @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+                @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
                     <a href="{{ route('tasks.updateStatus',[$task,'status'=>'completed']) }}" class="btn action-btn action-btn-green w-100 mb-2">✅ Chuyển sang chờ duyệt</a>
                 @endif
             @endif
             
-            @if($task->status == 'completed')
-                @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+            @if($task->status == 'completed' || $task->status == 'pending_approval')
+                @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
                     <button type="button" class="btn action-btn action-btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#finishModal">🏁 Kết thúc</button>
                     <button type="button" class="btn action-btn action-btn-red w-100 mb-2" data-bs-toggle="modal" data-bs-target="#rejectModal">❌ Từ chối</button>
                 @endif
@@ -758,16 +776,25 @@ function deleteAttachment(attachmentId, fileName) {
             @endif
             
             @if($task->status == 'overdue')
-                @if($task->assignee_id == auth()->id())
-                    <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn action-btn action-btn-blue w-100 mb-2">🚀 Bắt đầu làm</a>
-                @endif
-                @if(auth()->user()->isAdmin() || auth()->user()->isManager())
-                    <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn action-btn action-btn-blue w-100 mb-2">🔄 Chuyển sang đang làm</a>
+                @if($task->deadline && $task->deadline->isFuture())
+                    {{-- Chỉ hiển thị nút khi deadline đã được cập nhật thành tương lai --}}
+                    @if($task->assignee_id == auth()->id())
+                        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn action-btn action-btn-blue w-100 mb-2">🚀 Bắt đầu làm</a>
+                    @endif
+                    @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+                        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn action-btn action-btn-blue w-100 mb-2">🔄 Chuyển sang đang làm</a>
+                    @endif
+                @else
+                    {{-- Hiển thị thông báo khi deadline vẫn trong quá khứ --}}
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Không thể chuyển trạng thái:</strong> Deadline vẫn trong quá khứ. Vui lòng cập nhật deadline trước.
+                    </div>
                 @endif
             @endif
             
-            {{-- Chỉ hiển thị cho admin/manager --}}
-            @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+            {{-- Chỉ hiển thị cho admin/director/manager --}}
+            @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
                 <a href="{{ route('tasks.edit', $task) }}" class="btn action-btn action-btn-yellow w-100 mb-2">✏️ Chỉnh sửa</a>
             @endif
             
