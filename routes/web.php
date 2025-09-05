@@ -22,6 +22,22 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
+// Route để chạy thủ công cập nhật overdue (chỉ admin)
+Route::get('/admin/update-overdue', function () {
+    if (!auth()->check() || !auth()->user()->isAdmin()) {
+        abort(403);
+    }
+    
+    \Artisan::call('tasks:update-overdue');
+    $output = \Artisan::output();
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Đã cập nhật trạng thái overdue',
+        'output' => $output
+    ]);
+})->name('admin.update-overdue');
+
 // Các route yêu cầu đăng nhập (KHÔNG dùng verified)
 Route::middleware(['auth'])->group(function () {
 

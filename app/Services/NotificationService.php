@@ -347,4 +347,55 @@ class NotificationService
             }
         }
     }
+
+    /**
+     * Gửi thông báo yêu cầu hỗ trợ đã được chuyển tiếp
+     */
+    public static function supportRequestForwarded(SupportRequest $supportRequest, User $forwarder)
+    {
+        // Thông báo cho người nhận mới
+        if ($supportRequest->recipients) {
+            $recipientIds = is_string($supportRequest->recipients) 
+                ? json_decode($supportRequest->recipients, true) 
+                : $supportRequest->recipients;
+                
+            if (is_array($recipientIds)) {
+                foreach ($recipientIds as $recipientId) {
+                    if ($recipientId !== $forwarder->id) {
+                        $recipient = User::find($recipientId);
+                        if ($recipient) {
+                            Notification::create([
+                                'user_id' => $recipientId,
+                                'type' => 'support_request_forwarded',
+                                'title' => 'Yêu cầu hỗ trợ được chuyển tiếp',
+                                'message' => "Bạn nhận được yêu cầu hỗ trợ được chuyển tiếp từ {$forwarder->name}: {$supportRequest->title}",
+                                'data' => [
+                                    'support_request_id' => $supportRequest->id,
+                                    'forwarder_id' => $forwarder->id,
+                                    'forwarder_name' => $forwarder->name,
+                                    'forwarding_reason' => $supportRequest->forwarding_reason
+                                ]
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Thông báo cho người yêu cầu gốc
+        if ($supportRequest->requester && $supportRequest->requester->id !== $forwarder->id) {
+            Notification::create([
+                'user_id' => $supportRequest->requester->id,
+                'type' => 'support_request_forwarded',
+                'title' => 'Yêu cầu hỗ trợ đã được chuyển tiếp',
+                'message' => "Yêu cầu hỗ trợ của bạn đã được {$forwarder->name} chuyển tiếp: {$supportRequest->title}",
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'forwarder_id' => $forwarder->id,
+                    'forwarder_name' => $forwarder->name,
+                    'forwarding_reason' => $supportRequest->forwarding_reason
+                ]
+            ]);
+        }
+    }
 }

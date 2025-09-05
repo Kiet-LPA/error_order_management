@@ -110,6 +110,80 @@
                         </div>
                     </div>
 
+                    <!-- Thông tin người tham gia -->
+                    <div class="mt-4">
+                        <h6 class="fw-bold mb-3">Người tham gia:</h6>
+                        <div class="row">
+                            @php
+                                // Thu thập tất cả người tham gia
+                                $allParticipants = [];
+                                
+                                // Thêm người yêu cầu
+                                if ($supportRequest->requester) {
+                                    $allParticipants[] = [
+                                        'name' => $supportRequest->requester->name,
+                                        'role' => 'Người yêu cầu',
+                                        'badge_class' => 'bg-primary'
+                                    ];
+                                }
+                                
+                                // Thêm người chuyển tiếp
+                                if ($supportRequest->forwarded_by && $supportRequest->forwardedBy) {
+                                    $allParticipants[] = [
+                                        'name' => $supportRequest->forwardedBy->name,
+                                        'role' => 'Người chuyển tiếp',
+                                        'badge_class' => 'bg-info'
+                                    ];
+                                }
+                                
+                                // Thêm người nhận hiện tại
+                                if ($supportRequest->recipients) {
+                                    $recipientIds = is_string($supportRequest->recipients) 
+                                        ? json_decode($supportRequest->recipients, true) 
+                                        : $supportRequest->recipients;
+                                    
+                                    if (is_array($recipientIds)) {
+                                        $recipients = \App\Models\User::whereIn('id', $recipientIds)->get();
+                                        foreach ($recipients as $recipient) {
+                                            $allParticipants[] = [
+                                                'name' => $recipient->name,
+                                                'role' => 'Người nhận',
+                                                'badge_class' => 'bg-success'
+                                            ];
+                                        }
+                                    }
+                                }
+                                
+                                // Loại bỏ trùng lặp (nếu cùng một người có nhiều vai trò)
+                                $uniqueParticipants = [];
+                                $seenNames = [];
+                                foreach ($allParticipants as $participant) {
+                                    if (!in_array($participant['name'], $seenNames)) {
+                                        $uniqueParticipants[] = $participant;
+                                        $seenNames[] = $participant['name'];
+                                    }
+                                }
+                            @endphp
+                            
+                            @if(count($uniqueParticipants) > 0)
+                                <div class="col-12">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach($uniqueParticipants as $participant)
+                                            <span class="badge {{ $participant['badge_class'] }} me-1 mb-1">
+                                                {{ $participant['name'] }} 
+                                                <small>({{ $participant['role'] }})</small>
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @else
+                                <div class="col-12">
+                                    <p class="text-muted mb-0">Chưa có người tham gia nào.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                     <!-- File đính kèm -->
                     @if($supportRequest->attachments && count($supportRequest->attachments) > 0)
                         <div class="mt-4">
@@ -137,7 +211,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <form method="POST" action="{{ route('support-requests.approve', $supportRequest) }}" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-success">
@@ -145,11 +219,18 @@
                                     </button>
                                 </form>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
                                     <i class="bi bi-x-circle me-2"></i>Từ chối
                                 </button>
                             </div>
+                            @if($supportRequest->canBeForwardedBy(auth()->user()))
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#forwardModal">
+                                        <i class="bi bi-arrow-right me-2"></i>Chuyển tiếp
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -173,6 +254,78 @@
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                                     <button type="submit" class="btn btn-danger">Từ chối</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal chuyển tiếp -->
+                <div class="modal fade" id="forwardModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Chuyển tiếp yêu cầu hỗ trợ</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ route('support-requests.forward', $supportRequest) }}">
+                                @csrf
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Người nhận mới <span class="text-danger">*</span></label>
+                                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                            @php
+                                                // Lấy danh sách người đã được forward hoặc đã có trong request
+                                                $currentRecipients = [];
+                                                if ($supportRequest->recipients) {
+                                                    $currentRecipients = is_string($supportRequest->recipients) 
+                                                        ? json_decode($supportRequest->recipients, true) 
+                                                        : $supportRequest->recipients;
+                                                }
+                                                
+                                                // Thêm người đã forward (nếu có)
+                                                if ($supportRequest->forwarded_by) {
+                                                    $currentRecipients[] = $supportRequest->forwarded_by;
+                                                }
+                                                
+                                                // Thêm người tạo request
+                                                if ($supportRequest->requester_id) {
+                                                    $currentRecipients[] = $supportRequest->requester_id;
+                                                }
+                                                
+                                                $currentRecipients = array_unique($currentRecipients);
+                                            @endphp
+                                            
+                                            @foreach(\App\Models\User::whereIn('role', ['admin', 'director', 'manager'])->get() as $user)
+                                                @php
+                                                    $isDisabled = in_array($user->id, $currentRecipients);
+                                                @endphp
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           name="new_recipients[]" 
+                                                           value="{{ $user->id }}" 
+                                                           id="recipient_{{ $user->id }}"
+                                                           {{ $isDisabled ? 'disabled' : '' }}>
+                                                    <label class="form-check-label {{ $isDisabled ? 'text-muted' : '' }}" 
+                                                           for="recipient_{{ $user->id }}">
+                                                        {{ $user->name }} ({{ ucfirst($user->role) }})
+                                                        @if($isDisabled)
+                                                            <small class="text-warning"> - Đã tham gia</small>
+                                                        @endif
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="forwarding_reason" class="form-label">Lý do chuyển tiếp <span class="text-danger">*</span></label>
+                                        <textarea name="forwarding_reason" id="forwarding_reason" rows="4" class="form-control" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="submit" class="btn btn-info">Chuyển tiếp</button>
                                 </div>
                             </form>
                         </div>
@@ -324,4 +477,21 @@
         </div>
     </div>
 </div>
+
+<script>
+// Validation cho form chuyển tiếp
+document.addEventListener('DOMContentLoaded', function() {
+    const forwardForm = document.getElementById('forwardForm');
+    if (forwardForm) {
+        forwardForm.addEventListener('submit', function(e) {
+            const checkboxes = document.querySelectorAll('input[name="new_recipients[]"]:checked:not(:disabled)');
+            if (checkboxes.length === 0) {
+                e.preventDefault();
+                alert('Vui lòng chọn ít nhất một người nhận.');
+                return false;
+            }
+        });
+    }
+});
+</script>
 @endsection

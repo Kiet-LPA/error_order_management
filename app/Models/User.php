@@ -101,17 +101,17 @@ class User extends Authenticatable
     // Role methods
     public function isAdmin()
     { 
-        return $this->role === 'admin'; 
+        return strtolower(trim($this->role)) === 'admin'; 
     }
     
     public function isDirector()
     { 
-        return $this->role === 'director'; 
+        return strtolower(trim($this->role)) === 'director'; 
     }
     
     public function isManager()
     { 
-        return $this->role === 'manager'; 
+        return strtolower(trim($this->role)) === 'manager'; 
     }
     
     public function isEmployee()

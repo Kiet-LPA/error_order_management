@@ -319,10 +319,49 @@
           <div class="comment-content">
             @php
               $meta = json_decode($act->meta, true);
-              $content = is_array($meta) ? ($meta['content'] ?? $act->meta) : $act->meta;
+              $content = is_array($meta) ? ($meta['content'] ?? $meta['description'] ?? $act->meta) : $act->meta;
               $attachments = is_array($meta) ? ($meta['attachments'] ?? []) : [];
             @endphp
-            {{ $content }}
+            
+            @if(is_array($meta))
+              {{-- Hiển thị description nếu có --}}
+              @if(isset($meta['description']))
+                {{ $meta['description'] }}
+              @endif
+              
+              {{-- Hiển thị content nếu có (cho comment) --}}
+              @if(isset($meta['content']))
+                <div class="mt-2 p-2 bg-light rounded">
+                  <strong>Nội dung:</strong> {{ $meta['content'] }}
+                </div>
+              @endif
+              
+              {{-- Hiển thị new_content nếu có (cho edit comment) --}}
+              @if(isset($meta['new_content']))
+                <div class="mt-2 p-2 bg-light rounded">
+                  <strong>Nội dung mới:</strong> {{ $meta['new_content'] }}
+                </div>
+              @endif
+              
+              {{-- Hiển thị old_content nếu có (cho edit comment) --}}
+              @if(isset($meta['old_content']))
+                <div class="mt-1 p-2 bg-secondary bg-opacity-10 rounded">
+                  <strong>Nội dung cũ:</strong> <del>{{ $meta['old_content'] }}</del>
+                </div>
+              @endif
+              
+              {{-- Hiển thị thông tin trạng thái nếu có --}}
+              @if(isset($meta['old_status']) && isset($meta['new_status']))
+                <div class="mt-1">
+                  <small class="text-muted">
+                    Từ: <span class="badge bg-secondary">{{ $meta['old_status'] }}</span> 
+                    → <span class="badge bg-primary">{{ $meta['new_status'] }}</span>
+                  </small>
+                </div>
+              @endif
+            @else
+              {{ $content }}
+            @endif
             
             @if(!empty($attachments))
               <div class="comment-attachments mt-2">

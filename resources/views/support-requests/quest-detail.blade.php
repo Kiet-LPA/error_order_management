@@ -222,7 +222,6 @@
                                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ phê duyệt</option>
                                 <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Đã phê duyệt</option>
                                 <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Bị từ chối</option>
-                                <option value="forwarded" {{ request('status') == 'forwarded' ? 'selected' : '' }}>Đã chuyển tiếp</option>
                             </select>
                         </div>
                         
@@ -396,13 +395,13 @@
                                                                 onclick="showRejectModal({{ $request->id }})">
                                                             <i class="bi bi-x"></i>
                                                         </button>
-                                                        
-                                                        @if($request->canBeForwardedBy($user))
-                                                            <button type="button" class="btn btn-sm btn-outline-info" 
-                                                                    onclick="showForwardModal({{ $request->id }})">
-                                                                <i class="bi bi-arrow-right"></i>
-                                                            </button>
-                                                        @endif
+                                                    @endif
+                                                    
+                                                    @if($request->status === 'pending' && $request->canBeForwardedBy($user))
+                                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                                onclick="showForwardModal({{ $request->id }})">
+                                                            <i class="bi bi-arrow-right"></i>
+                                                        </button>
                                                     @endif
                                                 </div>
                                             </td>
@@ -466,15 +465,54 @@
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="new_recipients" class="form-label">Người nhận mới <span class="text-danger">*</span></label>
-                        <select name="new_recipients[]" id="new_recipients" class="form-select" multiple required>
-                            @foreach(\App\Models\User::whereIn('role', ['manager', 'director'])->with('department')->get() as $user)
-                                <option value="{{ $user->id }}">
-                                    {{ $user->name }} ({{ $user->role }}) - {{ $user->department->name ?? 'N/A' }}
-                                </option>
+                        <label class="form-label">Người nhận mới <span class="text-danger">*</span></label>
+                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            @php
+                                // Lấy danh sách người đã được forward hoặc đã có trong request
+                                $currentRecipients = [];
+                                if ($request->recipients) {
+                                    $currentRecipients = is_string($request->recipients) 
+                                        ? json_decode($request->recipients, true) 
+                                        : $request->recipients;
+                                }
+                                
+                                // Thêm người đã forward (nếu có)
+                                if ($request->forwarded_by) {
+                                    $currentRecipients[] = $request->forwarded_by;
+                                }
+                                
+                                // Thêm người tạo request
+                                if ($request->requester_id) {
+                                    $currentRecipients[] = $request->requester_id;
+                                }
+                                
+                                $currentRecipients = array_unique($currentRecipients);
+                            @endphp
+                            
+                            @foreach(\App\Models\User::whereIn('role', ['admin', 'director', 'manager'])->with('department')->get() as $user)
+                                @php
+                                    $isDisabled = in_array($user->id, $currentRecipients);
+                                    $isAlreadyRecipient = in_array($user->id, $currentRecipients);
+                                @endphp
+                                
+                                <div class="form-check mb-2 {{ $isDisabled ? 'text-muted' : '' }}">
+                                    <input class="form-check-input" type="checkbox" name="new_recipients[]" 
+                                           value="{{ $user->id }}" id="recipient_{{ $user->id }}"
+                                           {{ $isDisabled ? 'disabled' : '' }}>
+                                    <label class="form-check-label {{ $isDisabled ? 'text-muted' : '' }}" for="recipient_{{ $user->id }}">
+                                        <strong>{{ $user->name }}</strong> 
+                                        <span class="badge bg-info ms-1">{{ ucfirst($user->role) }}</span>
+                                        <small class="text-muted d-block">{{ $user->department->name ?? 'N/A' }}</small>
+                                        @if($isAlreadyRecipient)
+                                            <small class="text-warning d-block">
+                                                <i class="bi bi-exclamation-triangle"></i> Đã có trong yêu cầu
+                                            </small>
+                                        @endif
+                                    </label>
+                                </div>
                             @endforeach
-                        </select>
-                        <div class="form-text">Có thể chọn nhiều người nhận. Nhấn Ctrl (hoặc Cmd trên Mac) để chọn nhiều.</div>
+                        </div>
+                        <div class="form-text">Chọn một hoặc nhiều người nhận từ danh sách trên.</div>
                     </div>
                     <div class="mb-3">
                         <label for="forwarding_reason" class="form-label">Lý do chuyển tiếp <span class="text-danger">*</span></label>
@@ -500,5 +538,15 @@ function showForwardModal(requestId) {
     document.getElementById('forwardForm').action = `/support-requests/${requestId}/forward`;
     new bootstrap.Modal(document.getElementById('forwardModal')).show();
 }
+
+// Validation cho form chuyển tiếp
+document.getElementById('forwardForm').addEventListener('submit', function(e) {
+    const checkboxes = document.querySelectorAll('input[name="new_recipients[]"]:checked:not(:disabled)');
+    if (checkboxes.length === 0) {
+        e.preventDefault();
+        alert('Vui lòng chọn ít nhất một người nhận.');
+        return false;
+    }
+});
 </script>
 @endsection

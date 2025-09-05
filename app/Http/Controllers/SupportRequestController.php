@@ -45,7 +45,7 @@ class SupportRequestController extends Controller
         
         // Employee, Manager, Director có thể tạo yêu cầu hỗ trợ
         if (!$user->isEmployee() && !$user->isManager() && !$user->isDirector()) {
-            abort(403, 'Bạn không có quyền tạo yêu cầu hỗ trợ.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         // Lấy danh sách recipients dựa trên role của user
@@ -101,7 +101,7 @@ class SupportRequestController extends Controller
         
         // Employee, Manager, Director có thể tạo yêu cầu hỗ trợ
         if (!$user->isEmployee() && !$user->isManager() && !$user->isDirector()) {
-            abort(403, 'Bạn không có quyền tạo yêu cầu hỗ trợ.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $data = $request->validate([
@@ -204,7 +204,7 @@ class SupportRequestController extends Controller
         
         // Kiểm tra quyền xem
         if (!$this->canViewSupportRequest($user, $supportRequest)) {
-            abort(403, 'Bạn không có quyền xem yêu cầu hỗ trợ này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $supportRequest->load(['requester', 'approver', 'department', 'sourceDepartment', 'comments.user', 'followers.user', 'activities.user']);
@@ -217,7 +217,7 @@ class SupportRequestController extends Controller
         $user = auth()->user();
         
         if (!$supportRequest->canBeApprovedBy($user)) {
-            abort(403, 'Bạn không có quyền phê duyệt yêu cầu hỗ trợ này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         if ($supportRequest->status !== 'pending') {
@@ -248,7 +248,7 @@ class SupportRequestController extends Controller
         $user = auth()->user();
         
         if (!$supportRequest->canBeApprovedBy($user)) {
-            abort(403, 'Bạn không có quyền từ chối yêu cầu hỗ trợ này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         if ($supportRequest->status !== 'pending') {
@@ -284,11 +284,12 @@ class SupportRequestController extends Controller
         $user = auth()->user();
         
         if (!$supportRequest->canBeForwardedBy($user)) {
-            abort(403, 'Bạn không có quyền chuyển tiếp yêu cầu hỗ trợ này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
+        // Chỉ cho phép chuyển tiếp nếu status là pending
         if ($supportRequest->status !== 'pending') {
-            abort(400, 'Yêu cầu hỗ trợ này không thể chuyển tiếp.');
+            abort(400, 'Yêu cầu hỗ trợ này không thể chuyển tiếp. Chỉ có thể chuyển tiếp yêu cầu đang chờ phê duyệt.');
         }
         
         $request->validate([
@@ -305,9 +306,19 @@ class SupportRequestController extends Controller
             }
         }
         
+        // Lấy recipients hiện tại và thêm recipients mới
+        $currentRecipients = [];
+        if ($supportRequest->recipients) {
+            $currentRecipients = is_string($supportRequest->recipients) 
+                ? json_decode($supportRequest->recipients, true) 
+                : $supportRequest->recipients;
+        }
+        
+        // Thêm recipients mới (loại bỏ trùng lặp)
+        $allRecipients = array_unique(array_merge($currentRecipients, $request->new_recipients));
+        
         $supportRequest->update([
-            'status' => 'forwarded',
-            'recipients' => $request->new_recipients,
+            'recipients' => $allRecipients,
             'forwarded_by' => $user->id,
             'forwarding_reason' => $request->forwarding_reason,
         ]);
@@ -334,7 +345,7 @@ class SupportRequestController extends Controller
         $user = auth()->user();
         
         if (!$this->canViewSupportRequest($user, $supportRequest)) {
-            abort(403, 'Bạn không có quyền comment trên yêu cầu hỗ trợ này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $request->validate([
@@ -393,7 +404,7 @@ class SupportRequestController extends Controller
         
         // Chỉ Admin, Director, Manager mới có thể truy cập
         if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
-            abort(403, 'Bạn không có quyền truy cập trang này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         // Lấy danh sách yêu cầu hỗ trợ với eager loading
@@ -440,7 +451,7 @@ class SupportRequestController extends Controller
         
         // Chỉ Employee, Manager mới có thể truy cập
         if (!$user->isEmployee() && !$user->isManager()) {
-            abort(403, 'Bạn không có quyền truy cập trang này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $query = SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment', 'followers'])
@@ -460,7 +471,7 @@ class SupportRequestController extends Controller
         
         // Chỉ Manager mới có thể truy cập
         if (!$user->isManager()) {
-            abort(403, 'Bạn không có quyền truy cập trang này.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $query = SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment', 'followers'])
@@ -488,12 +499,21 @@ class SupportRequestController extends Controller
         }
         
         if ($user->isManager()) {
-            // Manager chỉ có thể xem yêu cầu được chỉ định cho họ
-            return $supportRequest->isRecipient($user);
+            // Manager có thể xem nếu:
+            // 1. Là recipient hiện tại, HOẶC
+            // 2. Là người tạo request, HOẶC  
+            // 3. Là người đã forward request
+            return $supportRequest->isRecipient($user) || 
+                   $supportRequest->requester_id === $user->id || 
+                   $supportRequest->forwarded_by === $user->id;
         }
         
         if ($user->isEmployee()) {
-            return $supportRequest->requester_id === $user->id;
+            // Employee có thể xem nếu:
+            // 1. Là người tạo request, HOẶC
+            // 2. Là người đã forward request
+            return $supportRequest->requester_id === $user->id || 
+                   $supportRequest->forwarded_by === $user->id;
         }
         
         return false;
@@ -511,9 +531,17 @@ class SupportRequestController extends Controller
             abort(403, 'Bạn không có quyền hoàn tác yêu cầu hỗ trợ này.');
         }
         
-        // Manager chỉ có thể hoàn tác yêu cầu được chỉ định cho họ
-        if ($user->isManager() && !$supportRequest->isRecipient($user)) {
-            abort(403, 'Bạn chỉ có thể hoàn tác yêu cầu được chỉ định cho mình.');
+        // Manager có thể hoàn tác nếu:
+        // 1. Là recipient hiện tại, HOẶC
+        // 2. Là người tạo request, HOẶC  
+        // 3. Là người đã forward request
+        if ($user->isManager()) {
+            $canUndo = $supportRequest->isRecipient($user) || 
+                      $supportRequest->requester_id === $user->id || 
+                      $supportRequest->forwarded_by === $user->id;
+            if (!$canUndo) {
+                abort(403, 'Bạn không có quyền hoàn tác yêu cầu hỗ trợ này.');
+            }
         }
         
         if (!$supportRequest->canBeUndone()) {

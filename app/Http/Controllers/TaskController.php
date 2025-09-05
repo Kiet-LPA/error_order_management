@@ -15,12 +15,39 @@ use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
 {
+    /**
+     * Kiểm tra quyền Manager có thể thao tác với task không
+     */
+    private function canManagerAccessTask(User $user, Task $task): bool
+    {
+        // Kiểm tra nếu assignee cùng phòng ban
+        if ($task->assignee && $task->assignee->department_id === $user->department_id) {
+            return true;
+        }
+        
+        // Kiểm tra nếu creator cùng phòng ban
+        if ($task->creator && $task->creator->department_id === $user->department_id) {
+            return true;
+        }
+        
+        // Kiểm tra nếu có assignee nào cùng phòng ban
+        if ($task->assignees->where('department_id', $user->department_id)->count() > 0) {
+            return true;
+        }
+        
+        // Kiểm tra nếu task thuộc phòng ban của manager
+        if ($task->department_id === $user->department_id) {
+            return true;
+        }
+        
+        return false;
+    }
     public function create()
     {
         $user = auth()->user();
         
         if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
-            abort(403, 'Bạn không có quyền giao việc.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         if ($user->isAdmin() || $user->isDirector()) {
@@ -28,7 +55,8 @@ class TaskController extends Controller
             $users = User::with('department')->orderBy('name')->get();
             $departments = \App\Models\Department::orderBy('name')->get();
         } else {
-            // Manager chỉ có thể giao việc cho Employee
+            // Manager có thể thấy tất cả Employee để có thể tạo công việc đa phòng ban
+            // Nhưng logic validation sẽ đảm bảo phải có ít nhất 1 người từ phòng ban của mình
             $users = User::with('department')
                         ->where('role', 'employee')
                         ->where('id', '!=', $user->id) // Không giao việc cho chính mình
@@ -46,7 +74,7 @@ class TaskController extends Controller
         
         // Kiểm tra quyền giao việc
         if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
-            abort(403, 'Bạn không có quyền giao việc.');
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $data = $r->validate([
@@ -68,21 +96,51 @@ class TaskController extends Controller
 
         // Kiểm tra quyền theo role
         if ($user->isManager()) {
-            // Kiểm tra assignee_id (single user)
-            if ($data['assignee_id']) {
-                $assignee = User::find($data['assignee_id']);
-                if ($assignee && $assignee->role !== 'employee') {
-                    abort(403, 'Manager chỉ có thể giao việc cho Employee.');
-                }
-            }
-            
-            // Kiểm tra assignee_ids (multi-user)
-            if ($data['assignee_ids']) {
-                foreach ($data['assignee_ids'] as $assigneeId) {
-                    $assignee = User::find($assigneeId);
-                    if ($assignee && $assignee->role !== 'employee') {
-                        abort(403, 'Manager chỉ có thể giao việc cho Employee.');
+            // Kiểm tra nếu không phải đa phòng ban
+            if (!$r->boolean('is_multi_department')) {
+                // Giao việc thường - chỉ cho phòng ban của mình
+                if ($data['assignee_id']) {
+                    $assignee = User::find($data['assignee_id']);
+                    if ($assignee && ($assignee->role !== 'employee' || $assignee->department_id !== $user->department_id)) {
+                        abort(403, 'Manager chỉ có thể giao việc cho nhân viên trong cùng phòng ban');
                     }
+                }
+                
+                if ($data['assignee_ids']) {
+                    foreach ($data['assignee_ids'] as $assigneeId) {
+                        $assignee = User::find($assigneeId);
+                        if ($assignee && ($assignee->role !== 'employee' || $assignee->department_id !== $user->department_id)) {
+                            abort(403, 'Manager chỉ có thể giao việc cho nhân viên trong cùng phòng ban');
+                        }
+                    }
+                }
+            } else {
+                // Giao việc đa phòng ban - phải có ít nhất 1 người từ phòng ban của manager
+                $hasOwnDepartmentUser = false;
+                
+                if ($data['assignee_ids']) {
+                    // Kiểm tra tất cả assignees phải là employee
+                    foreach ($data['assignee_ids'] as $assigneeId) {
+                        $assignee = User::find($assigneeId);
+                        if ($assignee && $assignee->role !== 'employee') {
+                            abort(403, 'Manager chỉ có thể giao việc cho nhân viên');
+                        }
+                        if ($assignee && $assignee->department_id === $user->department_id) {
+                            $hasOwnDepartmentUser = true;
+                        }
+                    }
+                } elseif ($data['assignee_id']) {
+                    $assignee = User::find($data['assignee_id']);
+                    if ($assignee && $assignee->role !== 'employee') {
+                        abort(403, 'Manager chỉ có thể giao việc cho nhân viên');
+                    }
+                    if ($assignee && $assignee->department_id === $user->department_id) {
+                        $hasOwnDepartmentUser = true;
+                    }
+                }
+                
+                if (!$hasOwnDepartmentUser) {
+                    abort(403, 'Manager phải có ít nhất 1 người từ phòng ban của mình tham gia vào công việc đa phòng ban');
                 }
             }
         } elseif ($user->isDirector()) {
@@ -90,7 +148,7 @@ class TaskController extends Controller
             if ($data['assignee_id']) {
                 $assignee = User::find($data['assignee_id']);
                 if ($assignee && $assignee->isAdmin()) {
-                    abort(403, 'Director không thể giao việc cho Admin.');
+                    abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
                 }
             }
             
@@ -99,7 +157,7 @@ class TaskController extends Controller
                 foreach ($data['assignee_ids'] as $assigneeId) {
                     $assignee = User::find($assigneeId);
                     if ($assignee && $assignee->isAdmin()) {
-                        abort(403, 'Director không thể giao việc cho Admin.');
+                        abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
                     }
                 }
             }
@@ -232,9 +290,8 @@ class TaskController extends Controller
             // Admin và Director có thể xem mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể xem task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể xem task của phòng ban mình.');
+            if (!$this->canManagerAccessTask($user, $task)) {
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         } else {
             // Employee có thể xem task mà họ được assign, tạo, hoặc follow
@@ -244,7 +301,7 @@ class TaskController extends Controller
                          $task->followers->contains('id', $user->id);
             
             if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể xem task mà bạn được assign, tạo, hoặc theo dõi.');
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         }
         
@@ -264,9 +321,8 @@ class TaskController extends Controller
             // Admin và Director có thể chỉnh sửa mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể chỉnh sửa task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể chỉnh sửa task của phòng ban mình.');
+            if (!$this->canManagerAccessTask($user, $task)) {
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         } else {
             // Employee chỉ có thể chỉnh sửa task mà họ được assign hoặc tạo
@@ -275,7 +331,7 @@ class TaskController extends Controller
                          $task->assignees->contains('id', $user->id);
             
             if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể chỉnh sửa task mà bạn được assign hoặc tạo.');
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         }
         
@@ -313,9 +369,30 @@ class TaskController extends Controller
             // Admin và Director có thể cập nhật mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể cập nhật task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể cập nhật task của phòng ban mình.');
+            $canUpdate = false;
+            
+            // Kiểm tra nếu assignee cùng phòng ban
+            if ($task->assignee && $task->assignee->department_id === $user->department_id) {
+                $canUpdate = true;
+            }
+            
+            // Kiểm tra nếu creator cùng phòng ban
+            if ($task->creator && $task->creator->department_id === $user->department_id) {
+                $canUpdate = true;
+            }
+            
+            // Kiểm tra nếu có assignee nào cùng phòng ban
+            if ($task->assignees->where('department_id', $user->department_id)->count() > 0) {
+                $canUpdate = true;
+            }
+            
+            // Kiểm tra nếu task thuộc phòng ban của manager
+            if ($task->department_id === $user->department_id) {
+                $canUpdate = true;
+            }
+            
+            if (!$canUpdate) {
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         } else {
             // Employee chỉ có thể cập nhật task mà họ được assign hoặc tạo
@@ -324,7 +401,7 @@ class TaskController extends Controller
                          $task->assignees->contains('id', $user->id);
             
             if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể cập nhật task mà bạn được assign hoặc tạo.');
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         }
         
@@ -376,7 +453,7 @@ class TaskController extends Controller
                 foreach ($assigneeIds as $assigneeId) {
                     $assignee = User::find($assigneeId);
                     if ($assignee->role !== 'employee') {
-                        abort(403, 'Manager chỉ có thể giao việc cho Employee.');
+                        abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
                     }
                 }
             }
@@ -392,7 +469,7 @@ class TaskController extends Controller
             if ($user->isManager()) {
                 $assignee = User::find($data['assignee_id']);
                 if ($assignee->role !== 'employee') {
-                    abort(403, 'Manager chỉ có thể giao việc cho Employee.');
+                    abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
                 }
             }
         } else {
@@ -540,9 +617,8 @@ class TaskController extends Controller
             // Admin và Director có thể xóa mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể xóa task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể xóa task của phòng ban mình.');
+            if (!$this->canManagerAccessTask($user, $task)) {
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         } else {
             // Employee chỉ có thể xóa task mà họ được assign hoặc tạo
@@ -572,9 +648,8 @@ class TaskController extends Controller
             // Admin và Director có thể cập nhật mọi task
         } elseif ($user->isManager()) {
             // Manager chỉ có thể cập nhật task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể cập nhật task của phòng ban mình.');
+            if (!$this->canManagerAccessTask($user, $task)) {
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         } else {
             // Employee chỉ có thể cập nhật task mà họ được assign hoặc tạo
@@ -583,7 +658,7 @@ class TaskController extends Controller
                          $task->assignees->contains('id', $user->id);
             
             if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể cập nhật task mà bạn được assign hoặc tạo.');
+                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
             }
         }
         
@@ -1113,7 +1188,7 @@ class TaskController extends Controller
         
         // Kiểm tra quyền cập nhật task
         if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
-            return response()->json(['success' => false, 'message' => 'Bạn không có quyền cập nhật task này.'], 403);
+            return response()->json(['success' => false, 'message' => 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện'], 403);
         }
         
         // Kiểm tra quyền theo role
@@ -1121,7 +1196,7 @@ class TaskController extends Controller
             // Manager chỉ có thể cập nhật task của phòng ban mình
             if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
                 $task->creator && $task->creator->department_id !== $user->department_id) {
-                return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể cập nhật task của phòng ban mình.'], 403);
+                return response()->json(['success' => false, 'message' => 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện'], 403);
             }
         }
         

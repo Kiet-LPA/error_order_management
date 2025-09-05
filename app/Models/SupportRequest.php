@@ -181,9 +181,14 @@ class SupportRequest extends Model
             return true;
         }
 
-        // Manager chỉ có thể phê duyệt yêu cầu được chỉ định cho họ
+        // Manager có thể phê duyệt nếu:
+        // 1. Là recipient hiện tại, HOẶC
+        // 2. Là người tạo request, HOẶC  
+        // 3. Là người đã forward request
         if ($user->isManager()) {
-            return $this->isRecipient($user);
+            return $this->isRecipient($user) || 
+                   $this->requester_id === $user->id || 
+                   $this->forwarded_by === $user->id;
         }
 
         return false;
@@ -202,9 +207,14 @@ class SupportRequest extends Model
             return true;
         }
 
-        // Manager chỉ có thể chuyển tiếp yêu cầu được chỉ định cho họ
+        // Manager có thể chuyển tiếp nếu:
+        // 1. Là recipient hiện tại, HOẶC
+        // 2. Là người tạo request, HOẶC  
+        // 3. Là người đã forward request
         if ($user->isManager()) {
-            return $this->isRecipient($user);
+            return $this->isRecipient($user) || 
+                   $this->requester_id === $user->id || 
+                   $this->forwarded_by === $user->id;
         }
 
         return false;

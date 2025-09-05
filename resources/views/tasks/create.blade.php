@@ -116,21 +116,23 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 <label class="form-label fw-bold text-dark">
                   <i class="bi bi-building me-2"></i>Chọn phòng ban tham gia
                 </label>
-                <div class="row">
-                  @foreach($departments as $department)
-                    <div class="col-md-6 mb-2">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" 
-                               name="department_ids[]" 
-                               value="{{ $department->id }}" 
-                               id="dept_{{ $department->id }}"
-                               {{ in_array($department->id, old('department_ids', [])) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="dept_{{ $department->id }}">
-                          <i class="bi bi-building me-1"></i>{{ $department->name }}
-                        </label>
+                <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background: #f8f9fa;">
+                  <div class="row">
+                    @foreach($departments as $department)
+                      <div class="col-md-6 mb-2">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" 
+                                 name="department_ids[]" 
+                                 value="{{ $department->id }}" 
+                                 id="dept_{{ $department->id }}"
+                                 {{ in_array($department->id, old('department_ids', [])) ? 'checked' : '' }}>
+                          <label class="form-check-label" for="dept_{{ $department->id }}">
+                            <i class="bi bi-building me-1"></i>{{ $department->name }}
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                  @endforeach
+                    @endforeach
+                  </div>
                 </div>
               </div>
               
@@ -186,27 +188,35 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                   <p class="mb-0">Vui lòng chọn phòng ban trước khi chọn người nhận</p>
                 </div>
                 <div id="user_selection_enabled" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; display: none;">
-                  @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)
+                  @foreach($departments as $department)
                     @php
-                      $department = $departmentUsers->first()->department;
-                      $departmentName = $department ? $department->name : 'Không có phòng ban';
+                      $departmentUsers = $users->where('department_id', $department->id);
                     @endphp
-                    <div class="mb-3 department-user-group" data-department="{{ $departmentId }}">
+                    <div class="mb-3 department-user-group" data-department="{{ $department->id }}">
                       <div class="fw-bold text-primary mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #007bff;">
-                        {{ $departmentName }}
+                        {{ $department->name }}
+                        @if($departmentUsers->count() == 0)
+                          <small class="text-muted">(Không có nhân viên)</small>
+                        @endif
                       </div>
-                      @foreach($departmentUsers as $u)
-                        <div class="form-check mb-2 user-option ms-3" data-department="{{ $u->department_id ?? '' }}">
-                          <input class="form-check-input" type="checkbox" 
-                                 name="assignee_ids[]" 
-                                 value="{{ $u->id }}" 
-                                 id="user_{{ $u->id }}"
-                                 {{ in_array($u->id, old('assignee_ids', [])) ? 'checked' : '' }}>
-                          <label class="form-check-label" for="user_{{ $u->id }}">
-                            {{ $u->name }} - {{ ucfirst($u->role) }}
-                          </label>
+                      @if($departmentUsers->count() > 0)
+                        @foreach($departmentUsers as $u)
+                          <div class="form-check mb-2 user-option ms-3" data-department="{{ $u->department_id ?? '' }}">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="assignee_ids[]" 
+                                   value="{{ $u->id }}" 
+                                   id="user_{{ $u->id }}"
+                                   {{ in_array($u->id, old('assignee_ids', [])) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="user_{{ $u->id }}">
+                              {{ $u->name }} - {{ ucfirst($u->role) }}
+                            </label>
+                          </div>
+                        @endforeach
+                      @else
+                        <div class="ms-3 text-muted">
+                          <small><i class="bi bi-info-circle me-1"></i>Phòng ban này chưa có nhân viên</small>
                         </div>
-                      @endforeach
+                      @endif
                     </div>
                   @endforeach
                 </div>
@@ -220,19 +230,22 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 </div>
                 <select name="assignee_id" class="form-select form-select-lg border-2" id="assignee_select" style="display: none;">
                   <option value="">Chọn người nhận</option>
-                  @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)
+                  @foreach($departments as $department)
                     @php
-                      $department = $departmentUsers->first()->department;
-                      $departmentName = $department ? $department->name : 'Không có phòng ban';
+                      $departmentUsers = $users->where('department_id', $department->id);
                     @endphp
-                    <optgroup label="{{ $departmentName }}" data-department="{{ $departmentId }}">
-                      @foreach($departmentUsers as $u)
-                        <option value="{{ $u->id }}" 
-                                data-department="{{ $u->department_id ?? '' }}"
-                                @selected(old('assignee_id')==$u->id)>
-                          {{ $u->name }} - {{ ucfirst($u->role) }}
-                        </option>
-                      @endforeach
+                    <optgroup label="{{ $department->name }}{{ $departmentUsers->count() == 0 ? ' (Không có nhân viên)' : '' }}" data-department="{{ $department->id }}">
+                      @if($departmentUsers->count() > 0)
+                        @foreach($departmentUsers as $u)
+                          <option value="{{ $u->id }}" 
+                                  data-department="{{ $u->department_id ?? '' }}"
+                                  @selected(old('assignee_id')==$u->id)>
+                            {{ $u->name }} - {{ ucfirst($u->role) }}
+                          </option>
+                        @endforeach
+                      @else
+                        <option value="" disabled>Không có nhân viên</option>
+                      @endif
                     </optgroup>
                   @endforeach
                 </select>
@@ -241,7 +254,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               @if(auth()->user()->isManager())
                 <div class="form-text text-info">
                   <i class="bi bi-info-circle me-1"></i>
-                  Bạn chỉ có thể giao việc cho nhân viên cùng phòng ban
+                  <strong>Giao việc thường:</strong> Chỉ cho nhân viên cùng phòng ban.<br>
+                  <strong>Giao việc đa phòng ban:</strong> Có thể chọn nhân viên từ nhiều phòng ban nhưng phải có ít nhất 1 người từ phòng ban của bạn.
                 </div>
               @endif
             </div>
@@ -336,23 +350,31 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
             <div class="mb-3">
               <label class="form-label">Chọn người theo dõi task này:</label>
               <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)
+                @foreach($departments as $department)
                   @php
-                    $department = $departmentUsers->first()->department;
-                    $departmentName = $department ? $department->name : 'Không có phòng ban';
+                    $departmentUsers = $users->where('department_id', $department->id);
                   @endphp
                   <div class="mb-3">
-                                                    <div class="fw-bold text-dark mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #6c757d;">
-                      {{ $departmentName }}
+                    <div class="fw-bold text-dark mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #6c757d;">
+                      {{ $department->name }}
+                      @if($departmentUsers->count() == 0)
+                        <small class="text-muted">(Không có nhân viên)</small>
+                      @endif
                     </div>
-                    @foreach($departmentUsers as $user)
-                      <div class="form-check mb-2 ms-3 follower-option" data-department="{{ $user->department_id ?? '' }}" data-user-id="{{ $user->id }}" data-user-role="{{ $user->role }}">
-                        <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}">
-                        <label class="form-check-label" for="follower_{{ $user->id }}">
-                          {{ $user->name }} - {{ ucfirst($user->role) }}
-                        </label>
+                    @if($departmentUsers->count() > 0)
+                      @foreach($departmentUsers as $user)
+                        <div class="form-check mb-2 ms-3 follower-option" data-department="{{ $user->department_id ?? '' }}" data-user-id="{{ $user->id }}" data-user-role="{{ $user->role }}">
+                          <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}">
+                          <label class="form-check-label" for="follower_{{ $user->id }}">
+                            {{ $user->name }} - {{ ucfirst($user->role) }}
+                          </label>
+                        </div>
+                      @endforeach
+                    @else
+                      <div class="ms-3 text-muted">
+                        <small><i class="bi bi-info-circle me-1"></i>Phòng ban này chưa có nhân viên</small>
                       </div>
-                    @endforeach
+                    @endif
                   </div>
                 @endforeach
               </div>
@@ -391,21 +413,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const multiDeptSection = document.getElementById('multi_department_section');
     const singleDeptSection = document.getElementById('single_department_section');
     
+    console.log('Multi-department elements:', {
+        checkbox: !!multiDeptCheckbox,
+        multiSection: !!multiDeptSection,
+        singleSection: !!singleDeptSection
+    });
+    
     if (multiDeptCheckbox) {
         multiDeptCheckbox.addEventListener('change', function() {
+            console.log('Multi-department checkbox changed:', this.checked);
             if (this.checked) {
                 multiDeptSection.style.display = 'block';
                 singleDeptSection.style.display = 'none';
+                console.log('Showing multi-department section');
             } else {
                 multiDeptSection.style.display = 'none';
                 singleDeptSection.style.display = 'block';
+                console.log('Showing single department section');
             }
+            // Trigger filter after toggle
+            setTimeout(filterUsersByDepartments, 100);
         });
         
         // Trigger on load if checked
         if (multiDeptCheckbox.checked) {
             multiDeptSection.style.display = 'block';
             singleDeptSection.style.display = 'none';
+            console.log('Initial state: multi-department checked');
+        } else {
+            multiDeptSection.style.display = 'none';
+            singleDeptSection.style.display = 'block';
+            console.log('Initial state: single department');
         }
     }
     
@@ -414,37 +452,79 @@ document.addEventListener('DOMContentLoaded', function() {
     const multiUserSection = document.getElementById('multi_user_section');
     const singleUserSection = document.getElementById('single_user_section');
     
+    console.log('Multi-user elements:', {
+        checkbox: !!multiUserCheckbox,
+        multiSection: !!multiUserSection,
+        singleSection: !!singleUserSection
+    });
+    
     if (multiUserCheckbox) {
         multiUserCheckbox.addEventListener('change', function() {
+            console.log('Multi-user checkbox changed:', this.checked);
             if (this.checked) {
                 multiUserSection.style.display = 'block';
                 singleUserSection.style.display = 'none';
+                console.log('Showing multi-user section');
             } else {
                 multiUserSection.style.display = 'none';
                 singleUserSection.style.display = 'block';
+                console.log('Showing single user section');
             }
+            // Trigger filter after toggle
+            setTimeout(filterUsersByDepartments, 100);
         });
         
         // Trigger on load if checked
         if (multiUserCheckbox.checked) {
             multiUserSection.style.display = 'block';
             singleUserSection.style.display = 'none';
+            console.log('Initial state: multi-user checked');
+        } else {
+            multiUserSection.style.display = 'none';
+            singleUserSection.style.display = 'block';
+            console.log('Initial state: single user');
         }
     }
 
     // Filter users by selected departments
     function filterUsersByDepartments() {
+        console.log('filterUsersByDepartments called');
         const selectedDepartments = [];
         const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
         const singleDepartmentSelect = document.querySelector('select[name="department_id"]');
         
+        console.log('Department checkboxes found:', departmentCheckboxes.length);
+        console.log('Single department select found:', singleDepartmentSelect);
+        
         // Get selected departments from both multi and single selection
         departmentCheckboxes.forEach(checkbox => {
             selectedDepartments.push(checkbox.value);
+            console.log('Selected department from checkbox:', checkbox.value);
         });
         
         if (singleDepartmentSelect && singleDepartmentSelect.value) {
             selectedDepartments.push(singleDepartmentSelect.value);
+            console.log('Selected department from select:', singleDepartmentSelect.value);
+        }
+
+        console.log('Total selected departments:', selectedDepartments);
+        
+        // Kiểm tra logic đa phòng ban cho Manager (chỉ khi có nhiều phòng ban được chọn)
+        const isManager = {{ auth()->user()->isManager() ? 'true' : 'false' }};
+        const managerDepartmentId = {{ auth()->user()->department_id ?? 'null' }};
+        
+        if (isManager && selectedDepartments.length > 1) {
+            const hasOwnDepartment = selectedDepartments.includes(managerDepartmentId.toString());
+            if (!hasOwnDepartment) {
+                alert('Manager chỉ có thể tạo công việc đa phòng ban khi có phòng ban của mình tham gia');
+                // Uncheck the last selected department (not the manager's department)
+                departmentCheckboxes.forEach(checkbox => {
+                    if (checkbox.value !== managerDepartmentId.toString() && checkbox.checked) {
+                        checkbox.checked = false;
+                    }
+                });
+                return;
+            }
         }
 
         // Show/hide user selection based on department selection
@@ -453,49 +533,119 @@ document.addEventListener('DOMContentLoaded', function() {
         const singleUserDisabled = document.getElementById('single_user_disabled');
         const assigneeSelect = document.getElementById('assignee_select');
 
+        console.log('User selection elements:', {
+            userSelectionDisabled: !!userSelectionDisabled,
+            userSelectionEnabled: !!userSelectionEnabled,
+            singleUserDisabled: !!singleUserDisabled,
+            assigneeSelect: !!assigneeSelect
+        });
+
+        // Kiểm tra xem có phải đa phòng ban không
+        const isMultiDepartment = document.getElementById('is_multi_department').checked;
+
         if (selectedDepartments.length === 0) {
             // No department selected - show disabled message
-            if (userSelectionDisabled) userSelectionDisabled.style.display = 'block';
-            if (userSelectionEnabled) userSelectionEnabled.style.display = 'none';
-            if (singleUserDisabled) singleUserDisabled.style.display = 'block';
-            if (assigneeSelect) assigneeSelect.style.display = 'none';
+            console.log('No departments selected, showing disabled state');
+            if (userSelectionDisabled) {
+                userSelectionDisabled.style.display = 'block';
+                console.log('Showing user selection disabled message');
+            }
+            if (userSelectionEnabled) {
+                userSelectionEnabled.style.display = 'none';
+                console.log('Hiding user selection enabled');
+            }
+            if (singleUserDisabled) {
+                singleUserDisabled.style.display = 'block';
+                console.log('Showing single user disabled message');
+            }
+            if (assigneeSelect) {
+                assigneeSelect.style.display = 'none';
+                console.log('Hiding assignee select');
+            }
         } else {
             // Department selected - enable user selection
-            if (userSelectionDisabled) userSelectionDisabled.style.display = 'none';
-            if (userSelectionEnabled) userSelectionEnabled.style.display = 'block';
-            if (singleUserDisabled) singleUserDisabled.style.display = 'none';
-            if (assigneeSelect) assigneeSelect.style.display = 'block';
+            console.log('Departments selected, enabling user selection');
+            if (userSelectionDisabled) {
+                userSelectionDisabled.style.display = 'none';
+                console.log('Hiding user selection disabled message');
+            }
+            if (userSelectionEnabled) {
+                userSelectionEnabled.style.display = 'block';
+                console.log('Showing user selection enabled');
+            }
+            if (singleUserDisabled) {
+                singleUserDisabled.style.display = 'none';
+                console.log('Hiding single user disabled message');
+            }
+            if (assigneeSelect) {
+                assigneeSelect.style.display = 'block';
+                console.log('Showing assignee select');
+            }
 
-            // Filter multi-user section
-            const userOptions = document.querySelectorAll('.user-option');
-            userOptions.forEach(option => {
-                const departmentId = option.getAttribute('data-department');
-                if (selectedDepartments.includes(departmentId)) {
-                    option.style.display = 'block';
+            // Filter multi-user section - show/hide entire department groups
+            const departmentGroups = document.querySelectorAll('.department-user-group');
+            console.log('Department groups found:', departmentGroups.length);
+            departmentGroups.forEach(group => {
+                const departmentId = group.getAttribute('data-department');
+                console.log('Department group:', departmentId, 'Selected departments:', selectedDepartments);
+                
+                // Nếu không phải đa phòng ban và là Manager, chỉ hiển thị phòng ban của manager
+                if (!isMultiDepartment && isManager) {
+                    if (departmentId === managerDepartmentId.toString()) {
+                        group.style.display = 'block';
+                    } else {
+                        group.style.display = 'none';
+                        // Uncheck all checkboxes in hidden groups
+                        const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+                        checkboxes.forEach(checkbox => checkbox.checked = false);
+                    }
                 } else {
-                    option.style.display = 'none';
-                    // Uncheck hidden options
-                    const checkbox = option.querySelector('input[type="checkbox"]');
-                    if (checkbox) checkbox.checked = false;
+                    // Đa phòng ban hoặc không phải Manager - hiển thị theo phòng ban được chọn
+                    if (selectedDepartments.includes(departmentId)) {
+                        group.style.display = 'block';
+                    } else {
+                        group.style.display = 'none';
+                        // Uncheck all checkboxes in hidden groups
+                        const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+                        checkboxes.forEach(checkbox => checkbox.checked = false);
+                    }
                 }
             });
 
             // Filter single user dropdown optgroups
             if (assigneeSelect) {
                 const optgroups = assigneeSelect.querySelectorAll('optgroup');
+                console.log('Optgroups found:', optgroups.length);
                 optgroups.forEach(optgroup => {
                     const departmentId = optgroup.getAttribute('data-department');
-                    if (selectedDepartments.includes(departmentId)) {
-                        optgroup.style.display = 'block';
+                    console.log('Optgroup department:', departmentId, 'Selected departments:', selectedDepartments);
+                    
+                    // Nếu không phải đa phòng ban và là Manager, chỉ hiển thị nhân viên cùng phòng ban
+                    if (!isMultiDepartment && isManager) {
+                        if (departmentId === managerDepartmentId.toString()) {
+                            optgroup.style.display = 'block';
+                        } else {
+                            optgroup.style.display = 'none';
+                            const options = optgroup.querySelectorAll('option');
+                            options.forEach(option => {
+                                if (option.selected) {
+                                    assigneeSelect.value = '';
+                                }
+                            });
+                        }
                     } else {
-                        optgroup.style.display = 'none';
-                        // Clear selection if department is not selected
-                        const options = optgroup.querySelectorAll('option');
-                        options.forEach(option => {
-                            if (option.selected) {
-                                assigneeSelect.value = '';
-                            }
-                        });
+                        // Đa phòng ban hoặc không phải Manager - hiển thị theo phòng ban được chọn
+                        if (selectedDepartments.includes(departmentId)) {
+                            optgroup.style.display = 'block';
+                        } else {
+                            optgroup.style.display = 'none';
+                            const options = optgroup.querySelectorAll('option');
+                            options.forEach(option => {
+                                if (option.selected) {
+                                    assigneeSelect.value = '';
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -503,6 +653,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update followers based on selected users
         updateFollowersAvailability();
+        
+        // Kiểm tra logic đa phòng ban cho Manager khi chọn người làm
+        if (isManager && selectedDepartments.length > 1) {
+            const selectedUserIds = [];
+            const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+            multiUserCheckboxes.forEach(checkbox => {
+                selectedUserIds.push(checkbox.value);
+            });
+            
+            const singleUserSelect = document.getElementById('assignee_select');
+            if (singleUserSelect && singleUserSelect.value) {
+                selectedUserIds.push(singleUserSelect.value);
+            }
+            
+            if (selectedUserIds.length > 0) {
+                // Kiểm tra xem có ít nhất 1 người từ phòng ban của manager không
+                const hasOwnDepartmentUser = selectedUserIds.some(userId => {
+                    const userOption = document.querySelector(`input[value="${userId}"]`);
+                    if (userOption) {
+                        const userDepartmentId = userOption.closest('.user-option').getAttribute('data-department');
+                        return userDepartmentId === managerDepartmentId.toString();
+                    }
+                    return false;
+                });
+                
+                if (!hasOwnDepartmentUser) {
+                    alert('Manager phải có ít nhất 1 người từ phòng ban của mình tham gia vào công việc đa phòng ban');
+                    // Uncheck all user selections
+                    multiUserCheckboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    if (singleUserSelect) {
+                        singleUserSelect.value = '';
+                    }
+                }
+            }
+        }
     }
 
     // Update followers availability based on selected users
@@ -543,35 +730,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add event listeners for department checkboxes
     const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]');
+    console.log('Department checkboxes found for event listeners:', departmentCheckboxes.length);
     departmentCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', filterUsersByDepartments);
+        checkbox.addEventListener('change', function() {
+            console.log('Department checkbox changed:', this.value, this.checked);
+            filterUsersByDepartments();
+        });
     });
 
     // Add event listener for single department select
     const singleDepartmentSelect = document.querySelector('select[name="department_id"]');
     if (singleDepartmentSelect) {
-        singleDepartmentSelect.addEventListener('change', filterUsersByDepartments);
+        singleDepartmentSelect.addEventListener('change', function() {
+            console.log('Single department select changed:', this.value);
+            filterUsersByDepartments();
+        });
     }
 
     // Add event listeners for user selection
     document.addEventListener('change', function(e) {
         if (e.target.name === 'assignee_ids[]' || e.target.name === 'assignee_id') {
+            console.log('User selection changed:', e.target.name, e.target.value);
             updateFollowersAvailability();
         }
     });
 
     // Initial filter on page load
+    console.log('Running initial filter on page load');
     filterUsersByDepartments();
 
     // Fix datetime-local input
-    const deadlineInput = document.querySelector('input[name="deadline"]');
-    if (deadlineInput) {
+    const deadlineInputElement = document.querySelector('input[name="deadline"]');
+    if (deadlineInputElement) {
         console.log('Create: Deadline input found');
-        deadlineInput.addEventListener('click', function() {
+        deadlineInputElement.addEventListener('click', function() {
             console.log('Create: Deadline input clicked');
             this.showPicker && this.showPicker();
         });
-        deadlineInput.addEventListener('focus', function() {
+        deadlineInputElement.addEventListener('focus', function() {
             console.log('Create: Deadline input focused');
         });
     }
@@ -673,6 +869,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Không thể chọn deadline là ngày giờ trong quá khứ!');
                 deadlineInput.focus();
                 return false;
+            }
+            
+            // Validation cho Manager đa phòng ban
+            const isManager = {{ auth()->user()->isManager() ? 'true' : 'false' }};
+            const managerDepartmentId = {{ auth()->user()->department_id ?? 'null' }};
+            
+            if (isManager) {
+                const isMultiDept = document.getElementById('is_multi_department').checked;
+                const selectedDepartments = [];
+                const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
+                const singleDepartmentSelect = document.querySelector('select[name="department_id"]');
+                
+                departmentCheckboxes.forEach(checkbox => {
+                    selectedDepartments.push(checkbox.value);
+                });
+                
+                if (singleDepartmentSelect && singleDepartmentSelect.value) {
+                    selectedDepartments.push(singleDepartmentSelect.value);
+                }
+                
+                if (isMultiDept && selectedDepartments.length > 1) {
+                    const hasOwnDepartment = selectedDepartments.includes(managerDepartmentId.toString());
+                    if (!hasOwnDepartment) {
+                        e.preventDefault();
+                        alert('Manager chỉ có thể tạo công việc đa phòng ban khi có ít nhất 1 người từ phòng ban của mình tham gia');
+                        return false;
+                    }
+                    
+                    // Kiểm tra người làm
+                    const selectedUserIds = [];
+                    const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+                    multiUserCheckboxes.forEach(checkbox => {
+                        selectedUserIds.push(checkbox.value);
+                    });
+                    
+                    const singleUserSelect = document.getElementById('assignee_select');
+                    if (singleUserSelect && singleUserSelect.value) {
+                        selectedUserIds.push(singleUserSelect.value);
+                    }
+                    
+                    if (selectedUserIds.length > 0) {
+                        const hasOwnDepartmentUser = selectedUserIds.some(userId => {
+                            const userOption = document.querySelector(`input[value="${userId}"]`);
+                            if (userOption) {
+                                const userDepartmentId = userOption.closest('.user-option').getAttribute('data-department');
+                                return userDepartmentId === managerDepartmentId.toString();
+                            }
+                            return false;
+                        });
+                        
+                        if (!hasOwnDepartmentUser) {
+                            e.preventDefault();
+                            alert('Manager phải có ít nhất 1 người từ phòng ban của mình tham gia vào công việc đa phòng ban');
+                            return false;
+                        }
+                    }
+                }
             }
         });
         
