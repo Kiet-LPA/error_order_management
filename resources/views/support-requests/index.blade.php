@@ -111,6 +111,13 @@
                                                             <i class="bi bi-arrow-right"></i>
                                                         </button>
                                                     @endif
+                                                    
+                                                    @if($request->canBeDeletedBy(auth()->user()))
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                onclick="deleteSupportRequest({{ $request->id }}, '{{ $request->title }}')">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -223,5 +230,33 @@ document.getElementById('forwardForm').addEventListener('submit', function(e) {
         return false;
     }
 });
+
+// Function xóa support request
+function deleteSupportRequest(requestId, requestTitle) {
+    if (confirm(`Bạn có chắc chắn muốn xóa yêu cầu hỗ trợ "${requestTitle}"?\n\nHành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.`)) {
+        // Tạo form để gửi DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/support-requests/${requestId}`;
+        
+        // Thêm CSRF token
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = '{{ csrf_token() }}';
+        form.appendChild(csrfToken);
+        
+        // Thêm method override
+        const methodField = document.createElement('input');
+        methodField.type = 'hidden';
+        methodField.name = '_method';
+        methodField.value = 'DELETE';
+        form.appendChild(methodField);
+        
+        // Thêm form vào body và submit
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 </script>
 @endsection

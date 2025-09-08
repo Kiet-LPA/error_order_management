@@ -358,4 +358,17 @@ class SupportRequest extends Model
     {
         return $this->status === 'cancelled';
     }
+
+    /**
+     * Kiểm tra quyền xóa support request
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        // Chỉ Admin và Director mới có thể xóa support request
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+
+        return false;
+    }
 }

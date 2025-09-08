@@ -294,6 +294,42 @@ class NotificationService
     }
 
     /**
+     * Xóa thông báo
+     */
+    public static function deleteNotification($notificationId, User $user)
+    {
+        $notification = Notification::where('id', $notificationId)
+                                   ->where('user_id', $user->id)
+                                   ->first();
+        
+        if ($notification) {
+            $notification->delete();
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Gửi thông báo task được forward
+     */
+    public static function taskForwarded(Task $task, User $forwarder, User $forwardedTo)
+    {
+        Notification::create([
+            'user_id' => $forwardedTo->id,
+            'type' => 'task_forwarded',
+            'title' => 'Task được chuyển tiếp',
+            'message' => "Bạn nhận được task được chuyển tiếp từ {$forwarder->name}: {$task->title}",
+            'data' => [
+                'task_id' => $task->id,
+                'forwarder_id' => $forwarder->id,
+                'forwarder_name' => $forwarder->name,
+                'forward_reason' => $task->forward_reason
+            ]
+        ]);
+    }
+
+    /**
      * Gửi thông báo yêu cầu hỗ trợ đã được hoàn tác (undo)
      */
     public static function supportRequestUndone(SupportRequest $supportRequest, User $user, $oldStatus)

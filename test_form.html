@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Task Creation</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+    <h1>Test Task Creation</h1>
+    
+    <h2>Test Routes:</h2>
+    <ul>
+        <li><a href="/current-user" target="_blank">Check Current User</a></li>
+        <li><a href="/tasks-test" target="_blank">Test Tasks Access</a></li>
+    </ul>
+    
+    <h2>Test Task Creation:</h2>
+    <form id="testForm" action="/tasks-direct-store" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        
+        <div>
+            <label>Title:</label>
+            <input type="text" name="title" value="Test Task" required>
+        </div>
+        
+        <div>
+            <label>Description:</label>
+            <textarea name="description">This is a test task</textarea>
+        </div>
+        
+        <div>
+            <label>Priority:</label>
+            <select name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Deadline:</label>
+            <input type="date" name="deadline" value="2024-12-31">
+        </div>
+        
+        <button type="submit">Create Test Task</button>
+    </form>
+    
+    <h2>Test with Original Route:</h2>
+    <form id="originalForm" action="/tasks" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        
+        <div>
+            <label>Title:</label>
+            <input type="text" name="title" value="Test Task Original" required>
+        </div>
+        
+        <div>
+            <label>Description:</label>
+            <textarea name="description">This is a test task with original route</textarea>
+        </div>
+        
+        <div>
+            <label>Priority:</label>
+            <select name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Deadline:</label>
+            <input type="date" name="deadline" value="2024-12-31">
+        </div>
+        
+        <button type="submit">Create Test Task (Original Route)</button>
+    </form>
+    
+    <script>
+        // Add CSRF token to all forms
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                const tokenInput = form.querySelector('input[name="_token"]');
+                if (tokenInput) {
+                    tokenInput.value = token;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -99,24 +99,112 @@ class User extends Authenticatable
     }
 
     // Role methods
+    /**
+     * Chuẩn hóa role để tránh lỗi khoảng trắng hoặc ký tự ẩn
+     */
+    public function normalizedRole(): string
+    {
+        return strtolower(trim(preg_replace('/\s+/', '', $this->role ?? '')));
+    }
+    
     public function isAdmin()
     { 
-        return strtolower(trim($this->role)) === 'admin'; 
+        return $this->normalizedRole() === 'admin'; 
     }
     
     public function isDirector()
     { 
-        return strtolower(trim($this->role)) === 'director'; 
+        return $this->normalizedRole() === 'director'; 
     }
     
     public function isManager()
     { 
-        return strtolower(trim($this->role)) === 'manager'; 
+        return $this->normalizedRole() === 'manager'; 
     }
     
     public function isEmployee()
     { 
-        return $this->role === 'employee' || $this->employee_type === 'new'; 
+        return $this->normalizedRole() === 'employee'; 
+    }
+
+    /**
+     * Kiểm tra user có quyền tạo task không
+     */
+    public function canCreateTask(): bool
+    {
+        return \App\Services\TaskPermissionService::canCreateTask($this);
+    }
+
+    /**
+     * Kiểm tra user có quyền xem task không
+     */
+    public function canViewTask(Task $task): bool
+    {
+        return \App\Services\TaskPermissionService::canViewTask($this, $task);
+    }
+
+    /**
+     * Kiểm tra user có quyền sửa task không
+     */
+    public function canEditTask(Task $task): bool
+    {
+        return \App\Services\TaskPermissionService::canEditTask($this, $task);
+    }
+
+    /**
+     * Kiểm tra user có quyền xóa task không
+     */
+    public function canDeleteTask(Task $task): bool
+    {
+        return \App\Services\TaskPermissionService::canDeleteTask($this, $task);
+    }
+
+    /**
+     * Kiểm tra user có quyền giao task cho user khác không
+     */
+    public function canAssignTaskTo(User $targetUser): bool
+    {
+        return \App\Services\TaskPermissionService::canAssignTask($this, $targetUser);
+    }
+
+    /**
+     * Kiểm tra user có quyền giao task cho department không
+     */
+    public function canAssignTaskToDepartment(Department $department): bool
+    {
+        return \App\Services\TaskPermissionService::canAssignTaskToDepartment($this, $department);
+    }
+
+    /**
+     * Kiểm tra user có quyền forward task không
+     */
+    public function canForwardTask(Task $task, User $targetUser): bool
+    {
+        return \App\Services\TaskPermissionService::canForwardTask($this, $task, $targetUser);
+    }
+
+    /**
+     * Kiểm tra user có quyền approve task không
+     */
+    public function canApproveTask(Task $task): bool
+    {
+        return \App\Services\TaskPermissionService::canApproveTask($this, $task);
+    }
+
+    /**
+     * Lấy danh sách users có thể giao task
+     */
+    public function getAssignableUsers(): \Illuminate\Database\Eloquent\Collection
+    {
+        return \App\Services\TaskPermissionService::getAssignableUsers($this);
+    }
+
+    /**
+     * Lấy danh sách departments có thể giao task
+     */
+    public function getAssignableDepartments(): \Illuminate\Database\Eloquent\Collection
+    {
+        return \App\Services\TaskPermissionService::getAssignableDepartments($this);
     }
 
     /**
@@ -143,29 +231,6 @@ class User extends Authenticatable
         return false;
     }
 
-    /**
-     * Kiểm tra user có thể giao việc cho user khác không
-     */
-    public function canAssignTaskTo(User $targetUser): bool
-    {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        if ($this->isDirector()) {
-            // Director có thể giao việc cho tất cả user (như Admin), chỉ không thể chỉ định vào Admin
-            if ($targetUser->isAdmin()) {
-                return false;
-            }
-            return true;
-        }
-
-        if ($this->isManager()) {
-            return $targetUser->department_id === $this->department_id;
-        }
-
-        return false;
-    }
 
     /**
      * Kiểm tra Director có thể quản lý phòng ban này không

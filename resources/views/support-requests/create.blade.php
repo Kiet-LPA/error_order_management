@@ -1,5 +1,74 @@
 @extends('layouts.master')
 
+@push('styles')
+<style>
+.department-group {
+    border-left: 3px solid #0d6efd;
+    padding-left: 15px;
+    margin-bottom: 20px;
+}
+
+.department-group h6 {
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.recipient-item {
+    transition: all 0.2s ease;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.recipient-item:hover {
+    background-color: #f8f9fa;
+}
+
+.recipient-item .form-check-label {
+    cursor: pointer;
+    width: 100%;
+}
+
+.recipient-item .form-check-input:checked + .form-check-label {
+    color: #0d6efd;
+    font-weight: 500;
+}
+
+#recipientsContainer {
+    border: 2px solid #dee2e6;
+    transition: border-color 0.3s ease;
+}
+
+#recipientsContainer.border-success {
+    border-color: #198754;
+    background-color: #f8fff9;
+}
+
+#recipientsContainer.border-danger {
+    border-color: #dc3545;
+    background-color: #fff8f8;
+}
+
+#recipientSearch {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+}
+
+#recipientSearch:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+#selectAllBtn {
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="row">
@@ -50,24 +119,54 @@
                                 <label class="form-label">
                                     Người nhận yêu cầu <span class="text-danger">*</span>
                                 </label>
-                                <div class="border rounded p-3 @error('recipients') border-danger @enderror" style="max-height: 200px; overflow-y: auto;">
+                                
+                                <!-- Tìm kiếm -->
+                                <div class="mb-2">
+                                    <input type="text" id="recipientSearch" class="form-control form-control-sm" 
+                                           placeholder="Tìm kiếm theo tên...">
+                                </div>
+                                
+                                <!-- Chọn tất cả -->
+                                <div class="mb-2">
+                                    <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-check-square me-1"></i>Chọn tất cả
+                                    </button>
+                                </div>
+                                
+                                <div class="border rounded p-3 @error('recipients') border-danger @enderror" 
+                                     style="max-height: 300px; overflow-y: auto;" id="recipientsContainer">
                                     @if($managers->count() > 0)
-                                        @foreach($managers as $manager)
-                                            <div class="form-check mb-2">
-                                                <input type="checkbox" 
-                                                       name="recipients[]" 
-                                                       value="{{ $manager->id }}" 
-                                                       id="recipient_{{ $manager->id }}"
-                                                       class="form-check-input @error('recipients') is-invalid @enderror"
-                                                       {{ in_array($manager->id, old('recipients', [])) ? 'checked' : '' }}>
-                                                <label for="recipient_{{ $manager->id }}" class="form-check-label">
-                                                    <strong>{{ $manager->name }}</strong>
-                                                    <span class="badge bg-{{ $manager->role === 'manager' ? 'warning' : 'info' }} ms-1">
-                                                        {{ $manager->role === 'manager' ? 'Manager' : 'Director' }}
-                                                    </span>
-                                                    <br>
-                                                    <small class="text-muted">{{ $manager->department->name ?? 'N/A' }}</small>
-                                                </label>
+                                        @php
+                                            $groupedManagers = $managers->groupBy('department.name');
+                                        @endphp
+                                        @foreach($groupedManagers as $departmentName => $departmentManagers)
+                                            <div class="department-group mb-3" data-department="{{ $departmentName }}">
+                                                <h6 class="text-primary mb-2 border-bottom pb-1">
+                                                    <i class="bi bi-building me-2"></i>{{ $departmentName ?? 'Chưa phân phòng ban' }}
+                                                    <small class="text-muted">({{ $departmentManagers->count() }} người)</small>
+                                                </h6>
+                                                @foreach($departmentManagers as $manager)
+                                                    <div class="form-check mb-2 recipient-item" data-name="{{ strtolower($manager->name) }}">
+                                                        <input type="checkbox" 
+                                                               name="recipients[]" 
+                                                               value="{{ $manager->id }}" 
+                                                               id="recipient_{{ $manager->id }}"
+                                                               class="form-check-input @error('recipients') is-invalid @enderror"
+                                                               {{ in_array($manager->id, old('recipients', [])) ? 'checked' : '' }}>
+                                                        <label for="recipient_{{ $manager->id }}" class="form-check-label">
+                                                            <strong>{{ $manager->name }}</strong>
+                                                            <span class="badge bg-{{ $manager->role === 'manager' ? 'warning' : 'info' }} ms-1">
+                                                                @if($manager->role === 'manager')
+                                                                    Quản lý
+                                                                @elseif($manager->role === 'director')
+                                                                    Giám đốc
+                                                                @else
+                                                                    {{ ucfirst($manager->role) }}
+                                                                @endif
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                @endforeach
                                             </div>
                                         @endforeach
                                     @else
@@ -79,11 +178,11 @@
                                 </div>
                                 <div class="form-text">
                                     @if(Auth::user()->isEmployee())
-                                        Có thể chọn Manager trong phòng ban hoặc Director quản lý phòng ban.
+                                        Có thể chọn Quản lý trong phòng ban hoặc Giám đốc quản lý phòng ban.
                                     @elseif(Auth::user()->isManager())
-                                        Có thể chọn Manager từ phòng ban khác hoặc Director quản lý phòng ban của bạn.
+                                        Có thể chọn Quản lý từ phòng ban khác hoặc Giám đốc quản lý phòng ban của bạn.
                                     @elseif(Auth::user()->isDirector())
-                                        Có thể chọn Manager của các phòng ban được quản lý.
+                                        Có thể chọn Quản lý của các phòng ban được quản lý.
                                     @endif
                                 </div>
                                 @error('recipients')
@@ -112,7 +211,7 @@
                             <!-- Deadline -->
                             <div class="col-md-6 mb-3">
                                 <label for="deadline" class="form-label">
-                                    Deadline
+                                    Hạn cuối
                                 </label>
                                 <input type="date" name="deadline" id="deadline" 
                                        value="{{ old('deadline') }}"
@@ -173,6 +272,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     const checkboxes = document.querySelectorAll('input[name="recipients[]"]');
+    const searchInput = document.getElementById('recipientSearch');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const container = document.getElementById('recipientsContainer');
     
     // Validate form submission
     form.addEventListener('submit', function(e) {
@@ -188,41 +290,94 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add visual feedback for checkbox selection
     checkboxes.forEach(function(checkbox) {
         checkbox.addEventListener('change', function() {
-            const checkedCount = document.querySelectorAll('input[name="recipients[]"]:checked').length;
-            const container = document.querySelector('.border.rounded.p-3');
-            
-            if (checkedCount > 0) {
-                container.classList.remove('border-danger');
-                container.classList.add('border-success');
+            updateVisualFeedback();
+            updateSelectAllButton();
+        });
+    });
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const recipientItems = document.querySelectorAll('.recipient-item');
+        const departmentGroups = document.querySelectorAll('.department-group');
+        
+        recipientItems.forEach(function(item) {
+            const name = item.getAttribute('data-name');
+            if (name.includes(searchTerm)) {
+                item.style.display = 'block';
             } else {
-                container.classList.remove('border-success');
-                container.classList.add('border-danger');
+                item.style.display = 'none';
+            }
+        });
+        
+        // Hide/show department groups based on visible items
+        departmentGroups.forEach(function(group) {
+            const visibleItems = group.querySelectorAll('.recipient-item[style*="block"], .recipient-item:not([style*="none"])');
+            if (visibleItems.length === 0) {
+                group.style.display = 'none';
+            } else {
+                group.style.display = 'block';
             }
         });
     });
     
     // Select all / Deselect all functionality
-    const selectAllBtn = document.createElement('button');
-    selectAllBtn.type = 'button';
-    selectAllBtn.className = 'btn btn-sm btn-outline-primary mb-2';
-    selectAllBtn.innerHTML = '<i class="bi bi-check-square me-1"></i>Chọn tất cả';
-    
-    const container = document.querySelector('.border.rounded.p-3');
-    container.parentNode.insertBefore(selectAllBtn, container);
-    
     let allSelected = false;
     selectAllBtn.addEventListener('click', function() {
-        checkboxes.forEach(function(checkbox) {
+        const visibleCheckboxes = document.querySelectorAll('input[name="recipients[]"]:not([style*="none"])');
+        
+        visibleCheckboxes.forEach(function(checkbox) {
             checkbox.checked = !allSelected;
         });
+        
         allSelected = !allSelected;
         selectAllBtn.innerHTML = allSelected ? 
             '<i class="bi bi-square me-1"></i>Bỏ chọn tất cả' : 
             '<i class="bi bi-check-square me-1"></i>Chọn tất cả';
         
-        // Trigger change event
-        checkboxes[0].dispatchEvent(new Event('change'));
+        // Trigger change events
+        visibleCheckboxes.forEach(function(checkbox) {
+            checkbox.dispatchEvent(new Event('change'));
+        });
     });
+    
+    // Update visual feedback
+    function updateVisualFeedback() {
+        const checkedCount = document.querySelectorAll('input[name="recipients[]"]:checked').length;
+        
+        if (checkedCount > 0) {
+            container.classList.remove('border-danger');
+            container.classList.add('border-success');
+        } else {
+            container.classList.remove('border-success');
+            container.classList.add('border-danger');
+        }
+    }
+    
+    // Update select all button state
+    function updateSelectAllButton() {
+        const visibleCheckboxes = document.querySelectorAll('input[name="recipients[]"]:not([style*="none"])');
+        const checkedVisibleCheckboxes = document.querySelectorAll('input[name="recipients[]"]:checked:not([style*="none"])');
+        
+        if (visibleCheckboxes.length === 0) {
+            selectAllBtn.style.display = 'none';
+            return;
+        }
+        
+        selectAllBtn.style.display = 'inline-block';
+        
+        if (checkedVisibleCheckboxes.length === visibleCheckboxes.length) {
+            allSelected = true;
+            selectAllBtn.innerHTML = '<i class="bi bi-square me-1"></i>Bỏ chọn tất cả';
+        } else {
+            allSelected = false;
+            selectAllBtn.innerHTML = '<i class="bi bi-check-square me-1"></i>Chọn tất cả';
+        }
+    }
+    
+    // Initialize
+    updateVisualFeedback();
+    updateSelectAllButton();
 });
 </script>
 @endpush

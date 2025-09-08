@@ -29,6 +29,14 @@
                 </div>
             @endif
 
+            @if(isset($error))
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {{ $error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
             @if($supportRequests->count() > 0)
                 <div class="card">
                     <div class="card-body">
@@ -121,15 +129,46 @@
                     </div>
                     @endif
                 </div>
-            @else
+            @elseif(isset($isEmpty) && $isEmpty)
+                <!-- Empty State - Không phải lỗi, chỉ là chưa có dữ liệu -->
                 <div class="card">
                     <div class="card-body text-center py-5">
-                        <i class="bi bi-inbox display-1 text-muted mb-3"></i>
-                        <h4 class="text-muted">Chưa có yêu cầu nào</h4>
-                        <p class="text-muted mb-4">Bạn chưa tạo yêu cầu hỗ trợ nào.</p>
-                        <a href="{{ route('support-requests.create') }}" class="btn btn-primary">
-                            <i class="bi bi-plus-circle me-2"></i>Tạo yêu cầu đầu tiên
-                        </a>
+                        <div class="mb-4">
+                            <i class="bi bi-clipboard-plus display-1 text-primary"></i>
+                        </div>
+                        <h4 class="text-primary mb-3">Chưa có yêu cầu hỗ trợ nào</h4>
+                        <p class="text-muted mb-4">
+                            Bạn chưa tạo yêu cầu hỗ trợ nào. Hãy tạo yêu cầu đầu tiên để bắt đầu sử dụng hệ thống.
+                        </p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{{ route('support-requests.create') }}" class="btn btn-primary btn-lg">
+                                <i class="bi bi-plus-circle me-2"></i>Tạo yêu cầu hỗ trợ
+                            </a>
+                            <a href="{{ route('support-requests.index') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i>Xem tất cả yêu cầu
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <!-- Error State - Có lỗi thật -->
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+                        </div>
+                        <h4 class="text-warning mb-3">Không thể tải dữ liệu</h4>
+                        <p class="text-muted mb-4">
+                            Có lỗi xảy ra khi tải danh sách yêu cầu của bạn. Vui lòng thử lại sau.
+                        </p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-outline-primary" onclick="window.location.reload()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Thử lại
+                            </button>
+                            <a href="{{ route('support-requests.create') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-2"></i>Tạo yêu cầu mới
+                            </a>
+                        </div>
                     </div>
                 </div>
             @endif

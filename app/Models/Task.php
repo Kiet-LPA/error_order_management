@@ -26,16 +26,23 @@ class Task extends Model
         'recurring_days',
         'last_reset_date',
         'completed_at',
-        'is_multi_department'
+        'is_multi_department',
+        'forwarded_to',
+        'forwarded_by',
+        'forward_reason',
+        'forwarded_at'
     ];
     
     protected $casts = [
         'deadline' => 'datetime',
         'attachments' => 'array',
         'recurring_start_date' => 'date',
+        'forwarded_at' => 'datetime',
         'last_reset_date' => 'date',
         'completed_at' => 'datetime',
         'is_multi_department' => 'boolean',
+        'is_multi_user' => 'boolean',
+        'is_recurring' => 'boolean',
     ];
 
     // Relationships
@@ -52,6 +59,16 @@ class Task extends Model
     public function creator()
     { 
         return $this->belongsTo(User::class, 'creator_id'); 
+    }
+    
+    public function forwardedTo()
+    { 
+        return $this->belongsTo(User::class, 'forwarded_to'); 
+    }
+    
+    public function forwardedBy()
+    { 
+        return $this->belongsTo(User::class, 'forwarded_by'); 
     }
     
     public function activities()
@@ -395,6 +412,102 @@ class Task extends Model
     {
         return $query->where('status', 'in_progress')
                     ->where('deadline', '<', now());
+    }
+
+    /**
+     * Tự động phát hiện và gán phòng ban dựa trên assignees
+     */
+    public function autoDetectAndAssignDepartments(): array
+    {
+        $departmentIds = collect();
+        
+        // Lấy phòng ban từ assignee chính
+        if ($this->assignee_id && $this->assignee) {
+            $departmentIds->push($this->assignee->department_id);
+        }
+        
+        // Lấy phòng ban từ multi-assignees
+        $assigneeDepartments = $this->assignees()
+            ->with('department')
+            ->get()
+            ->pluck('department_id')
+            ->filter();
+        
+        $departmentIds = $departmentIds->merge($assigneeDepartments);
+        
+        // Loại bỏ duplicate và null values
+        $uniqueDepartmentIds = $departmentIds->unique()->filter()->values();
+        
+        return $uniqueDepartmentIds->toArray();
+    }
+
+    /**
+     * Cập nhật phòng ban tự động dựa trên assignees
+     */
+    public function updateDepartmentsFromAssignees(): bool
+    {
+        $detectedDepartmentIds = $this->autoDetectAndAssignDepartments();
+        
+        if (empty($detectedDepartmentIds)) {
+            return false;
+        }
+        
+        // Cập nhật is_multi_department
+        $this->is_multi_department = count($detectedDepartmentIds) > 1;
+        
+        // Nếu chỉ có 1 phòng ban, gán vào department_id chính
+        if (count($detectedDepartmentIds) === 1) {
+            $this->department_id = $detectedDepartmentIds[0];
+        } else {
+            // Nếu có nhiều phòng ban, department_id chính có thể null hoặc giữ nguyên
+            // và sử dụng bảng department_tasks
+        }
+        
+        // Sync departments trong bảng department_tasks
+        $this->departments()->sync($detectedDepartmentIds);
+        
+        return $this->save();
+    }
+
+    /**
+     * Lấy danh sách phòng ban hiện tại của task
+     */
+    public function getCurrentDepartments(): \Illuminate\Support\Collection
+    {
+        $departments = collect();
+        
+        // Thêm department chính nếu có
+        if ($this->department_id && $this->department) {
+            $departments->push($this->department);
+        }
+        
+        // Thêm các departments từ bảng department_tasks
+        $multiDepartments = $this->departments()->get();
+        $departments = $departments->merge($multiDepartments);
+        
+        return $departments->unique('id');
+    }
+
+    /**
+     * Kiểm tra xem task có phòng ban nào không
+     */
+    public function hasDepartments(): bool
+    {
+        return $this->department_id || $this->departments()->exists();
+    }
+
+    /**
+     * Lấy tên các phòng ban của task
+     */
+    public function getDepartmentNames(): string
+    {
+        $departments = $this->getCurrentDepartments();
+        
+        if ($departments->isEmpty()) {
+            return 'Chưa phân phòng ban';
+        }
+        
+        return $departments->pluck('name')->join(', ');
     }
 }
 

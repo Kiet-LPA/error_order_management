@@ -781,7 +781,7 @@
     </div>
 
     <div class="col-md-4">
-      <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Filter theo phòng ban:</small>
+      <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Lọc theo phòng ban:</small>
       <div class="dropdown">
         <button class="btn btn-sm btn-secondary dropdown-toggle w-100" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
           @if(request('department_filter'))

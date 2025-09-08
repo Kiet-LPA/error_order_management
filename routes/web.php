@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DashboardController;
@@ -52,9 +53,45 @@ Route::middleware(['auth'])->group(function () {
         // Route::resource('departments', DepartmentController::class);
     });
 
-    // Manager & Admin: CRUD Task (tránh trùng, bỏ 'show' vì dùng alias riêng)
-    Route::middleware('role:admin,director,manager')->group(function () {
-        Route::resource('tasks', TaskController::class)->except(['show']);
+
+    // Route đơn giản cho tasks index - không dùng middleware group
+    Route::get('/tasks', function() {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403, 'Không đủ quyền thao tác');
+        }
+        
+        // Kiểm tra role thủ công
+        $userRole = strtolower(trim($user->role));
+        $allowedRoles = ['admin', 'director', 'manager'];
+        
+        if (!in_array($userRole, $allowedRoles, true)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+        }
+        
+        // Nếu là Manager, kiểm tra department
+        if ($userRole === 'manager' && !$user->department_id) {
+            abort(403, 'Bạn chưa được phân phòng ban. Vui lòng liên hệ quản trị viên.');
+        }
+        
+        // Gọi TaskController@index
+        $controller = new \App\Http\Controllers\TaskController();
+        return $controller->index(request());
+    })->middleware('auth')->name('tasks.index');
+
+    // Task creation routes - sử dụng hệ thống phân quyền mới
+    Route::post('/tasks', [TaskController::class, 'store'])
+        ->middleware('department.permission')
+        ->name('tasks.store');
+    Route::get('/tasks/create', [TaskController::class, 'create'])->name('tasks.create');
+    
+    // Manager & Admin: Các route khác của Task
+    Route::middleware(['role:admin,director,manager'])->group(function () {
+        // Các route khác của resource
+        Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
+        Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+        Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+        Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
         
         // Kanban Board - chỉ Admin/Director/Manager có thể cập nhật status
         Route::post('/tasks/{task}/update-status', [TaskController::class, 'updateStatusAjax'])->name('tasks.update-status-ajax');
@@ -103,20 +140,31 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/support-requests/{supportRequest}/undo', [SupportRequestController::class, 'undoApprovalRejection'])->name('support-requests.undo');
     });
 
+    // Admin & Director: Xóa support requests
+    Route::middleware('role:admin,director')->group(function () {
+        Route::delete('/support-requests/{supportRequest}', [SupportRequestController::class, 'destroy'])->name('support-requests.destroy');
+    });
+
     // Employee: Hủy yêu cầu hỗ trợ (trong 3 giờ)
     Route::middleware('role:employee')->group(function () {
         Route::post('/support-requests/{supportRequest}/cancel', [SupportRequestController::class, 'cancelRequest'])->name('support-requests.cancel');
     });
 
-    // Lưu task (nút "Giao việc") - áp dụng middleware kiểm tra phòng ban
-    Route::post('/tasks', [TaskController::class, 'store'])
-        ->middleware(['role:admin,director,manager', 'department.permission'])
-        ->name('tasks.store');
+
+    // Forward task
+    Route::get('/tasks/{task}/forward', [TaskController::class, 'showForwardForm'])
+        ->middleware(['role:admin,director,manager'])
+        ->name('tasks.forward.form');
+    Route::post('/tasks/{task}/forward', [TaskController::class, 'forward'])
+        ->middleware(['role:admin,director,manager'])
+        ->name('tasks.forward');
 
     // Alias để khớp link của giao diện cũ (mọi role đều có thể xem chi tiết)
     Route::get('/task-detail/{task}', [TaskController::class, 'show'])->name('task-detail');
     // Alias cho form tạo (trùng với tasks.create nhưng để khớp UI cũ)
-    Route::get('/create-task', [TaskController::class, 'create'])->name('create-task');
+    Route::get('/create-task', [TaskController::class, 'create'])
+        ->middleware(['role:admin,director,manager'])
+        ->name('create-task');
     // Cập nhật trạng thái & xem lịch sử: cho tất cả role đã đăng nhập, quyền kiểm tra trong controller
     Route::get('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::get('/tasks/{task}/history', [TaskController::class, 'history'])->name('tasks.history');
@@ -139,6 +187,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
         Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
+        Route::post('/notifications/delete', [NotificationController::class, 'delete'])->name('notifications.delete');
         Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
     });
 
@@ -190,6 +239,7 @@ Route::middleware(['auth', 'role:admin,director'])->group(function () {
     Route::post('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesStore'])->name('employees.new.store');
     Route::get('/employees/new/{user}/edit', [App\Http\Controllers\EmployeeController::class, 'newEmployeesEdit'])->name('employees.new.edit');
     Route::put('/employees/new/{user}', [App\Http\Controllers\EmployeeController::class, 'newEmployeesUpdate'])->name('employees.new.update');
+    Route::delete('/employees/new/{user}', [App\Http\Controllers\EmployeeController::class, 'newEmployeesDestroy'])->name('employees.new.destroy');
     Route::post('/employees/{user}/convert', [App\Http\Controllers\EmployeeController::class, 'convertToOfficial'])->name('employees.convert');
 });
 

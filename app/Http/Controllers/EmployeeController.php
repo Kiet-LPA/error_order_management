@@ -14,14 +14,40 @@ class EmployeeController extends Controller
     /**
      * Hiển thị danh sách nhân viên mới
      */
-    public function newEmployeesIndex()
+    public function newEmployeesIndex(Request $request)
     {
-        $newEmployees = User::where('employee_type', 'new')
-                           ->with(['department', 'contracts' => function($query) {
-                               $query->where('status', 'active')->latest();
-                           }])
-                           ->orderBy('created_at', 'desc')
-                           ->paginate(15); // Thêm pagination
+        $query = User::where('employee_type', 'new')
+                    ->with(['department', 'contracts' => function($query) {
+                        $query->where('status', 'active')->latest();
+                    }]);
+
+        // Tìm kiếm theo tên, email hoặc số điện thoại
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%")
+                  ->orWhere('phone', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Lọc theo phòng ban
+        if ($request->filled('department')) {
+            $query->where('department_id', $request->department);
+        }
+
+        // Lọc theo trạng thái
+        if ($request->filled('status')) {
+            if ($request->status === 'no_contract') {
+                $query->whereDoesntHave('contracts');
+            } else {
+                $query->whereHas('contracts', function($q) use ($request) {
+                    $q->where('status', $request->status);
+                });
+            }
+        }
+
+        $newEmployees = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return view('employees.new.index', compact('newEmployees'));
     }
@@ -376,6 +402,43 @@ class EmployeeController extends Controller
         } catch (\Exception $e) {
             Log::error('Error updating salary: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật lương.']);
+        }
+    }
+
+    /**
+     * Xóa nhân viên mới
+     */
+    public function newEmployeesDestroy(User $employee)
+    {
+        // Kiểm tra quyền
+        if (!auth()->user()->isAdmin() && !auth()->user()->isDirector()) {
+            abort(403, 'Không đủ quyền thực hiện thao tác này.');
+        }
+
+        // Kiểm tra nhân viên có phải là nhân viên mới không
+        if ($employee->employee_type !== 'new') {
+            abort(404, 'Nhân viên không tồn tại hoặc không phải nhân viên mới.');
+        }
+
+        try {
+            // Xóa các bản ghi liên quan
+            $employee->contracts()->delete();
+            $employee->salaries()->delete();
+            
+            // Xóa avatar nếu có
+            if ($employee->avatar && Storage::exists('public/' . $employee->avatar)) {
+                Storage::delete('public/' . $employee->avatar);
+            }
+            
+            // Xóa nhân viên
+            $employee->delete();
+
+            return redirect()->route('employees.new.index')
+                            ->with('success', 'Nhân viên đã được xóa thành công.');
+        } catch (\Exception $e) {
+            Log::error('Error deleting new employee: ' . $e->getMessage());
+            return redirect()->route('employees.new.index')
+                            ->with('error', 'Có lỗi xảy ra khi xóa nhân viên. Vui lòng thử lại.');
         }
     }
 }

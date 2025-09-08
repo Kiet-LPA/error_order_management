@@ -348,6 +348,50 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
         </div>
     </div>
 
+    {{-- Thông tin phòng ban tự động --}}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="bi bi-info-circle me-2"></i>Thông tin phòng ban tự động
+            </h6>
+        </div>
+        <div class="card-body">
+            @php
+                $currentDepartments = $task->getCurrentDepartments();
+            @endphp
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Phòng ban hiện tại:</strong>
+                    @if($currentDepartments->count() > 0)
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach($currentDepartments as $department)
+                                <span class="badge bg-info">{{ $department->name }}</span>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="text-muted">Chưa phân phòng ban</span>
+                    @endif
+                </div>
+                <div class="col-md-6">
+                    <strong>Loại task:</strong>
+                    @if($task->is_multi_department)
+                        <span class="badge bg-warning">Đa phòng ban</span>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Tự động phát hiện từ assignees
+                        </small>
+                    @else
+                        <span class="badge bg-primary">Đơn phòng ban</span>
+                    @endif
+                </div>
+            </div>
+            <div class="alert alert-info mt-3 mb-0">
+                <i class="bi bi-lightbulb me-2"></i>
+                <strong>Lưu ý:</strong> Phòng ban sẽ được tự động cập nhật dựa trên assignees của task. 
+                Nếu bạn thêm/xóa assignees, phòng ban sẽ được điều chỉnh tương ứng.
+            </div>
+        </div>
+    </div>
+
     {{-- Form --}}
     <div class="card">
         <div class="card-body p-4">
@@ -590,12 +634,26 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                     @endphp
                                     @foreach($sortedUsers as $user)
                                         @if($user)
-                                            <div class="form-check mb-2 ms-3 user-option" data-department="{{ $user->department_id ?? '' }}">
+                                            @php
+                                                $isFromOtherDept = auth()->user()->isManager() && 
+                                                                  $user->department_id !== auth()->user()->department_id;
+                                                $isAlreadyAssigned = in_array($user->id, old('assignee_ids', $task->assignees->pluck('id')->toArray()));
+                                                $isDisabled = $isFromOtherDept && $isAlreadyAssigned;
+                                            @endphp
+                                            <div class="form-check mb-2 ms-3 user-option {{ $isFromOtherDept ? 'text-muted' : '' }}" 
+                                                 data-department="{{ $user->department_id ?? '' }}">
                                                 <input class="form-check-input" type="checkbox" name="assignee_ids[]" 
                                                        value="{{ $user->id }}" id="user_{{ $user->id }}"
-                                                       {{ in_array($user->id, old('assignee_ids', $task->assignees->pluck('id')->toArray())) ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="user_{{ $user->id }}">
+                                                       {{ $isAlreadyAssigned ? 'checked' : '' }}
+                                                       {{ $isDisabled ? 'disabled' : '' }}>
+                                                <label class="form-check-label {{ $isDisabled ? 'text-muted' : '' }}" for="user_{{ $user->id }}">
                                                     {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                                    @if($isFromOtherDept)
+                                                        <small class="text-muted">(Phòng ban khác)</small>
+                                                    @endif
+                                                    @if($isDisabled)
+                                                        <i class="bi bi-lock-fill ms-1 text-muted"></i>
+                                                    @endif
                                                 </label>
                                             </div>
                                         @endif
@@ -698,7 +756,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                 @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-people me-1"></i>Chọn Task Followers
+                        <i class="bi bi-people me-1"></i>Chọn Người Theo Dõi Công Việc
                     </label>
                     <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                         @foreach($users->groupBy('department_id') as $departmentId => $departmentUsers)

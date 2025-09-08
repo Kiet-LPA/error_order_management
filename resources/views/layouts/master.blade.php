@@ -601,7 +601,14 @@
             <i class="bi bi-list-task me-2"></i> <span>Danh sách</span>
           </a>
 
-          <!-- 3. Tạo công việc -->
+          <!-- 3. Yêu cầu hỗ trợ đã gửi -->
+          <a href="{{ route('support-requests.my-requests') }}"
+             class="list-group-item {{ request()->routeIs('support-requests.my-requests')?'active':'' }}"
+             data-title="Yêu cầu hỗ trợ đã gửi">
+            <i class="bi bi-person-lines-fill me-2"></i> <span>Yêu cầu đã gửi</span>
+          </a>
+
+          <!-- 4. Tạo công việc -->
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
             <a href="{{ route('create-task') }}"
                class="list-group-item {{ request()->routeIs('create-task')?'active':'' }}"
@@ -610,7 +617,16 @@
             </a>
           @endif
 
-          <!-- 4. Quản lý yêu cầu -->
+          <!-- 5. Tạo yêu cầu hỗ trợ -->
+          @if(Auth::user()->isEmployee())
+          <a href="{{ route('support-requests.create') }}"
+             class="list-group-item {{ request()->routeIs('support-requests.create')?'active':'' }}"
+             data-title="Tạo yêu cầu hỗ trợ">
+            <i class="bi bi-plus-circle me-2"></i> <span>Tạo yêu cầu hỗ trợ</span>
+          </a>
+          @endif
+
+          <!-- 6. Quản lý yêu cầu -->
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
           <a href="{{ route('support-requests.quest-detail') }}"
              class="list-group-item {{ request()->routeIs('support-requests.quest-detail')?'active':'' }}"
@@ -621,26 +637,26 @@
 
           @auth
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
-            <!-- 5. Quản lý nhân viên - Header -->
+            <!-- 7. Quản lý nhân viên - Header -->
             <div class="list-group-item sidebar-section-header">
               <i class="bi bi-people me-2"></i> <span>Quản lý nhân viên</span>
             </div>
             
-            <!-- 5.1. Nhân viên chính thức -->
+            <!-- 7.1. Nhân viên chính thức -->
             <a href="{{ route('users.index') }}" 
                class="list-group-item sidebar-sub-item {{ request()->routeIs('users.*')?'active':'' }}"
                data-title="Nhân viên chính thức">
               <i class="bi bi-person-check me-2"></i> <span>Nhân viên chính thức</span>
             </a>
             
-            <!-- 5.2. Nhân viên mới -->
+            <!-- 7.2. Nhân viên mới -->
             <a href="{{ route('employees.new.index') }}" 
                class="list-group-item sidebar-sub-item {{ request()->routeIs('employees.new.*')?'active':'' }}"
                data-title="Nhân viên mới">
               <i class="bi bi-person-plus me-2"></i> <span>Nhân viên mới</span>
             </a>
             
-            <!-- 6. Phòng ban -->
+            <!-- 7.3. Phòng ban -->
             <a href="{{ route('departments.index') }}"
                class="list-group-item {{ request()->routeIs('departments.*')?'active':'' }}"
                data-title="Phòng ban">
@@ -648,7 +664,7 @@
             </a>
           @endif
 
-          <!-- 7. Báo cáo -->
+          <!-- 8. Báo cáo -->
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
             <a href="{{ route('reports.index') }}"
                class="list-group-item {{ request()->routeIs('reports.index')?'active':'' }}"
@@ -657,7 +673,7 @@
             </a>
           @endif
 
-          <!-- 8. Báo cáo công việc - cho tất cả role -->
+          <!-- 9. Báo cáo công việc - cho tất cả role -->
           <a href="{{ route('work-reports.index') }}"
              class="list-group-item {{ request()->routeIs('work-reports.*')?'active':'' }}"
              data-title="Báo cáo công việc">
@@ -691,6 +707,14 @@
              class="nav-link {{ request()->routeIs('dashboard')?'active':'' }}">
             <i class="bi bi-list-task"></i>
             <span>Danh sách</span>
+          </a>
+        </div>
+
+        <div class="col nav-item">
+          <a href="{{ route('support-requests.my-requests') }}" 
+             class="nav-link {{ request()->routeIs('support-requests.my-requests')?'active':'' }}">
+            <i class="bi bi-person-lines-fill"></i>
+            <span>Yêu cầu của tôi</span>
           </a>
         </div>
         
@@ -752,6 +776,16 @@
                class="nav-link {{ request()->routeIs('create-task')?'active':'' }}">
               <i class="bi bi-plus-square"></i>
               <span>Tạo việc</span>
+            </a>
+          </div>
+        @endif
+
+        @if(Auth::user()->isEmployee())
+          <div class="col nav-item">
+            <a href="{{ route('support-requests.create') }}" 
+               class="nav-link {{ request()->routeIs('support-requests.create')?'active':'' }}">
+              <i class="bi bi-plus-circle"></i>
+              <span>Tạo yêu cầu</span>
             </a>
           </div>
         @endif

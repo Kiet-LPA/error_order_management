@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\Department;
 use App\Models\TaskFollower;
 use App\Services\NotificationService;
+use App\Services\TaskPermissionService;
 use App\Rules\FutureDate;
 
 use Illuminate\Http\Request;
@@ -40,30 +41,125 @@ class TaskController extends Controller
             return true;
         }
         
+        // Kiểm tra nếu task đã được forward cho manager này
+        if ($task->forwarded_to === $user->id) {
+            return true;
+        }
+        
         return false;
+    }
+
+    /**
+     * Hiển thị form forward task
+     */
+    public function showForwardForm(Task $task)
+    {
+        $user = auth()->user();
+        
+        // Chỉ Manager, Admin, Director mới có thể forward task
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            abort(403, 'Không đủ quyền thao tác');
+        }
+        
+        // Kiểm tra quyền forward task
+        $canForward = false;
+        if ($user->isAdmin() || $user->isDirector()) {
+            $canForward = true; // Admin và Director luôn có thể forward
+        } elseif ($user->isManager()) {
+            $canForward = $user->canViewTask($task); // Manager chỉ cần có quyền xem task
+        }
+        
+        if (!$canForward) {
+            abort(403, 'Bạn không có quyền forward task này');
+        }
+        
+        // Lấy danh sách Manager khác (trừ chính họ)
+        $managers = User::where('role', 'manager')
+                       ->where('id', '!=', $user->id)
+                       ->with('department')
+                       ->orderBy('name')
+                       ->get();
+        
+        return view('tasks.forward', compact('task', 'managers'));
+    }
+
+    /**
+     * Xử lý forward task
+     */
+    public function forward(Request $request, Task $task)
+    {
+        $user = auth()->user();
+        
+        // Chỉ Manager, Admin, Director mới có thể forward task
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            abort(403, 'Không đủ quyền thao tác');
+        }
+        
+        $data = $request->validate([
+            'forward_to' => 'required|exists:users,id',
+            'forward_reason' => 'required|string|max:1000',
+        ]);
+        
+        // Kiểm tra người được forward phải là Manager
+        $forwardToUser = User::find($data['forward_to']);
+        if (!$forwardToUser->isManager()) {
+            abort(403, 'Chỉ có thể forward task cho Manager khác');
+        }
+        
+        // Kiểm tra quyền forward task
+        if (!$user->canForwardTask($task, $forwardToUser)) {
+            abort(403, 'Bạn không có quyền forward task này cho người này');
+        }
+        
+        // Lưu lịch sử forward trước đó (nếu có)
+        $previousForward = null;
+        if ($task->forwarded_to) {
+            $previousForward = [
+                'forwarded_to' => $task->forwarded_to,
+                'forwarded_by' => $task->forwarded_by,
+                'forward_reason' => $task->forward_reason,
+                'forwarded_at' => $task->forwarded_at,
+            ];
+        }
+        
+        // Cập nhật task với thông tin forward mới
+        $task->update([
+            'forwarded_to' => $data['forward_to'],
+            'forwarded_by' => $user->id,
+            'forward_reason' => $data['forward_reason'],
+            'forwarded_at' => now(),
+        ]);
+        
+        // Lưu lịch sử forward vào task_activities
+        $task->activities()->create([
+            'user_id' => $user->id,
+            'action' => 'forwarded',
+            'description' => "Task được forward từ {$user->name} đến {$forwardToUser->name}",
+            'metadata' => [
+                'forward_to' => $forwardToUser->id,
+                'forward_reason' => $data['forward_reason'],
+                'previous_forward' => $previousForward,
+            ],
+        ]);
+        
+        // Gửi thông báo cho Manager được forward
+        NotificationService::taskForwarded($task, $user, $forwardToUser);
+        
+        return redirect()->route('task-detail', $task)
+                        ->with('success', 'Task đã được forward thành công cho ' . $forwardToUser->name);
     }
     public function create()
     {
         $user = auth()->user();
         
-        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+        // Kiểm tra quyền tạo task
+        if (!$user->canCreateTask()) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin có thể giao việc cho tất cả users và departments
-            $users = User::with('department')->orderBy('name')->get();
-            $departments = \App\Models\Department::orderBy('name')->get();
-        } else {
-            // Manager có thể thấy tất cả Employee để có thể tạo công việc đa phòng ban
-            // Nhưng logic validation sẽ đảm bảo phải có ít nhất 1 người từ phòng ban của mình
-            $users = User::with('department')
-                        ->where('role', 'employee')
-                        ->where('id', '!=', $user->id) // Không giao việc cho chính mình
-                        ->orderBy('name')
-                        ->get();
-            $departments = \App\Models\Department::orderBy('name')->get();
-        }
+        // Lấy danh sách users và departments có thể giao task
+        $users = $user->getAssignableUsers();
+        $departments = $user->getAssignableDepartments();
         
         return view('tasks.create', compact('users', 'departments'));
     }
@@ -72,8 +168,8 @@ class TaskController extends Controller
     {
         $user = $r->user();
         
-        // Kiểm tra quyền giao việc
-        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+        // Kiểm tra quyền tạo task
+        if (!$user->canCreateTask()) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
@@ -94,73 +190,10 @@ class TaskController extends Controller
             'is_recurring' => 'nullable|boolean',
         ]);
 
-        // Kiểm tra quyền theo role
-        if ($user->isManager()) {
-            // Kiểm tra nếu không phải đa phòng ban
-            if (!$r->boolean('is_multi_department')) {
-                // Giao việc thường - chỉ cho phòng ban của mình
-                if ($data['assignee_id']) {
-                    $assignee = User::find($data['assignee_id']);
-                    if ($assignee && ($assignee->role !== 'employee' || $assignee->department_id !== $user->department_id)) {
-                        abort(403, 'Manager chỉ có thể giao việc cho nhân viên trong cùng phòng ban');
-                    }
-                }
-                
-                if ($data['assignee_ids']) {
-                    foreach ($data['assignee_ids'] as $assigneeId) {
-                        $assignee = User::find($assigneeId);
-                        if ($assignee && ($assignee->role !== 'employee' || $assignee->department_id !== $user->department_id)) {
-                            abort(403, 'Manager chỉ có thể giao việc cho nhân viên trong cùng phòng ban');
-                        }
-                    }
-                }
-            } else {
-                // Giao việc đa phòng ban - phải có ít nhất 1 người từ phòng ban của manager
-                $hasOwnDepartmentUser = false;
-                
-                if ($data['assignee_ids']) {
-                    // Kiểm tra tất cả assignees phải là employee
-                    foreach ($data['assignee_ids'] as $assigneeId) {
-                        $assignee = User::find($assigneeId);
-                        if ($assignee && $assignee->role !== 'employee') {
-                            abort(403, 'Manager chỉ có thể giao việc cho nhân viên');
-                        }
-                        if ($assignee && $assignee->department_id === $user->department_id) {
-                            $hasOwnDepartmentUser = true;
-                        }
-                    }
-                } elseif ($data['assignee_id']) {
-                    $assignee = User::find($data['assignee_id']);
-                    if ($assignee && $assignee->role !== 'employee') {
-                        abort(403, 'Manager chỉ có thể giao việc cho nhân viên');
-                    }
-                    if ($assignee && $assignee->department_id === $user->department_id) {
-                        $hasOwnDepartmentUser = true;
-                    }
-                }
-                
-                if (!$hasOwnDepartmentUser) {
-                    abort(403, 'Manager phải có ít nhất 1 người từ phòng ban của mình tham gia vào công việc đa phòng ban');
-                }
-            }
-        } elseif ($user->isDirector()) {
-            // Director có quyền như Admin - có thể giao việc cho tất cả user (trừ Admin)
-            if ($data['assignee_id']) {
-                $assignee = User::find($data['assignee_id']);
-                if ($assignee && $assignee->isAdmin()) {
-                    abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-                }
-            }
-            
-            // Kiểm tra assignee_ids (multi-user)
-            if ($data['assignee_ids']) {
-                foreach ($data['assignee_ids'] as $assigneeId) {
-                    $assignee = User::find($assigneeId);
-                    if ($assignee && $assignee->isAdmin()) {
-                        abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-                    }
-                }
-            }
+        // Validate task assignment permissions
+        $permissionErrors = TaskPermissionService::validateTaskAssignment($user, $data);
+        if (!empty($permissionErrors)) {
+            return back()->withErrors($permissionErrors)->withInput();
         }
 
         $data['creator_id'] = $user->id;
@@ -248,6 +281,9 @@ class TaskController extends Controller
             }
         }
 
+        // Tự động phát hiện và gán phòng ban dựa trên assignees
+        $task->updateDepartmentsFromAssignees();
+
         // Xử lý multi-department assignments
         if ($r->boolean('is_multi_department') && $r->has('department_ids')) {
             foreach ($r->department_ids as $departmentId) {
@@ -286,26 +322,11 @@ class TaskController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền xem task
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể xem mọi task
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể xem task của phòng ban mình
-            if (!$this->canManagerAccessTask($user, $task)) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
-        } else {
-            // Employee có thể xem task mà họ được assign, tạo, hoặc follow
-            $isAssigned = $task->assignee_id === $user->id || 
-                         $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id) ||
-                         $task->followers->contains('id', $user->id);
-            
-            if (!$isAssigned) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
+        if (!$user->canViewTask($task)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
-        $task->load(['creator','assignee','assignees','departments','followers.department','approvals.department','approvals.manager']);
+        $task->load(['creator','assignee','assignees','departments','followers.department','approvals.department','approvals.manager','forwardedTo','forwardedBy']);
         $task->load(['activities' => function($query) {
             $query->orderBy('created_at', 'desc');
         }, 'activities.user']);
@@ -317,45 +338,16 @@ class TaskController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền chỉnh sửa task
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể chỉnh sửa mọi task
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể chỉnh sửa task của phòng ban mình
-            if (!$this->canManagerAccessTask($user, $task)) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
-        } else {
-            // Employee chỉ có thể chỉnh sửa task mà họ được assign hoặc tạo
-            $isAssigned = $task->assignee_id === $user->id || 
-                         $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
-            
-            if (!$isAssigned) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
+        if (!$user->canEditTask($task)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         // Load relationships
         $task->load(['assignees', 'departments', 'followers.department']);
         
-        // Lấy danh sách users có thể assign
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể giao việc cho tất cả users
-            $users = User::with('department')->orderBy('name')->get(['id','name','department_id','role']);
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể giao việc cho Employee
-            $users = User::with('department')
-                        ->where('role', 'employee')
-                        ->where('id', '!=', $user->id) // Không giao việc cho chính mình
-                        ->orderBy('name')
-                        ->get(['id','name','department_id','role']);
-        } else {
-            // Employee không thể giao việc
-            $users = collect();
-        }
-        
-        // Lấy danh sách departments
-        $departments = Department::orderBy('name')->get(['id', 'name']);
+        // Lấy danh sách users và departments có thể assign
+        $users = $user->getAssignableUsers();
+        $departments = $user->getAssignableDepartments();
         
         return view('tasks.edit', compact('task', 'users', 'departments'));
     }
@@ -365,44 +357,8 @@ class TaskController extends Controller
         $user = $request->user();
         
         // Kiểm tra quyền cập nhật task
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể cập nhật mọi task
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể cập nhật task của phòng ban mình
-            $canUpdate = false;
-            
-            // Kiểm tra nếu assignee cùng phòng ban
-            if ($task->assignee && $task->assignee->department_id === $user->department_id) {
-                $canUpdate = true;
-            }
-            
-            // Kiểm tra nếu creator cùng phòng ban
-            if ($task->creator && $task->creator->department_id === $user->department_id) {
-                $canUpdate = true;
-            }
-            
-            // Kiểm tra nếu có assignee nào cùng phòng ban
-            if ($task->assignees->where('department_id', $user->department_id)->count() > 0) {
-                $canUpdate = true;
-            }
-            
-            // Kiểm tra nếu task thuộc phòng ban của manager
-            if ($task->department_id === $user->department_id) {
-                $canUpdate = true;
-            }
-            
-            if (!$canUpdate) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
-        } else {
-            // Employee chỉ có thể cập nhật task mà họ được assign hoặc tạo
-            $isAssigned = $task->assignee_id === $user->id || 
-                         $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
-            
-            if (!$isAssigned) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
+        if (!$user->canEditTask($task)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         $data = $request->validate([
@@ -440,26 +396,44 @@ class TaskController extends Controller
         $isMultiUser = $request->has('is_multi_user');
         $isMultiDepartment = $request->has('is_multi_department');
 
-        // Xóa các assignments cũ
-        $task->assignees()->detach();
-        $task->departments()->detach();
-
+        // Xử lý assignees - giữ lại người từ phòng ban khác, chỉ thêm/xóa người cùng phòng ban
         if ($isMultiUser && $request->has('assignee_ids')) {
             // Multi-user assignment
-            $assigneeIds = $request->assignee_ids;
+            $newAssigneeIds = $request->assignee_ids;
+            $currentAssigneeIds = $task->assignees->pluck('id')->toArray();
             
-            // Kiểm tra quyền theo role cho tất cả assignees
+            // Lấy danh sách người từ phòng ban khác (cần giữ lại)
+            $otherDeptAssignees = $task->assignees->filter(function($assignee) use ($user) {
+                return $user->isManager() && $assignee->department_id !== $user->department_id;
+            })->pluck('id')->toArray();
+            
+            // Lấy danh sách người cùng phòng ban (có thể thay đổi)
+            $sameDeptAssignees = $task->assignees->filter(function($assignee) use ($user) {
+                return !$user->isManager() || $assignee->department_id === $user->department_id;
+            })->pluck('id')->toArray();
+            
+            // Lấy danh sách người mới từ phòng ban hiện tại
+            $newSameDeptAssignees = array_filter($newAssigneeIds, function($assigneeId) use ($user) {
+                $assignee = User::find($assigneeId);
+                return !$user->isManager() || $assignee->department_id === $user->department_id;
+            });
+            
+            // Kiểm tra quyền cho người mới
             if ($user->isManager()) {
-                foreach ($assigneeIds as $assigneeId) {
+                foreach ($newSameDeptAssignees as $assigneeId) {
                     $assignee = User::find($assigneeId);
                     if ($assignee->role !== 'employee') {
-                        abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+                        abort(403, 'Manager chỉ có thể assign cho Employee trong cùng phòng ban');
                     }
                 }
             }
             
-            // Thêm assignments mới
-            $task->assignees()->attach($assigneeIds);
+            // Xóa người cùng phòng ban cũ và thêm người mới
+            $task->assignees()->detach($sameDeptAssignees);
+            $task->assignees()->attach($newSameDeptAssignees);
+            
+            // Không cần attach lại người từ phòng ban khác vì họ vẫn còn trong task
+            
             $data['assignee_id'] = null; // Clear single assignee
         } elseif ($request->has('assignee_id') && $request->assignee_id) {
             // Single user assignment
@@ -469,12 +443,19 @@ class TaskController extends Controller
             if ($user->isManager()) {
                 $assignee = User::find($data['assignee_id']);
                 if ($assignee->role !== 'employee') {
-                    abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+                    abort(403, 'Manager chỉ có thể assign cho Employee trong cùng phòng ban');
                 }
             }
+            
+            // Xóa tất cả assignees khi chuyển sang single user
+            $task->assignees()->detach();
         } else {
-            $data['assignee_id'] = null;
+            // Không có assignee nào được chọn
+            $task->assignees()->detach();
         }
+        
+        // Xóa departments cũ
+        $task->departments()->detach();
 
         if ($isMultiDepartment && $request->has('department_ids')) {
             // Multi-department assignment
@@ -527,6 +508,9 @@ class TaskController extends Controller
         $oldDeadline = $task->deadline;
         
         $task->update($data);
+        
+        // Tự động phát hiện và gán phòng ban dựa trên assignees
+        $task->updateDepartmentsFromAssignees();
         
         // Kiểm tra nếu deadline được cập nhật và task đang trễ hạn
         if ($oldStatus === 'overdue' && 
@@ -613,22 +597,8 @@ class TaskController extends Controller
         $user = auth()->user();
         
         // Kiểm tra quyền xóa task
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể xóa mọi task
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể xóa task của phòng ban mình
-            if (!$this->canManagerAccessTask($user, $task)) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
-        } else {
-            // Employee chỉ có thể xóa task mà họ được assign hoặc tạo
-            $isAssigned = $task->assignee_id === $user->id || 
-                         $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
-            
-            if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể xóa task mà bạn được assign hoặc tạo.');
-            }
+        if (!$user->canDeleteTask($task)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         // Load assignees trước khi kiểm tra quyền
@@ -787,11 +757,16 @@ class TaskController extends Controller
     {
         $user = auth()->user();
         
+        
         if ($user->isAdmin() || $user->isDirector()) {
             // Admin và Director thấy tất cả tasks
             $query = Task::with(['assignee', 'creator']);
         } elseif ($user->isManager()) {
             // Manager chỉ thấy tasks của phòng ban mình
+            if (!$user->department_id) {
+                abort(403, 'Bạn chưa được phân phòng ban. Vui lòng liên hệ quản trị viên.');
+            }
+            
             $query = Task::with(['assignee', 'creator'])
                         ->where(function($q) use ($user) {
                             $q->whereHas('assignee', function($subQ) use ($user) {
@@ -799,7 +774,8 @@ class TaskController extends Controller
                             })
                             ->orWhereHas('creator', function($subQ) use ($user) {
                                 $subQ->where('department_id', $user->department_id);
-                            });
+                            })
+                            ->orWhere('forwarded_to', $user->id); // Manager cũng thấy task được forward cho họ
                         });
         } else {
             // Employee chỉ thấy tasks của mình
@@ -835,7 +811,7 @@ class TaskController extends Controller
                                  ->whereNotNull('deadline')->where('deadline','<',now())->count(),
             ];
         } elseif ($user->isManager()) {
-            // Manager thấy tasks của phòng ban mình
+            // Manager thấy tasks của phòng ban mình + tasks được forward
             $tasks = Task::with('assignee','creator')
                         ->where(function($q) use ($user) {
                             $q->whereHas('assignee', function($subQ) use ($user) {
@@ -843,7 +819,9 @@ class TaskController extends Controller
                             })
                             ->orWhereHas('creator', function($subQ) use ($user) {
                                 $subQ->where('department_id', $user->department_id);
-                            });
+                            })
+                            ->orWhere('forwarded_to', $user->id)  // Task được forward cho Manager này
+                            ->orWhere('creator_id', $user->id);   // Task do Manager này tạo
                         })
                         ->latest()
                         ->paginate(10);
@@ -864,9 +842,19 @@ class TaskController extends Controller
                                  ->whereNotNull('deadline')->where('deadline','<',now())->count(),
             ];
         } else {
-            // Employee chỉ thấy tasks của mình
+            // Employee chỉ thấy tasks của mình + tasks được forward
             $tasks = Task::with('assignee','creator')
-                        ->where('assignee_id', $user->id)
+                        ->where(function($q) use ($user) {
+                            $q->where('assignee_id', $user->id)
+                              ->orWhere('creator_id', $user->id)
+                              ->orWhereHas('assignees', function($subQ) use ($user) {
+                                  $subQ->where('user_id', $user->id);
+                              })
+                              ->orWhere('forwarded_to', $user->id)  // Task được forward cho Employee này
+                              ->orWhereHas('followers', function($subQ) use ($user) {
+                                  $subQ->where('user_id', $user->id);  // Task mà Employee follow
+                              });
+                        })
                         ->latest()
                         ->paginate(10);
             

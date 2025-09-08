@@ -43,8 +43,24 @@
           <i class="bi bi-calendar-check"></i>Ngày giao: <strong>{{ $task->created_at->format('d/m/Y') }}</strong>
         </div>
         <div class="col-6">
-                          <i class="bi bi-calendar-event"></i>Hạn cuối: <strong>{{ $task->deadline ? $task->deadline->format('d/m/Y') : 'Không có' }}</strong>
+          <i class="bi bi-calendar-event"></i>Hạn cuối: <strong>{{ $task->deadline ? $task->deadline->format('d/m/Y') : 'Không có' }}</strong>
         </div>
+        @if($task->forwarded_to)
+        <div class="col-12">
+          <div class="alert alert-info">
+            <i class="bi bi-arrow-right-circle me-2"></i>
+            <strong>Task đã được forward:</strong> 
+            Từ {{ $task->forwardedBy->name ?? 'Người dùng đã xóa' }} 
+            đến {{ $task->forwardedTo->name ?? 'Người dùng đã xóa' }}
+            @if($task->forward_reason)
+              <br><small class="text-muted">Lý do: {{ $task->forward_reason }}</small>
+            @endif
+            @if($task->forwarded_at)
+              <br><small class="text-muted">Thời gian: {{ $task->forwarded_at->format('d/m/Y H:i') }}</small>
+            @endif
+          </div>
+        </div>
+        @endif
         <div class="col-6">
           <i class="bi bi-check-circle"></i>Trạng thái: <strong>{{ __("statuses.$task->status") ?? strtoupper($task->status) }}</strong>
         </div>
@@ -431,7 +447,13 @@
       <h6 class="mb-3">Hành động</h6>
       <a href="{{ route('tasks.updateStatus',[$task,'status'=>'done']) }}" class="btn btn-success w-100 mb-2">✅ Hoàn thành</a>
       <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn btn-primary w-100 mb-2">🔄 Cập nhật trạng thái</a>
-      <a href="{{ route('tasks.history',$task) }}" class="btn btn-outline-info w-100">👁 Xem lịch sử</a>
+      <a href="{{ route('tasks.history',$task) }}" class="btn btn-outline-info w-100 mb-2">👁 Xem lịch sử</a>
+      
+      @if((auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager()) && !$task->forwarded_to)
+        <a href="{{ route('tasks.forward.form', $task) }}" class="btn btn-outline-warning w-100 mb-2">
+          <i class="bi bi-arrow-right-circle me-2"></i>Forward Task
+        </a>
+      @endif
       
       @if($task->canUndo() && $task->assignee_id == auth()->id())
         <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn hoàn tác công việc này?')">

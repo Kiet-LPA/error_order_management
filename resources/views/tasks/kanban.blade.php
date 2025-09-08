@@ -468,27 +468,6 @@
             </div>
         </div>
 
-        <!-- Hoàn thành -->
-        <div class="kanban-column completed" data-status="completed">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Hoàn thành
-                </div>
-                <div class="kanban-count">{{ $kanbanData['completed']->count() }}</div>
-            </div>
-            <div class="kanban-tasks" data-status="completed">
-                @forelse($kanbanData['completed'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
         <!-- Chờ phê duyệt -->
         <div class="kanban-column pending-approval" data-status="pending_approval">
             <div class="kanban-header">
@@ -500,6 +479,27 @@
             </div>
             <div class="kanban-tasks" data-status="pending_approval">
                 @forelse($kanbanData['pending_approval'] as $task)
+                    @include('tasks.kanban-task', ['task' => $task])
+                @empty
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p>Không có công việc nào</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Hoàn thành -->
+        <div class="kanban-column completed" data-status="completed">
+            <div class="kanban-header">
+                <div class="kanban-title">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Hoàn thành
+                </div>
+                <div class="kanban-count">{{ $kanbanData['completed']->count() }}</div>
+            </div>
+            <div class="kanban-tasks" data-status="completed">
+                @forelse($kanbanData['completed'] as $task)
                     @include('tasks.kanban-task', ['task' => $task])
                 @empty
                     <div class="text-center text-muted py-4">

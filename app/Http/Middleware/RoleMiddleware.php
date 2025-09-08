@@ -12,14 +12,19 @@ class RoleMiddleware
     {
         $user = $request->user();
         
-        
-        // Kiểm tra role (case-insensitive và trim whitespace)
-        $userRole = $user ? strtolower(trim($user->role)) : null;
-        $allowedRoles = array_map('strtolower', $roles);
-        
-        if (!$user || !in_array($userRole, $allowedRoles, true)) {
+        if (!$user) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
+        
+        // Kiểm tra role sử dụng normalizedRole() method
+        $userRole = $user->normalizedRole();
+        $allowedRoles = array_map(fn($r) => strtolower(trim($r)), $roles);
+        
+        if (!in_array($userRole, $allowedRoles)) {
+            \Log::warning("RoleMiddleware blocked: user={$user->id}, role={$userRole}, allowed=" . json_encode($allowedRoles));
+            abort(403, 'Không đủ quyền thao tác');
+        }
+        
         return $next($request);
     }
 }

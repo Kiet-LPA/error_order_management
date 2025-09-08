@@ -220,28 +220,95 @@
                     @if($task->assignees->count() > 0)
                         <div class="d-flex flex-wrap gap-1 mt-1">
                             @foreach($task->assignees as $assignee)
-                                <span class="badge bg-primary">{{ $assignee->name }}</span>
+                                @php
+                                    $isFromOtherDept = auth()->user()->isManager() && 
+                                                      $assignee->department_id !== auth()->user()->department_id;
+                                @endphp
+                                <span class="badge {{ $isFromOtherDept ? 'bg-secondary' : 'bg-primary' }}" 
+                                      title="{{ $isFromOtherDept ? 'Phòng ban khác' : 'Cùng phòng ban' }}">
+                                    {{ $assignee->name }}
+                                    @if($isFromOtherDept)
+                                        <i class="bi bi-lock-fill ms-1"></i>
+                                    @endif
+                                </span>
                             @endforeach
                         </div>
                     @elseif($task->assignee)
-                        <span class="badge bg-primary">{{ $task->assignee->name }}</span>
+                        @php
+                            $isFromOtherDept = auth()->user()->isManager() && 
+                                              $task->assignee->department_id !== auth()->user()->department_id;
+                        @endphp
+                        <span class="badge {{ $isFromOtherDept ? 'bg-secondary' : 'bg-primary' }}"
+                              title="{{ $isFromOtherDept ? 'Phòng ban khác' : 'Cùng phòng ban' }}">
+                            {{ $task->assignee->name }}
+                            @if($isFromOtherDept)
+                                <i class="bi bi-lock-fill ms-1"></i>
+                            @endif
+                        </span>
                     @else
                         <span class="text-muted">—</span>
                     @endif
                 </div>
                 <div class="col-md-6 mb-2"><i class="bi bi-calendar2-week me-1"></i> <strong>Hạn cuối:</strong> {{ $task->deadline? $task->deadline->format('d/m/Y'):'—' }}</div>
                 
+                @if($task->forwarded_to)
+                <div class="col-12 mb-2">
+                    <div class="alert alert-info">
+                        <i class="bi bi-arrow-right-circle me-2"></i>
+                        <strong>Task đã được forward:</strong> 
+                        Từ {{ $task->forwardedBy->name ?? 'Người dùng đã xóa' }} 
+                        đến {{ $task->forwardedTo->name ?? 'Người dùng đã xóa' }}
+                        @if($task->forward_reason)
+                            <br><small class="text-muted">Lý do: {{ $task->forward_reason }}</small>
+                        @endif
+                        @if($task->forwarded_at)
+                            <br><small class="text-muted">Thời gian: {{ $task->forwarded_at->format('d/m/Y H:i') }}</small>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                
+                @php
+                    $forwardActivities = $task->activities->where('action', 'forwarded');
+                @endphp
+                
+                @if($forwardActivities->count() > 0)
+                <div class="col-12 mb-2">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-clock-history me-2"></i>
+                        <strong>Lịch sử forward:</strong>
+                        <div class="mt-2">
+                            @foreach($forwardActivities->sortByDesc('created_at') as $activity)
+                                <div class="border-start border-3 border-warning ps-3 mb-2">
+                                    <small class="text-muted">{{ $activity->created_at->format('d/m/Y H:i') }}</small>
+                                    <div class="fw-bold">{{ $activity->description }}</div>
+                                    @if(isset($activity->metadata['forward_reason']))
+                                        <small class="text-muted">Lý do: {{ $activity->metadata['forward_reason'] }}</small>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
                 <div class="col-md-6 mb-2"><i class="bi bi-building me-1"></i> <strong>Phòng ban:</strong> 
-                    @if($task->departments->count() > 0)
+                    @php
+                        $currentDepartments = $task->getCurrentDepartments();
+                    @endphp
+                    @if($currentDepartments->count() > 0)
                         <div class="d-flex flex-wrap gap-1 mt-1">
-                            @foreach($task->departments as $department)
+                            @foreach($currentDepartments as $department)
                                 <span class="badge bg-info">{{ $department->name }}</span>
                             @endforeach
                         </div>
-                    @elseif($task->department)
-                        <span class="badge bg-info">{{ $task->department->name }}</span>
+                        @if($task->is_multi_department)
+                            <small class="text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>Đa phòng ban (tự động phát hiện)
+                            </small>
+                        @endif
                     @else
-                        <span class="text-muted">—</span>
+                        <span class="text-muted">Chưa phân phòng ban</span>
                     @endif
                 </div>
                 <div class="col-md-6 mb-2"><i class="bi bi-exclamation-triangle me-1"></i> <strong>Độ ưu tiên:</strong> 
@@ -772,6 +839,23 @@ function deleteAttachment(attachmentId, fileName) {
             @if($task->status == 'rejected')
                 @if($task->assignee_id == auth()->id())
                     <a href="{{ route('tasks.updateStatus',[$task,'status'=>'completed']) }}" class="btn action-btn action-btn-green w-100 mb-2">🔄 Đã làm lại & gửi duyệt</a>
+                @endif
+            @endif
+            
+            {{-- Nút Forward Task --}}
+            @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+                @php
+                    $canForward = false;
+                    if (auth()->user()->isAdmin() || auth()->user()->isDirector()) {
+                        $canForward = true; // Admin và Director luôn có thể forward
+                    } elseif (auth()->user()->isManager()) {
+                        $canForward = auth()->user()->canViewTask($task); // Manager chỉ cần có quyền xem task
+                    }
+                @endphp
+                @if($canForward)
+                    <a href="{{ route('tasks.forward.form', $task) }}" class="btn action-btn action-btn-warning w-100 mb-2">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Forward Task
+                    </a>
                 @endif
             @endif
             

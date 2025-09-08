@@ -18,7 +18,7 @@ class DashboardController extends Controller
         
         // Filter theo quyền của user
         if ($user->isManager()) {
-            // Manager chỉ thấy tasks của phòng ban mình + multi-department tasks có tham gia
+            // Manager chỉ thấy tasks của phòng ban mình + multi-department tasks có tham gia + tasks được forward
             $query->where(function($q) use ($user) {
                 $q->where('department_id', $user->department_id)
                   ->orWhereHas('departments', function($subQ) use ($user) {
@@ -26,15 +26,21 @@ class DashboardController extends Controller
                   })
                   ->orWhereHas('assignees', function($subQ) use ($user) {
                       $subQ->where('user_id', $user->id);
-                  });
+                  })
+                  ->orWhere('forwarded_to', $user->id)  // Task được forward cho Manager này
+                  ->orWhere('creator_id', $user->id);   // Task do Manager này tạo
             });
         } elseif ($user->isEmployee()) {
-            // Employee chỉ thấy tasks của mình
+            // Employee chỉ thấy tasks của mình + tasks được forward
             $query->where(function($q) use ($user) {
                 $q->where('assignee_id', $user->id)
                   ->orWhere('creator_id', $user->id)
                   ->orWhereHas('assignees', function($subQ) use ($user) {
                       $subQ->where('user_id', $user->id);
+                  })
+                  ->orWhere('forwarded_to', $user->id)  // Task được forward cho Employee này
+                  ->orWhereHas('followers', function($subQ) use ($user) {
+                      $subQ->where('user_id', $user->id);  // Task mà Employee follow
                   });
             });
         }

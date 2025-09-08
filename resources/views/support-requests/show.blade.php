@@ -373,6 +373,24 @@
                 </div>
             @endif
 
+            <!-- Xóa yêu cầu (chỉ Admin và Director) -->
+            @if($supportRequest->canBeDeletedBy(auth()->user()))
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Xóa yêu cầu</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">
+                            <strong>Cảnh báo:</strong> Hành động này sẽ xóa vĩnh viễn yêu cầu hỗ trợ và tất cả dữ liệu liên quan (bình luận, file đính kèm, lịch sử hoạt động). Hành động này không thể hoàn tác.
+                        </p>
+                        <button type="button" class="btn btn-danger" 
+                                onclick="deleteSupportRequest({{ $supportRequest->id }}, '{{ $supportRequest->title }}')">
+                            <i class="bi bi-trash me-2"></i>Xóa yêu cầu hỗ trợ
+                        </button>
+                    </div>
+                </div>
+            @endif
+
             <!-- Comments -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -493,5 +511,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Function xóa support request
+function deleteSupportRequest(requestId, requestTitle) {
+    if (confirm(`Bạn có chắc chắn muốn xóa yêu cầu hỗ trợ "${requestTitle}"?\n\nHành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.`)) {
+        // Tạo form để gửi DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/support-requests/${requestId}`;
+        
+        // Thêm CSRF token
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = '{{ csrf_token() }}';
+        form.appendChild(csrfToken);
+        
+        // Thêm method override
+        const methodField = document.createElement('input');
+        methodField.type = 'hidden';
+        methodField.name = '_method';
+        methodField.value = 'DELETE';
+        form.appendChild(methodField);
+        
+        // Thêm form vào body và submit
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 </script>
 @endsection

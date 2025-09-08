@@ -7,19 +7,19 @@
     </button>
     <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 350px; max-height: 400px; overflow-y: auto;">
         <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-            <h6 class="mb-0">Notification</h6>
+            <h6 class="mb-0">Thông báo</h6>
             <div class="d-flex align-items-center">
-                <span class="badge bg-primary me-2" id="notificationCount">0 New</span>
+                <span class="badge bg-primary me-2" id="notificationCount">0 Mới</span>
                 <i class="bi bi-envelope"></i>
             </div>
         </div>
+        <div class="p-2 border-bottom">
+            <button class="btn btn-sm btn-outline-primary w-100" onclick="markAllAsRead()">
+                Đánh dấu tất cả đã đọc
+            </button>
+        </div>
         <div id="notificationList" class="p-0">
             <!-- Notifications will be loaded here -->
-        </div>
-        <div class="p-2 border-top">
-            <button class="btn btn-sm btn-outline-primary w-100" onclick="markAllAsRead()">
-                Mark all as read
-            </button>
         </div>
     </div>
 </div>
@@ -63,7 +63,7 @@ function displayNotifications(notifications) {
         container.innerHTML = `
             <div class="p-3 text-center text-muted">
                 <i class="bi bi-bell-slash fs-1"></i>
-                <p class="mb-0">No notifications</p>
+                <p class="mb-0">Không có thông báo</p>
             </div>
         `;
         return;
@@ -86,7 +86,7 @@ function displayNotifications(notifications) {
                          </div>
                          <div class="d-flex align-items-center">
                              ${!notification.is_read ? '<span class="badge bg-primary me-2"></span>' : ''}
-                             <button class="btn btn-sm btn-link text-muted p-0" onclick="markAsRead(${notification.id}); event.stopPropagation();">
+                             <button class="btn btn-sm btn-link text-muted p-0" onclick="deleteNotification(${notification.id}); event.stopPropagation();">
                                  <i class="bi bi-x"></i>
                              </button>
                          </div>
@@ -103,7 +103,14 @@ function getNotificationIcon(type) {
         'task_assigned': 'person-plus',
         'task_updated': 'pencil-square',
         'work_report_submitted': 'file-earmark-text',
-        'task_followed': 'eye'
+        'task_followed': 'eye',
+        'support_request_created': 'plus-circle',
+        'support_request_approved': 'check-circle',
+        'support_request_rejected': 'x-circle',
+        'support_request_forwarded': 'arrow-right',
+        'support_request_undone': 'arrow-counterclockwise',
+        'support_request_cancelled': 'x-circle',
+        'support_request_deleted': 'trash'
     };
     return icons[type] || 'bell';
 }
@@ -114,7 +121,14 @@ function getNotificationColor(type) {
         'task_assigned': 'success',
         'task_updated': 'info',
         'work_report_submitted': 'warning',
-        'task_followed': 'primary'
+        'task_followed': 'primary',
+        'support_request_created': 'info',
+        'support_request_approved': 'success',
+        'support_request_rejected': 'danger',
+        'support_request_forwarded': 'warning',
+        'support_request_undone': 'secondary',
+        'support_request_cancelled': 'danger',
+        'support_request_deleted': 'danger'
     };
     return colors[type] || 'secondary';
 }
@@ -127,10 +141,10 @@ function updateNotificationBadge(count) {
     if (count > 0) {
         badge.style.display = 'block';
         badge.textContent = count;
-        countElement.textContent = count + ' New';
+        countElement.textContent = count + ' Mới';
     } else {
         badge.style.display = 'none';
-        countElement.textContent = '0 New';
+        countElement.textContent = '0 Mới';
     }
 }
 
@@ -202,6 +216,42 @@ function markAllAsRead() {
     .catch(error => console.error('Error marking all notifications as read:', error));
 }
 
+// Delete notification
+function deleteNotification(notificationId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
+        return;
+    }
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
+    }
+    
+    const token = csrfToken.getAttribute('content');
+    if (!token) {
+        console.error('CSRF token content is empty');
+        return;
+    }
+    
+    fetch('{{ route("notifications.delete") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({ notification_id: notificationId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateNotificationBadge(data.unread_count);
+            loadNotifications();
+        }
+    })
+    .catch(error => console.error('Error deleting notification:', error));
+}
+
 // Handle notification click
 function handleNotificationClick(event, notificationId, type, data) {
     // Mark as read first
@@ -220,6 +270,17 @@ function handleNotificationClick(event, notificationId, type, data) {
             if (data.report_id) {
                 // Navigate to work reports page
                 window.location.href = '{{ route("work-reports.index") }}';
+            }
+            break;
+        case 'support_request_created':
+        case 'support_request_approved':
+        case 'support_request_rejected':
+        case 'support_request_forwarded':
+        case 'support_request_undone':
+        case 'support_request_cancelled':
+        case 'support_request_deleted':
+            if (data.support_request_id) {
+                window.location.href = `/support-requests/${data.support_request_id}`;
             }
             break;
         default:

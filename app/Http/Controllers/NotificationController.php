@@ -67,4 +67,22 @@ class NotificationController extends Controller
             'unread_count' => NotificationService::getUnreadCount($user)
         ]);
     }
+
+    /**
+     * Xóa thông báo
+     */
+    public function delete(Request $request): JsonResponse
+    {
+        $request->validate([
+            'notification_id' => 'required|integer'
+        ]);
+
+        $user = auth()->user();
+        $success = NotificationService::deleteNotification($request->notification_id, $user);
+        
+        return response()->json([
+            'success' => $success,
+            'unread_count' => NotificationService::getUnreadCount($user)
+        ]);
+    }
 }

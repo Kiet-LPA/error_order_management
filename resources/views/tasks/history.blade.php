@@ -30,7 +30,7 @@
                             @endphp
                             <span class="badge bg-info">{{ $actionLabels[$act->action] ?? ucfirst($act->action) }}</span>
                         </div>
-                    </div>GỀN   
+                    </div>
                     <div class="mt-2">
                         @php
                             $meta = $act->meta;

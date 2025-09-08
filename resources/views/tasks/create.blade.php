@@ -104,6 +104,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
             </div>
 
             {{-- Multi-Department Selection --}}
+            @if(!auth()->user()->isManager())
             <div class="mb-4">
               <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="is_multi_department" name="is_multi_department" value="1" {{ old('is_multi_department') ? 'checked' : '' }}>
@@ -111,6 +112,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                   <i class="bi bi-diagram-3 me-2"></i>Công việc đa phòng ban
                 </label>
               </div>
+            @else
+            <div class="mb-4" style="display: none;">
+              <input type="hidden" name="is_multi_department" value="0">
+            @endif
               
               <div id="multi_department_section" style="display: none;">
                 <label class="form-label fw-bold text-dark">
@@ -140,14 +145,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 <label class="form-label fw-bold text-dark">
                   <i class="bi bi-building me-2"></i>Phòng ban phụ trách
                 </label>
-                <select name="department_id" class="form-select border-2">
-                  <option value="">Chọn phòng ban</option>
-                  @foreach($departments as $department)
-                    <option value="{{ $department->id }}" {{ old('department_id') == $department->id ? 'selected' : '' }}>
-                      {{ $department->name }}
-                    </option>
-                  @endforeach
-                </select>
+                <div class="alert alert-info mb-3">
+                  <i class="bi bi-lightbulb me-2"></i>
+                  <strong>Lưu ý:</strong> Phòng ban sẽ được tự động phát hiện dựa trên assignees bạn chọn. 
+                  Nếu bạn chọn nhân viên từ nhiều phòng ban khác nhau, task sẽ tự động trở thành "Đa phòng ban".
+                </div>
+                @if(auth()->user()->isManager())
+                  {{-- Manager: tự động chọn phòng ban của họ --}}
+                  <input type="hidden" name="department_id" value="{{ auth()->user()->department_id }}">
+                  <div class="form-control border-2 bg-light" style="pointer-events: none;">
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    {{ auth()->user()->department->name ?? 'Chưa phân phòng ban' }}
+                    <small class="text-muted ms-2">(Tự động chọn phòng ban của bạn)</small>
+                  </div>
+                @else
+                  {{-- Admin/Director: có thể chọn phòng ban --}}
+                  <select name="department_id" class="form-select border-2">
+                    <option value="">Chọn phòng ban</option>
+                    @foreach($departments as $department)
+                      <option value="{{ $department->id }}" {{ old('department_id') == $department->id ? 'selected' : '' }}>
+                        {{ $department->name }}
+                      </option>
+                    @endforeach
+                  </select>
+                @endif
               </div>
             </div>
 
@@ -183,11 +204,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 <label class="form-label fw-bold text-dark">
                   <i class="bi bi-people me-2"></i>Chọn người nhận (có thể chọn nhiều)
                 </label>
-                <div id="user_selection_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa;">
+                <div id="user_selection_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa; {{ auth()->user()->isManager() ? 'display: none;' : '' }}">
                   <i class="bi bi-exclamation-triangle text-warning fs-1 mb-2"></i>
                   <p class="mb-0">Vui lòng chọn phòng ban trước khi chọn người nhận</p>
                 </div>
-                <div id="user_selection_enabled" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; display: none;">
+                <div id="user_selection_enabled" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; {{ auth()->user()->isManager() ? 'display: block;' : 'display: none;' }}">
                   @foreach($departments as $department)
                     @php
                       $departmentUsers = $users->where('department_id', $department->id);
@@ -224,11 +245,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               
               <div id="single_user_section">
                 <label class="form-label fw-bold text-dark">Người nhận</label>
-                <div id="single_user_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa;">
+                <div id="single_user_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa; {{ auth()->user()->isManager() ? 'display: none;' : '' }}">
                   <i class="bi bi-exclamation-triangle text-warning fs-1 mb-2"></i>
                   <p class="mb-0">Vui lòng chọn phòng ban trước khi chọn người nhận</p>
                 </div>
-                <select name="assignee_id" class="form-select form-select-lg border-2" id="assignee_select" style="display: none;">
+                <select name="assignee_id" class="form-select form-select-lg border-2" id="assignee_select" style="{{ auth()->user()->isManager() ? 'display: block;' : 'display: none;' }}">
                   <option value="">Chọn người nhận</option>
                   @foreach($departments as $department)
                     @php
@@ -254,8 +275,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               @if(auth()->user()->isManager())
                 <div class="form-text text-info">
                   <i class="bi bi-info-circle me-1"></i>
-                  <strong>Giao việc thường:</strong> Chỉ cho nhân viên cùng phòng ban.<br>
-                  <strong>Giao việc đa phòng ban:</strong> Có thể chọn nhân viên từ nhiều phòng ban nhưng phải có ít nhất 1 người từ phòng ban của bạn.
+                  <strong>Quản lý chỉ có thể giao việc cho nhân viên trong phòng ban của mình.</strong><br>
+                  <strong>Để giao việc cho phòng ban khác:</strong> Sử dụng chức năng "Chuyển tiếp công việc" sau khi tạo công việc.
                 </div>
               @endif
             </div>
@@ -286,7 +307,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               </div>
               <small class="form-text text-muted">
                 <i class="bi bi-info-circle me-1"></i>
-                Công việc sẽ được tự động tạo lại với deadline mới mỗi X ngày sau khi hoàn thành
+                Công việc sẽ được tự động tạo lại với hạn cuối mới mỗi X ngày sau khi hoàn thành
               </small>
               
               {{-- Recurring Days Input --}}
@@ -298,14 +319,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                            class="form-control" min="1" max="365"
                            value="{{ old('recurring_days') }}" 
                            placeholder="Ví dụ: 7 (mỗi tuần)">
-                    <small class="form-text text-muted">Số ngày sau deadline cũ để tạo deadline mới</small>
+                    <small class="form-text text-muted">Số ngày sau hạn cuối cũ để tạo hạn cuối mới</small>
                   </div>
                   <div class="col-md-6">
                     <label for="recurring_start_date" class="form-label">Ngày bắt đầu lặp lại</label>
                     <input type="date" name="recurring_start_date" id="recurring_start_date" 
                            class="form-control"
                            value="{{ old('recurring_start_date') }}">
-                    <small class="form-text text-muted">Ngày bắt đầu tính lặp lại (mặc định: ngày tạo task)</small>
+                    <small class="form-text text-muted">Ngày bắt đầu tính lặp lại (mặc định: ngày tạo công việc)</small>
                   </div>
                 </div>
               </div>
@@ -343,12 +364,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         <div class="card mb-4 border-success">
           <div class="card-header bg-success text-white">
             <h6 class="mb-0">
-              <i class="bi bi-people me-2"></i>Chọn Task Followers
+              <i class="bi bi-people me-2"></i>Chọn Người Theo Dõi Công Việc
             </h6>
           </div>
           <div class="card-body">
             <div class="mb-3">
-              <label class="form-label">Chọn người theo dõi task này:</label>
+              <label class="form-label">Chọn người theo dõi công việc này:</label>
               <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                 @foreach($departments as $department)
                   @php
@@ -380,9 +401,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               </div>
               <small class="form-text text-muted">
                 @if(auth()->user()->isManager())
-                  Manager chỉ có thể thêm Employee làm follower. Người tham gia task sẽ không thể làm follower.
+                  Quản lý chỉ có thể thêm Nhân viên làm Người theo dõi. Người tham gia công việc sẽ không thể làm Người theo dõi.
                 @else
-                  Những người này sẽ nhận thông báo khi task có thay đổi. Người tham gia task sẽ không thể làm follower.
+                  Những người này sẽ nhận thông báo khi công việc có thay đổi. Người tham gia công việc sẽ không thể làm Người theo dõi.
                 @endif
               </small>
             </div>
@@ -395,7 +416,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
           <div class="col-12 text-center">
             <button type="submit" class="btn btn-success btn-lg px-5 py-3 fw-bold shadow-sm">
               <i class="bi bi-rocket me-2"></i>
-              🚀 Giao việc
+              Giao việc
             </button>
           </div>
         </div>
@@ -408,27 +429,31 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Multi-department toggle
+    // Multi-department toggle (chỉ cho Admin/Director)
     const multiDeptCheckbox = document.getElementById('is_multi_department');
     const multiDeptSection = document.getElementById('multi_department_section');
     const singleDeptSection = document.getElementById('single_department_section');
     
+    // Manager không có checkbox đa phòng ban
+    const isManager = {{ auth()->user()->isManager() ? 'true' : 'false' }};
+    
     console.log('Multi-department elements:', {
         checkbox: !!multiDeptCheckbox,
         multiSection: !!multiDeptSection,
-        singleSection: !!singleDeptSection
+        singleSection: !!singleDeptSection,
+        isManager: isManager
     });
     
     if (multiDeptCheckbox) {
         multiDeptCheckbox.addEventListener('change', function() {
             console.log('Multi-department checkbox changed:', this.checked);
             if (this.checked) {
-                multiDeptSection.style.display = 'block';
-                singleDeptSection.style.display = 'none';
+                if (multiDeptSection) multiDeptSection.style.display = 'block';
+                if (singleDeptSection) singleDeptSection.style.display = 'none';
                 console.log('Showing multi-department section');
             } else {
-                multiDeptSection.style.display = 'none';
-                singleDeptSection.style.display = 'block';
+                if (multiDeptSection) multiDeptSection.style.display = 'none';
+                if (singleDeptSection) singleDeptSection.style.display = 'block';
                 console.log('Showing single department section');
             }
             // Trigger filter after toggle
@@ -437,14 +462,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Trigger on load if checked
         if (multiDeptCheckbox.checked) {
-            multiDeptSection.style.display = 'block';
-            singleDeptSection.style.display = 'none';
+            if (multiDeptSection) multiDeptSection.style.display = 'block';
+            if (singleDeptSection) singleDeptSection.style.display = 'none';
             console.log('Initial state: multi-department checked');
         } else {
-            multiDeptSection.style.display = 'none';
-            singleDeptSection.style.display = 'block';
+            if (multiDeptSection) multiDeptSection.style.display = 'none';
+            if (singleDeptSection) singleDeptSection.style.display = 'block';
             console.log('Initial state: single department');
         }
+    } else if (isManager) {
+        // Manager: luôn hiển thị single department section và tự động chọn phòng ban
+        if (singleDeptSection) {
+            singleDeptSection.style.display = 'block';
+        }
+        if (multiDeptSection) {
+            multiDeptSection.style.display = 'none';
+        }
+        
+        // Manager: tự động trigger filter vì phòng ban đã được chọn sẵn
+        setTimeout(filterUsersByDepartments, 100);
     }
     
     // Multi-user toggle
@@ -462,12 +498,12 @@ document.addEventListener('DOMContentLoaded', function() {
         multiUserCheckbox.addEventListener('change', function() {
             console.log('Multi-user checkbox changed:', this.checked);
             if (this.checked) {
-                multiUserSection.style.display = 'block';
-                singleUserSection.style.display = 'none';
+                if (multiUserSection) multiUserSection.style.display = 'block';
+                if (singleUserSection) singleUserSection.style.display = 'none';
                 console.log('Showing multi-user section');
             } else {
-                multiUserSection.style.display = 'none';
-                singleUserSection.style.display = 'block';
+                if (multiUserSection) multiUserSection.style.display = 'none';
+                if (singleUserSection) singleUserSection.style.display = 'block';
                 console.log('Showing single user section');
             }
             // Trigger filter after toggle
@@ -476,12 +512,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Trigger on load if checked
         if (multiUserCheckbox.checked) {
-            multiUserSection.style.display = 'block';
-            singleUserSection.style.display = 'none';
+            if (multiUserSection) multiUserSection.style.display = 'block';
+            if (singleUserSection) singleUserSection.style.display = 'none';
             console.log('Initial state: multi-user checked');
         } else {
-            multiUserSection.style.display = 'none';
-            singleUserSection.style.display = 'block';
+            if (multiUserSection) multiUserSection.style.display = 'none';
+            if (singleUserSection) singleUserSection.style.display = 'block';
             console.log('Initial state: single user');
         }
     }
@@ -492,9 +528,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedDepartments = [];
         const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
         const singleDepartmentSelect = document.querySelector('select[name="department_id"]');
+        const managerDepartmentInput = document.querySelector('input[name="department_id"][type="hidden"]');
         
         console.log('Department checkboxes found:', departmentCheckboxes.length);
         console.log('Single department select found:', singleDepartmentSelect);
+        console.log('Manager department input found:', managerDepartmentInput);
         
         // Get selected departments from both multi and single selection
         departmentCheckboxes.forEach(checkbox => {
@@ -506,6 +544,12 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedDepartments.push(singleDepartmentSelect.value);
             console.log('Selected department from select:', singleDepartmentSelect.value);
         }
+        
+        // Manager: lấy phòng ban từ hidden input
+        if (managerDepartmentInput && managerDepartmentInput.value) {
+            selectedDepartments.push(managerDepartmentInput.value);
+            console.log('Selected department from manager input:', managerDepartmentInput.value);
+        }
 
         console.log('Total selected departments:', selectedDepartments);
         
@@ -516,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isManager && selectedDepartments.length > 1) {
             const hasOwnDepartment = selectedDepartments.includes(managerDepartmentId.toString());
             if (!hasOwnDepartment) {
-                alert('Manager chỉ có thể tạo công việc đa phòng ban khi có phòng ban của mình tham gia');
+                alert('Quản lý chỉ có thể tạo công việc đa phòng ban khi có phòng ban của mình tham gia');
                 // Uncheck the last selected department (not the manager's department)
                 departmentCheckboxes.forEach(checkbox => {
                     if (checkbox.value !== managerDepartmentId.toString() && checkbox.checked) {
@@ -541,10 +585,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Kiểm tra xem có phải đa phòng ban không
-        const isMultiDepartment = document.getElementById('is_multi_department').checked;
+        const multiDeptElement = document.getElementById('is_multi_department');
+        const isMultiDepartment = multiDeptElement ? multiDeptElement.checked : false;
 
-        if (selectedDepartments.length === 0) {
-            // No department selected - show disabled message
+        if (selectedDepartments.length === 0 && !isManager) {
+            // No department selected - show disabled message (trừ Manager vì họ đã có phòng ban mặc định)
             console.log('No departments selected, showing disabled state');
             if (userSelectionDisabled) {
                 userSelectionDisabled.style.display = 'block';
@@ -563,8 +608,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Hiding assignee select');
             }
         } else {
-            // Department selected - enable user selection
-            console.log('Departments selected, enabling user selection');
+            // Department selected OR Manager (Manager luôn có phòng ban mặc định)
+            console.log('Departments selected or Manager, enabling user selection');
             if (userSelectionDisabled) {
                 userSelectionDisabled.style.display = 'none';
                 console.log('Hiding user selection disabled message');
@@ -876,7 +921,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const managerDepartmentId = {{ auth()->user()->department_id ?? 'null' }};
             
             if (isManager) {
-                const isMultiDept = document.getElementById('is_multi_department').checked;
+                const multiDeptElement = document.getElementById('is_multi_department');
+                const isMultiDept = multiDeptElement ? multiDeptElement.checked : false;
                 const selectedDepartments = [];
                 const departmentCheckboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
                 const singleDepartmentSelect = document.querySelector('select[name="department_id"]');

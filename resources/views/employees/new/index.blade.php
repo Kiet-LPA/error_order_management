@@ -2,6 +2,64 @@
 
 @section('title', 'Nhân viên mới')
 
+@push('styles')
+<style>
+.card-header.bg-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.form-label.small {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.form-control-sm, .form-select-sm {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 50%;
+    color: #6c757d;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="row">
@@ -16,7 +74,58 @@
                 </a>
             </div>
 
+
             <div class="card shadow-sm">
+                <!-- Header với bộ lọc -->
+                <div class="card-header bg-light border-bottom">
+                    <form method="GET" action="{{ route('employees.new.index') }}" class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label small mb-1">Tìm kiếm</label>
+                            <input type="text" name="search" id="search" class="form-control form-control-sm" 
+                                   value="{{ request('search') }}" 
+                                   placeholder="Tên, email, SĐT...">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="department" class="form-label small mb-1">Phòng ban</label>
+                            <select name="department" id="department" class="form-select form-select-sm">
+                                <option value="">Tất cả</option>
+                                @foreach(\App\Models\Department::orderBy('name')->get() as $dept)
+                                    <option value="{{ $dept->id }}" {{ request('department') == $dept->id ? 'selected' : '' }}>
+                                        {{ $dept->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="status" class="form-label small mb-1">Trạng thái</label>
+                            <select name="status" id="status" class="form-select form-select-sm">
+                                <option value="">Tất cả</option>
+                                <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Đang thử việc</option>
+                                <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                                <option value="terminated" {{ request('status') == 'terminated' ? 'selected' : '' }}>Đã chấm dứt</option>
+                                <option value="no_contract" {{ request('status') == 'no_contract' ? 'selected' : '' }}>Chưa có hợp đồng</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-search me-1"></i>Tìm
+                            </button>
+                            <a href="{{ route('employees.new.index') }}" class="btn btn-outline-secondary btn-sm ms-1">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-3 text-end">
+                            <small class="text-muted">
+                                Tổng: <strong>{{ $newEmployees->total() }}</strong> nhân viên
+                            </small>
+                        </div>
+                    </form>
+                </div>
+                
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
@@ -113,18 +222,26 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <a href="{{ route('users.show', $employee) }}" class="btn btn-sm btn-outline-info">
+                                                <a href="{{ route('users.show', $employee) }}" class="btn btn-sm btn-outline-info" 
+                                                   title="Xem chi tiết">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                <a href="{{ route('employees.new.edit', $employee) }}" class="btn btn-sm btn-outline-warning">
+                                                <a href="{{ route('employees.new.edit', $employee) }}" class="btn btn-sm btn-outline-warning"
+                                                   title="Chỉnh sửa">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
                                                 @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
                                                     <button type="button" class="btn btn-sm btn-outline-success" 
-                                                            data-bs-toggle="modal" data-bs-target="#convertModal{{ $employee->id }}">
+                                                            data-bs-toggle="modal" data-bs-target="#convertModal{{ $employee->id }}"
+                                                            title="Chuyển thành chính thức">
                                                         <i class="bi bi-check-circle"></i>
                                                     </button>
                                                 @endif
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="deleteEmployee({{ $employee->id }}, '{{ $employee->name }}')"
+                                                        title="Xóa nhân viên">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -151,11 +268,11 @@
                             {{-- Previous Page Link --}}
                             @if ($newEmployees->onFirstPage())
                                 <li class="page-item disabled">
-                                    <span class="page-link">« Previous</span>
+                                    <span class="page-link">« Trước</span>
                                 </li>
                             @else
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ $newEmployees->previousPageUrl() }}" rel="prev">« Previous</a>
+                                    <a class="page-link" href="{{ $newEmployees->previousPageUrl() }}" rel="prev">« Trước</a>
                                 </li>
                             @endif
 
@@ -175,11 +292,11 @@
                             {{-- Next Page Link --}}
                             @if ($newEmployees->hasMorePages())
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ $newEmployees->nextPageUrl() }}" rel="next">Next »</a>
+                                    <a class="page-link" href="{{ $newEmployees->nextPageUrl() }}" rel="next">Sau »</a>
                                 </li>
                             @else
                                 <li class="page-item disabled">
-                                    <span class="page-link">Next »</span>
+                                    <span class="page-link">Sau »</span>
                                 </li>
                             @endif
                         </ul>
@@ -188,7 +305,7 @@
                     {{-- Page Info --}}
                     <div class="text-center mt-2">
                         <small class="text-muted">
-                            Showing {{ $newEmployees->firstItem() ?? 0 }} to {{ $newEmployees->lastItem() ?? 0 }} of {{ $newEmployees->total() }} results
+                            Hiển thị {{ $newEmployees->firstItem() ?? 0 }} đến {{ $newEmployees->lastItem() ?? 0 }} trong tổng số {{ $newEmployees->total() }} kết quả
                         </small>
                     </div>
                 </div>
@@ -278,3 +395,53 @@
 @endforeach
 
 @endsection
+
+@push('scripts')
+<script>
+// Function xóa nhân viên
+function deleteEmployee(employeeId, employeeName) {
+    if (confirm(`Bạn có chắc chắn muốn xóa nhân viên "${employeeName}"?\n\nHành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.`)) {
+        // Tạo form để gửi DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/employees/new/${employeeId}`;
+        
+        // Thêm CSRF token
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = '{{ csrf_token() }}';
+        form.appendChild(csrfToken);
+        
+        // Thêm method override
+        const methodField = document.createElement('input');
+        methodField.type = 'hidden';
+        methodField.name = '_method';
+        methodField.value = 'DELETE';
+        form.appendChild(methodField);
+        
+        // Thêm form vào body và submit
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Auto-submit form khi thay đổi filter
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentSelect = document.getElementById('department');
+    const statusSelect = document.getElementById('status');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+</script>
+@endpush

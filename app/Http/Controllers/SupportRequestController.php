@@ -407,59 +407,93 @@ class SupportRequestController extends Controller
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
-        // Lấy danh sách yêu cầu hỗ trợ với eager loading
-        $query = SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment', 'followers']);
-        
-        // Filter theo quyền của user
-        if ($user->isManager()) {
-            // Manager chỉ thấy yêu cầu được chỉ định cho họ
-            $query->whereJsonContains('recipients', $user->id);
+        try {
+            // Lấy danh sách yêu cầu hỗ trợ với eager loading
+            $query = SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment', 'followers']);
+            
+            // Filter theo quyền của user
+            if ($user->isManager()) {
+                // Manager chỉ thấy yêu cầu được chỉ định cho họ
+                $query->where(function($q) use ($user) {
+                    $q->whereJsonContains('recipients', $user->id)
+                      ->orWhere('requester_id', $user->id)
+                      ->orWhere('forwarded_by', $user->id);
+                });
+            }
+            // Director và Admin thấy tất cả yêu cầu (không filter)
+            
+            $supportRequests = $query->latest()->paginate(15);
+            
+            // Lấy thống kê
+            $stats = [
+                'total' => SupportRequest::count(),
+                'pending' => SupportRequest::where('status', 'pending')->count(),
+                'approved' => SupportRequest::where('status', 'approved')->count(),
+                'rejected' => SupportRequest::where('status', 'rejected')->count(),
+                'forwarded' => SupportRequest::where('status', 'forwarded')->count(),
+                'employee_requests' => SupportRequest::where('request_type', 'employee')->count(),
+                'manager_requests' => SupportRequest::where('request_type', 'manager')->count(),
+            ];
+            
+            // Lấy danh sách phòng ban để filter
+            $departments = Department::orderBy('name')->get();
+            
+            // Kiểm tra empty state
+            $isEmpty = $supportRequests->count() === 0 && $stats['total'] === 0;
+            
+            return view('support-requests.quest-detail', compact('supportRequests', 'stats', 'departments', 'isEmpty'));
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in questDetail: ' . $e->getMessage());
+            
+            // Đây là lỗi thật cần fix trong code
+            return view('support-requests.quest-detail', [
+                'supportRequests' => collect()->paginate(15),
+                'stats' => [
+                    'total' => 0,
+                    'pending' => 0,
+                    'approved' => 0,
+                    'rejected' => 0,
+                    'forwarded' => 0,
+                    'employee_requests' => 0,
+                    'manager_requests' => 0,
+                ],
+                'departments' => collect(),
+                'isEmpty' => false,
+                'error' => 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau hoặc liên hệ quản trị viên.'
+            ]);
         }
-        // Director và Admin thấy tất cả yêu cầu (không filter)
-        // Admin thấy tất cả yêu cầu
-        
-        $supportRequests = $query->latest()->paginate(15);
-        
-        // Lấy thống kê
-        $stats = [
-            'total' => SupportRequest::count(),
-            'pending' => SupportRequest::where('status', 'pending')->count(),
-            'approved' => SupportRequest::where('status', 'approved')->count(),
-            'rejected' => SupportRequest::where('status', 'rejected')->count(),
-            'forwarded' => SupportRequest::where('status', 'forwarded')->count(),
-        ];
-        
-        // Thống kê theo loại yêu cầu
-        $employeeRequests = SupportRequest::where('request_type', 'employee')->count();
-        $managerRequests = SupportRequest::where('request_type', 'manager')->count();
-        
-        $stats['employee_requests'] = $employeeRequests;
-        $stats['manager_requests'] = $managerRequests;
-        
-        // Lấy danh sách phòng ban để filter
-        $departments = Department::orderBy('name')->get();
-        
-        return view('support-requests.quest-detail', compact('supportRequests', 'stats', 'departments'));
     }
 
     /**
-     * Hiển thị yêu cầu của tôi (Employee, Manager)
+     * Hiển thị yêu cầu của tôi (Tất cả users)
      */
     public function myRequests()
     {
         $user = auth()->user();
         
-        // Chỉ Employee, Manager mới có thể truy cập
-        if (!$user->isEmployee() && !$user->isManager()) {
-            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+        try {
+            // Tất cả users đều có thể xem yêu cầu mà họ đã gửi
+            $query = SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment', 'followers'])
+                                  ->where('requester_id', $user->id);
+            
+            $supportRequests = $query->latest()->paginate(15);
+            
+            // Kiểm tra empty state
+            $isEmpty = $supportRequests->count() === 0;
+            
+            return view('support-requests.my-requests', compact('supportRequests', 'isEmpty'));
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in myRequests: ' . $e->getMessage());
+            
+            // Đây là lỗi thật cần fix trong code
+            return view('support-requests.my-requests', [
+                'supportRequests' => collect()->paginate(15),
+                'isEmpty' => false,
+                'error' => 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau hoặc liên hệ quản trị viên.'
+            ]);
         }
-        
-        $query = SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment', 'followers'])
-                              ->where('requester_id', $user->id);
-        
-        $supportRequests = $query->latest()->paginate(15);
-        
-        return view('support-requests.my-requests', compact('supportRequests'));
     }
 
     /**
@@ -588,5 +622,57 @@ class SupportRequestController extends Controller
         }
         
         return back()->with('error', 'Không thể hủy yêu cầu hỗ trợ này.');
+    }
+
+    /**
+     * Xóa support request (chỉ Admin và Director)
+     */
+    public function destroy(SupportRequest $supportRequest)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền xóa
+        if (!$supportRequest->canBeDeletedBy($user)) {
+            abort(403, 'Bạn không có quyền xóa yêu cầu hỗ trợ này.');
+        }
+        
+        // Xóa các file đính kèm trước khi xóa support request
+        if ($supportRequest->attachments) {
+            foreach ($supportRequest->attachments as $attachment) {
+                $filePath = str_replace(asset('storage/'), 'public/', $attachment['url']);
+                if (Storage::exists($filePath)) {
+                    Storage::delete($filePath);
+                }
+            }
+        }
+        
+        // Xóa các comment và file đính kèm của comment
+        foreach ($supportRequest->comments as $comment) {
+            if ($comment->attachments) {
+                foreach ($comment->attachments as $attachment) {
+                    $filePath = str_replace(asset('storage/'), 'public/', $attachment['url']);
+                    if (Storage::exists($filePath)) {
+                        Storage::delete($filePath);
+                    }
+                }
+            }
+        }
+        
+        // Ghi log hoạt động trước khi xóa
+        SupportRequestActivity::create([
+            'support_request_id' => $supportRequest->id,
+            'user_id' => $user->id,
+            'action' => 'deleted',
+            'meta' => [
+                'title' => $supportRequest->title,
+                'requester' => $supportRequest->requester->name ?? 'Unknown'
+            ]
+        ]);
+        
+        // Xóa support request (cascade sẽ xóa các bản ghi liên quan)
+        $supportRequest->delete();
+        
+        return redirect()->route('support-requests.index')
+                        ->with('success', 'Yêu cầu hỗ trợ đã được xóa thành công.');
     }
 }
