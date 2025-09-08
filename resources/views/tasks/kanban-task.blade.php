@@ -5,6 +5,16 @@
     
     $creatorName = $task->creator ? $task->creator->name : 'Không xác định';
     
+    // Lấy thông tin phòng ban
+    $departments = collect();
+    if ($task->department) {
+        $departments->push($task->department);
+    }
+    if ($task->departments && $task->departments->count() > 0) {
+        $departments = $departments->merge($task->departments);
+    }
+    $departments = $departments->unique('id');
+    
     $deadlineClass = '';
     $deadlineText = '';
     if ($task->deadline) {
@@ -30,6 +40,24 @@
             <div class="task-deadline {{ $deadlineClass }}">{{ $deadlineText }}</div>
         @endif
     </div>
+    
+    @if($departments->count() > 0)
+        <div class="task-meta">
+            <div class="task-department">
+                <i class="fas fa-building me-1"></i>
+                @if($departments->count() == 1)
+                    <span class="department-name">Phòng: {{ $departments->first()->name }}</span>
+                @else
+                    <span class="department-name department-tooltip" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="{{ $departments->pluck('name')->join(', ') }}">
+                        {{ $departments->count() }} phòng ban
+                    </span>
+                @endif
+            </div>
+        </div>
+    @endif
     
     <div class="task-meta">
         <small class="text-muted">

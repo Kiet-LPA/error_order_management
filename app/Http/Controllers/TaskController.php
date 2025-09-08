@@ -1137,10 +1137,10 @@ class TaskController extends Controller
         // Lấy tasks theo quyền - giống như method index()
         if ($user->isAdmin() || $user->isDirector()) {
             // Admin và Director thấy tất cả tasks
-            $query = Task::with(['assignee', 'creator', 'assignees', 'departments']);
+            $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department']);
         } elseif ($user->isManager()) {
             // Manager chỉ thấy tasks của phòng ban mình
-            $query = Task::with(['assignee', 'creator', 'assignees', 'departments'])
+            $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department'])
                         ->where(function($q) use ($user) {
                             $q->whereHas('assignee', function($subQ) use ($user) {
                                 $subQ->where('department_id', $user->department_id);
@@ -1154,7 +1154,7 @@ class TaskController extends Controller
                         });
         } else {
             // Employee chỉ thấy tasks của mình
-            $query = Task::with(['assignee', 'creator', 'assignees', 'departments'])
+            $query = Task::with(['assignee', 'creator', 'assignees', 'departments', 'department'])
                         ->where(function($q) use ($user) {
                             $q->where('assignee_id', $user->id)
                               ->orWhere('creator_id', $user->id)

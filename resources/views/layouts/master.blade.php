@@ -251,6 +251,88 @@
       transition: all 0.3s ease;
     }
     
+    /* Dropdown styling for bottom nav */
+    .bottom-nav .dropdown-nav {
+      position: relative;
+    }
+    
+    .bottom-nav .dropdown-menu {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 8px;
+      min-width: 200px;
+      max-width: 250px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 -4px 12px var(--shadow-color);
+      z-index: 1060;
+      display: none;
+      opacity: 0;
+      transition: all 0.3s ease;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    
+    .bottom-nav .dropdown-menu.show {
+      display: block;
+      opacity: 1;
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+    
+    .bottom-nav .dropdown-item {
+      color: var(--text-color);
+      padding: 10px 15px;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+      display: block;
+      text-decoration: none;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .bottom-nav .dropdown-item:last-child {
+      border-bottom: none;
+    }
+    
+    .bottom-nav .dropdown-item:hover {
+      background: var(--hover-bg);
+      color: var(--active-color);
+    }
+    
+    .bottom-nav .dropdown-item.active {
+      background: var(--active-bg);
+      color: var(--active-color);
+    }
+    
+    .bottom-nav .dropdown-item i {
+      font-size: 1rem;
+    }
+    
+    .bottom-nav .dropdown-menu li {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    
     .bottom-nav .nav-item {
       flex: 1;
       text-align: center;
@@ -329,6 +411,27 @@
         color: #7ba3d4;
         background: rgba(85, 142, 193, 0.25);
       }
+      
+      .bottom-nav .dropdown-menu {
+        background: #1a1a1a;
+        border-color: #333;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+      }
+      
+      .bottom-nav .dropdown-item {
+        color: #b0b0b0;
+        border-bottom-color: #333;
+      }
+      
+      .bottom-nav .dropdown-item:hover {
+        background: rgba(85, 142, 193, 0.2);
+        color: #7ba3d4;
+      }
+      
+      .bottom-nav .dropdown-item.active {
+        background: rgba(85, 142, 193, 0.25);
+        color: #7ba3d4;
+      }
     }
     
     /* Force dark mode for bottom navigation */
@@ -350,6 +453,27 @@
     .bottom-nav.dark-mode .nav-link.active {
       color: #7ba3d4 !important;
       background: rgba(85, 142, 193, 0.25) !important;
+    }
+    
+    .bottom-nav.dark-mode .dropdown-menu {
+      background: #1a1a1a !important;
+      border-color: #333 !important;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.3) !important;
+    }
+    
+    .bottom-nav.dark-mode .dropdown-item {
+      color: #b0b0b0 !important;
+      border-bottom-color: #333 !important;
+    }
+    
+    .bottom-nav.dark-mode .dropdown-item:hover {
+      background: rgba(85, 142, 193, 0.2) !important;
+      color: #7ba3d4 !important;
+    }
+    
+    .bottom-nav.dark-mode .dropdown-item.active {
+      background: rgba(85, 142, 193, 0.25) !important;
+      color: #7ba3d4 !important;
     }
     
     /* Scroll to top button */
@@ -425,6 +549,7 @@
       .scroll-to-top i {
         font-size: 1.1rem;
       }
+      
     }
     
     /* Tooltip for collapsed sidebar */
@@ -462,13 +587,30 @@
           <i class="bi bi-chevron-left"></i>
         </div>
         <div class="list-group rounded-0">
+          <!-- 1. Trang chủ -->
+          <a href="{{ route('kanban') }}"
+             class="list-group-item {{ request()->routeIs('kanban')?'active':'' }}"
+             data-title="Trang Chủ">
+            <i class="bi bi-house me-2"></i> <span>Trang chủ</span>
+          </a>
+
+          <!-- 2. Danh sách -->
           <a href="{{ route('dashboard') }}"
              class="list-group-item {{ request()->routeIs('dashboard')?'active':'' }}"
              data-title="Danh sách">
             <i class="bi bi-list-task me-2"></i> <span>Danh sách</span>
           </a>
 
-          <!-- Quản lý yêu cầu hỗ trợ - Admin, Director, Manager -->
+          <!-- 3. Tạo công việc -->
+          @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
+            <a href="{{ route('create-task') }}"
+               class="list-group-item {{ request()->routeIs('create-task')?'active':'' }}"
+               data-title="Tạo công việc">
+              <i class="bi bi-plus-square me-2"></i> <span>Tạo công việc</span>
+            </a>
+          @endif
+
+          <!-- 4. Quản lý yêu cầu -->
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
           <a href="{{ route('support-requests.quest-detail') }}"
              class="list-group-item {{ request()->routeIs('support-requests.quest-detail')?'active':'' }}"
@@ -477,37 +619,28 @@
           </a>
           @endif
 
-          <!-- Tạo yêu cầu hỗ trợ - Employee, Manager, Director -->
-          @if(Auth::user()->isEmployee() || Auth::user()->isManager() || Auth::user()->isDirector())
-          <a href="{{ route('support-requests.create') }}"
-             class="list-group-item {{ request()->routeIs('support-requests.create')?'active':'' }}"
-             data-title="Tạo yêu cầu hỗ trợ">
-            <i class="bi bi-plus-circle me-2"></i> <span>Tạo yêu cầu hỗ trợ</span>
-          </a>
-          @endif
-
           @auth
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
-            <!-- Quản lý nhân viên - Header -->
+            <!-- 5. Quản lý nhân viên - Header -->
             <div class="list-group-item sidebar-section-header">
               <i class="bi bi-people me-2"></i> <span>Quản lý nhân viên</span>
             </div>
             
-            <!-- Nhân viên chính thức -->
+            <!-- 5.1. Nhân viên chính thức -->
             <a href="{{ route('users.index') }}" 
                class="list-group-item sidebar-sub-item {{ request()->routeIs('users.*')?'active':'' }}"
                data-title="Nhân viên chính thức">
               <i class="bi bi-person-check me-2"></i> <span>Nhân viên chính thức</span>
             </a>
             
-            <!-- Nhân viên mới -->
+            <!-- 5.2. Nhân viên mới -->
             <a href="{{ route('employees.new.index') }}" 
                class="list-group-item sidebar-sub-item {{ request()->routeIs('employees.new.*')?'active':'' }}"
                data-title="Nhân viên mới">
               <i class="bi bi-person-plus me-2"></i> <span>Nhân viên mới</span>
             </a>
             
-            <!-- Phòng ban -->
+            <!-- 6. Phòng ban -->
             <a href="{{ route('departments.index') }}"
                class="list-group-item {{ request()->routeIs('departments.*')?'active':'' }}"
                data-title="Phòng ban">
@@ -515,23 +648,7 @@
             </a>
           @endif
 
-
-
-          <a href="{{ route('kanban') }}"
-             class="list-group-item {{ request()->routeIs('kanban')?'active':'' }}"
-             data-title="Kanban Board">
-            <i class="bi bi-columns me-2"></i> <span>Kanban Board</span>
-          </a>
-
-          @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
-            <a href="{{ route('create-task') }}"
-               class="list-group-item {{ request()->routeIs('create-task')?'active':'' }}"
-               data-title="Tạo công việc">
-              <i class="bi bi-plus-square me-2"></i> <span>Tạo công việc</span>
-            </a>
-          @endif
-          @endauth
-
+          <!-- 7. Báo cáo -->
           @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
             <a href="{{ route('reports.index') }}"
                class="list-group-item {{ request()->routeIs('reports.index')?'active':'' }}"
@@ -540,12 +657,13 @@
             </a>
           @endif
 
-          <!-- Báo cáo công việc - cho tất cả role -->
+          <!-- 8. Báo cáo công việc - cho tất cả role -->
           <a href="{{ route('work-reports.index') }}"
              class="list-group-item {{ request()->routeIs('work-reports.*')?'active':'' }}"
              data-title="Báo cáo công việc">
             <i class="bi bi-file-earmark-text me-2"></i> <span>Báo cáo công việc</span>
           </a>
+          @endauth
         </div>
       </aside>
 
@@ -578,28 +696,48 @@
         
         @auth
         @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
-          <div class="col nav-item">
-            <a href="{{ route('users.index') }}" 
-               class="nav-link {{ request()->routeIs('users.*')?'active':'' }}">
-              <i class="bi bi-person-check"></i>
-              <span>Nhân viên</span>
+          <!-- Dropdown cho Quản lý nhân viên -->
+          <div class="col nav-item dropdown-nav">
+            <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs('users.*') || request()->routeIs('employees.new.*') || request()->routeIs('departments.*')?'active':'' }}" 
+               onclick="toggleBottomDropdown(this)" aria-expanded="false">
+              <i class="bi bi-people"></i>
+              <span>Quản lý</span>
             </a>
-          </div>
-          <div class="col nav-item">
-            <a href="{{ route('employees.new.index') }}" 
-               class="nav-link {{ request()->routeIs('employees.new.*')?'active':'' }}">
-              <i class="bi bi-person-plus"></i>
-              <span>Nhân viên mới</span>
-            </a>
-          </div>
-          <div class="col nav-item">
-            <a href="{{ route('departments.index') }}" 
-               class="nav-link {{ request()->routeIs('departments.*')?'active':'' }}">
-              <i class="bi bi-building"></i>
-              <span>Phòng ban</span>
-            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item {{ request()->routeIs('users.*')?'active':'' }}" href="{{ route('users.index') }}">
+                <i class="bi bi-person-check me-2"></i>Nhân viên
+              </a></li>
+              <li><a class="dropdown-item {{ request()->routeIs('employees.new.*')?'active':'' }}" href="{{ route('employees.new.index') }}">
+                <i class="bi bi-person-plus me-2"></i>Nhân viên mới
+              </a></li>
+              <li><a class="dropdown-item {{ request()->routeIs('departments.*')?'active':'' }}" href="{{ route('departments.index') }}">
+                <i class="bi bi-building me-2"></i>Phòng ban
+              </a></li>
+            </ul>
           </div>
         @endif
+        
+        <!-- Dropdown cho Báo cáo -->
+        <div class="col nav-item dropdown-nav">
+          <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs('work-reports.*') || request()->routeIs('reports.index')?'active':'' }}" 
+             onclick="toggleBottomDropdown(this)" aria-expanded="false">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Báo cáo</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item {{ request()->routeIs('work-reports.*')?'active':'' }}" href="{{ route('work-reports.index') }}">
+              <i class="bi bi-file-earmark-text me-2"></i>Báo cáo công việc
+            </a></li>
+            @auth
+            @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
+            <li><a class="dropdown-item {{ request()->routeIs('reports.index')?'active':'' }}" href="{{ route('reports.index') }}">
+              <i class="bi bi-bar-chart me-2"></i>Báo cáo thống kê
+            </a></li>
+            @endif
+            @endauth
+          </ul>
+        </div>
+
         <div class="col nav-item">
           <a href="{{ route('kanban') }}" 
              class="nav-link {{ request()->routeIs('kanban')?'active':'' }}">
@@ -617,26 +755,7 @@
             </a>
           </div>
         @endif
-        
-        <!-- Báo cáo công việc -->
-        <div class="col nav-item">
-          <a href="{{ route('work-reports.index') }}" 
-             class="nav-link {{ request()->routeIs('work-reports.*')?'active':'' }}">
-            <i class="bi bi-file-earmark-text"></i>
-            <span>Báo cáo</span>
-          </a>
-        </div>
         @endauth
-
-        @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
-          <div class="col nav-item">
-            <a href="{{ route('reports.index') }}" 
-               class="nav-link {{ request()->routeIs('reports.index')?'active':'' }}">
-              <i class="bi bi-bar-chart"></i>
-              <span>Báo cáo</span>
-            </a>
-          </div>
-        @endif
       </div>
     </div>
   </nav>
@@ -741,6 +860,59 @@
         } else {
           scrollToTopBtn.classList.remove('show');
         }
+      }
+    });
+    
+    // Bottom navigation dropdown functionality
+    function toggleBottomDropdown(toggleElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const dropdown = toggleElement.closest('.dropdown-nav');
+      const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+      const isOpen = dropdownMenu.classList.contains('show');
+      
+      console.log('Toggle dropdown:', dropdown, dropdownMenu, isOpen);
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.bottom-nav .dropdown-menu').forEach(function(menu) {
+        menu.classList.remove('show');
+      });
+      document.querySelectorAll('.bottom-nav .dropdown-toggle').forEach(function(toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+      
+      // Toggle current dropdown
+      if (!isOpen) {
+        dropdownMenu.classList.add('show');
+        toggleElement.setAttribute('aria-expanded', 'true');
+        console.log('Dropdown opened');
+      } else {
+        console.log('Dropdown closed');
+      }
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('.bottom-nav .dropdown-nav')) {
+        document.querySelectorAll('.bottom-nav .dropdown-menu').forEach(function(menu) {
+          menu.classList.remove('show');
+        });
+        document.querySelectorAll('.bottom-nav .dropdown-toggle').forEach(function(toggle) {
+          toggle.setAttribute('aria-expanded', 'false');
+        });
+      }
+    });
+    
+    // Close dropdown when selecting an item
+    document.addEventListener('click', function(event) {
+      if (event.target.closest('.bottom-nav .dropdown-item')) {
+        const dropdown = event.target.closest('.dropdown-nav');
+        const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+        const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+        
+        dropdownMenu.classList.remove('show');
+        dropdownToggle.setAttribute('aria-expanded', 'false');
       }
     });
   </script>

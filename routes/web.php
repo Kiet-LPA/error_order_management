@@ -17,9 +17,9 @@ use App\Http\Controllers\SupportRequestController;
 |--------------------------------------------------------------------------
 */
 
-// Vào root thì chuyển sang dashboard
+// Vào root thì chuyển sang kanban
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    return redirect()->route('kanban');
 });
 
 // Route để chạy thủ công cập nhật overdue (chỉ admin)

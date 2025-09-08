@@ -57,12 +57,15 @@
 .hierarchy-select {
     flex: 1;
     max-width: 300px;
+    min-width: 200px;
     padding: 12px 16px;
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     font-size: 16px;
     background: white;
     transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .hierarchy-select:focus {
@@ -152,6 +155,48 @@
 /* CSS cho cột trạng thái */
 .status-column {
     width: 120px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .work-report-container {
+        padding: 10px;
+    }
+    
+    .management-section {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .hierarchy-container {
+        padding: 16px;
+    }
+    
+    .hierarchy-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .hierarchy-label {
+        min-width: auto;
+        width: 100%;
+        margin-bottom: 4px;
+    }
+    
+    .hierarchy-select {
+        width: 100%;
+        max-width: 100%;
+        min-width: auto;
+        flex: none;
+    }
+    
+    .section-title {
+        font-size: 18px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
 }
 </style>
 @endpush

@@ -118,3 +118,34 @@
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
 }
+
+/* Fix dropdown overflow issues */
+.hierarchy-select,
+select.form-control,
+select.form-select {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Mobile responsive for dropdowns */
+@media (max-width: 768px) {
+    .hierarchy-select,
+    select.form-control,
+    select.form-select {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: auto !important;
+    }
+    
+    .hierarchy-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    
+    .hierarchy-label {
+        width: 100% !important;
+        margin-bottom: 8px !important;
+    }
+}

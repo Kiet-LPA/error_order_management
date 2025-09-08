@@ -328,6 +328,130 @@
     .filter-section .btn-group .btn {
         flex: 1;
     }
+    
+    /* Status cards responsive */
+    .card-stat {
+        margin-bottom: 0.5rem;
+    }
+    
+    .card-stat h5 {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .card-stat p {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+    
+    /* Large cards responsive */
+    .card-stat-large {
+        min-height: 70px;
+    }
+    
+    .card-stat-large h5 {
+        font-size: 1.6rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .card-stat-large p {
+        font-size: 0.8rem;
+    }
+    
+    /* General mobile improvements */
+    .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
+    
+    .btn {
+        font-size: 0.8rem;
+    }
+}
+
+/* Tablet responsive */
+@media (max-width: 992px) and (min-width: 769px) {
+    .card-stat h5 {
+        font-size: 1.75rem;
+    }
+    
+    .card-stat p {
+        font-size: 0.85rem;
+    }
+    
+    .card-stat-large h5 {
+        font-size: 2rem;
+    }
+    
+    .card-stat-large p {
+        font-size: 0.9rem;
+    }
+    
+    .filter-section .d-flex.flex-wrap {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .filter-section .btn-group {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Compact status cards for better space usage */
+@media (max-width: 1200px) {
+    .card-stat {
+        padding: 0.75rem !important;
+    }
+    
+    .card-stat h5 {
+        font-size: 1.4rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .card-stat p {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+}
+
+/* Large desktop optimization */
+@media (min-width: 1400px) {
+    .filter-section {
+        padding: 1.25rem;
+    }
+    
+    .card-stat {
+        padding: 1rem !important;
+    }
+    
+    .card-stat h5 {
+        font-size: 2rem;
+    }
+    
+    .card-stat p {
+        font-size: 0.9rem;
+    }
+    
+    .card-stat-large {
+        min-height: 100px;
+    }
+    
+    .card-stat-large h5 {
+        font-size: 2.2rem;
+    }
+    
+    .card-stat-large p {
+        font-size: 1rem;
+    }
 }
 
 /* Filter styling */
@@ -336,6 +460,19 @@
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1.5rem;
+}
+
+/* Ensure btn-group displays horizontally */
+.filter-section .btn-group {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.filter-section .btn-group .btn {
+    margin-right: 0 !important;
+    border-radius: 0.375rem !important;
 }
 
 .filter-section small {
@@ -358,57 +495,182 @@
     font-weight: 500;
 }
 
+/* Improved filter responsive design */
+@media (max-width: 768px) {
+    .filter-section {
+        padding: 0.75rem;
+    }
+    
+    .filter-section .d-flex {
+        flex-direction: row;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        flex-wrap: wrap;
+    }
+    
+    .filter-section .d-flex.flex-wrap {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .filter-section .btn-group {
+        margin-bottom: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .filter-section .btn-group .btn {
+        flex: none;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.375rem;
+        white-space: nowrap;
+        margin-right: 0;
+    }
+    
+    .filter-section .btn-primary {
+        margin-top: 0;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .filter-section .btn-group .btn {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.3rem;
+    }
+    
+    .filter-section .btn-primary {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .filter-section .d-flex {
+        gap: 0.25rem !important;
+    }
+}
+
+/* Extra small screens - stack vertically only if absolutely necessary */
+@media (max-width: 400px) {
+    .filter-section .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .filter-section .btn-group {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .filter-section .btn-primary {
+        width: 100%;
+    }
+}
+
 /* Custom color for pending_approval status */
 .bg-secondary.bg-opacity-10.text-dark.border.border-secondary {
     background-color: rgba(139, 92, 246, 0.1) !important;
     color: #8b5cf6 !important;
     border-color: #8b5cf6 !important;
 }
+
+/* Additional improvements for better UX */
+.card-stat {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.card-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Large card styling for better balance */
+.card-stat-large {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-stat-large h5 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.card-stat-large p {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+.filter-section .btn-check:checked + .btn {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth transitions for responsive changes */
+@media (max-width: 768px) {
+    .card-stat {
+        transition: all 0.2s ease;
+    }
+    
+    .filter-section .btn-group {
+        transition: all 0.3s ease;
+    }
+}
 </style>
 @endpush
 
 @section('content')
-<div class="row g-3 mb-3">
-  <div class="col-md-2">
-    <div class="card card-stat p-3 text-center">
-      <h5 class="text-primary">{{ $stats['doing'] }}</h5>
-      <p>Đang làm</p>
+<div class="row g-2 mb-3">
+  <!-- Hàng trên: 3 card -->
+  <div class="col-4 col-md-4">
+    <div class="card card-stat p-2 text-center">
+      <h5 class="text-primary mb-1">{{ $stats['doing'] }}</h5>
+      <p class="mb-0">Đang làm</p>
     </div>
   </div>
 
-  <div class="col-md-2">
-    <div class="card card-stat p-3 text-center">
-      <h5 class="text-warning">{{ $stats['completed'] ?? 0 }}</h5>
-      <p>Chờ duyệt</p>
+  <div class="col-4 col-md-4">
+    <div class="card card-stat p-2 text-center">
+      <h5 class="text-warning mb-1">{{ $stats['completed'] ?? 0 }}</h5>
+      <p class="mb-0">Chờ duyệt</p>
     </div>
   </div>
 
-  <div class="col-md-2">
-    <div class="card card-stat p-3 text-center">
-      <h5 class="text-danger">{{ $stats['overdue'] }}</h5>
-      <p>Trễ hạn</p>
+  <div class="col-4 col-md-4">
+    <div class="card card-stat p-2 text-center">
+      <h5 class="text-danger mb-1">{{ $stats['overdue'] }}</h5>
+      <p class="mb-0">Trễ hạn</p>
     </div>
   </div>
-  <div class="col-md-2">
-    <div class="card card-stat p-3 text-center">
-      <h5 class="text-danger">{{ $stats['rejected'] ?? 0 }}</h5>
-      <p>Từ chối</p>
+  
+  <!-- Hàng dưới: 2 card lớn hơn -->
+  <div class="col-6 col-md-6">
+    <div class="card card-stat card-stat-large p-3 text-center">
+      <h5 class="text-danger mb-1">{{ $stats['rejected'] ?? 0 }}</h5>
+      <p class="mb-0">Từ chối</p>
     </div>
   </div>
-  <div class="col-md-2">
-    <div class="card card-stat p-3 text-center">
-      <h5 class="text-success">{{ $stats['finished'] ?? 0 }}</h5>
-      <p>Kết thúc</p>
+  
+  <div class="col-6 col-md-6">
+    <div class="card card-stat card-stat-large p-3 text-center">
+      <h5 class="text-success mb-1">{{ $stats['finished'] ?? 0 }}</h5>
+      <p class="mb-0">Kết thúc</p>
     </div>
   </div>
 </div>
 
 <div class="mb-3 filter-section">
-
   {{-- Filter theo trạng thái --}}
-  <div class="mb-2">
-    <small class="text-muted mb-2 d-block"><i class="bi bi-funnel me-1"></i>Lọc theo trạng thái:</small>
-    <form method="GET" action="{{ route('dashboard') }}" class="d-inline me-2">
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <small class="text-muted mb-0 me-2 flex-shrink-0"><i class="bi bi-funnel me-1"></i>Lọc theo trạng thái:</small>
+    
+    <form method="GET" action="{{ route('dashboard') }}" class="d-inline flex-shrink-0">
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
@@ -417,34 +679,39 @@
     </form>
 
     {{-- Multi-select statuses --}}
-    <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
+    <form method="GET" action="{{ route('dashboard') }}" class="d-inline flex-grow-1">
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
       <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-      <div class="btn-group me-2" role="group" aria-label="Statuses">
+      
+      <div class="d-flex flex-wrap align-items-center gap-1">
         @php
           $selected = collect(request('statuses', []));
         @endphp
-        <input type="checkbox" class="btn-check" id="st_doing" autocomplete="off" name="statuses[]" value="in_progress" {{ $selected->contains('in_progress') ? 'checked' : '' }}>
-        <label class="btn btn-sm btn-outline-primary" for="st_doing" style="border-color: #558EC1; color: #558EC1;">Đang làm</label>
+        
+        <div class="btn-group" role="group" aria-label="Statuses">
+          <input type="checkbox" class="btn-check" id="st_doing" autocomplete="off" name="statuses[]" value="in_progress" {{ $selected->contains('in_progress') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-primary" for="st_doing" style="border-color: #558EC1; color: #558EC1;">Đang làm</label>
 
-        <input type="checkbox" class="btn-check" id="st_completed" autocomplete="off" name="statuses[]" value="completed" {{ $selected->contains('completed') ? 'checked' : '' }}>
-        <label class="btn btn-sm btn-outline-warning" for="st_completed">Chờ duyệt</label>
+          <input type="checkbox" class="btn-check" id="st_completed" autocomplete="off" name="statuses[]" value="completed" {{ $selected->contains('completed') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-warning" for="st_completed">Chờ duyệt</label>
 
-        <input type="checkbox" class="btn-check" id="st_rejected" autocomplete="off" name="statuses[]" value="rejected" {{ $selected->contains('rejected') ? 'checked' : '' }}>
-        <label class="btn btn-sm btn-outline-danger" for="st_rejected">Từ chối</label>
+          <input type="checkbox" class="btn-check" id="st_rejected" autocomplete="off" name="statuses[]" value="rejected" {{ $selected->contains('rejected') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-danger" for="st_rejected">Từ chối</label>
 
-        <input type="checkbox" class="btn-check" id="st_overdue" autocomplete="off" name="statuses[]" value="overdue" {{ $selected->contains('overdue') ? 'checked' : '' }}>
-        <label class="btn btn-sm btn-outline-danger" for="st_overdue">Trễ hạn</label>
+          <input type="checkbox" class="btn-check" id="st_overdue" autocomplete="off" name="statuses[]" value="overdue" {{ $selected->contains('overdue') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-danger" for="st_overdue">Trễ hạn</label>
 
-        <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
-        <label class="btn btn-sm btn-outline-success" for="st_finished">Kết thúc</label>
+          <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-success" for="st_finished">Kết thúc</label>
 
-        <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
-        <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
+          <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
+        </div>
+        
+        <button type="submit" class="btn btn-sm btn-primary" style="background-color: #558EC1; border-color: #558EC1;">Áp dụng</button>
       </div>
-      <button type="submit" class="btn btn-sm btn-primary" style="background-color: #558EC1; border-color: #558EC1;">Áp dụng</button>
     </form>
   </div>
 
