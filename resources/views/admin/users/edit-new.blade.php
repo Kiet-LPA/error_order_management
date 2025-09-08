@@ -181,6 +181,29 @@
                                     </select>
                                     @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
+
+                                <!-- Trạng thái tài khoản -->
+                                <div class="mb-3">
+                                    <label for="account_status" class="form-label">Trạng thái tài khoản <span class="text-danger">*</span></label>
+                                    <select name="account_status" id="account_status" class="form-select @error('account_status') is-invalid @enderror" required
+                                            @if($user->isAdmin() || $user->isDirector()) disabled @endif>
+                                        <option value="inactive" {{ old('account_status', $user->account_status ?? 'inactive') == 'inactive' ? 'selected' : '' }}>
+                                            Vô hiệu hóa
+                                        </option>
+                                        <option value="active" {{ old('account_status', $user->account_status ?? 'inactive') == 'active' ? 'selected' : '' }}>
+                                            Kích hoạt
+                                        </option>
+                                    </select>
+                                    @error('account_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <strong>Vô hiệu hóa:</strong> Tài khoản không thể đăng nhập<br>
+                                        <strong>Kích hoạt:</strong> Tài khoản có thể hoạt động bình thường
+                                        @if($user->isAdmin() || $user->isDirector())
+                                            <br><strong class="text-warning">⚠️ Admin và Director luôn luôn active</strong>
+                                        @endif
+                                    </div>
+                                </div>
                                 
 
 

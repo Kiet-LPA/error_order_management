@@ -45,18 +45,24 @@
         <div class="col-6">
           <i class="bi bi-calendar-event"></i>Hạn cuối: <strong>{{ $task->deadline ? $task->deadline->format('d/m/Y') : 'Không có' }}</strong>
         </div>
-        @if($task->forwarded_to)
+        @if($task->forwards()->count() > 0)
         <div class="col-12">
           <div class="alert alert-info">
             <i class="bi bi-arrow-right-circle me-2"></i>
-            <strong>Task đã được forward:</strong> 
-            Từ {{ $task->forwardedBy->name ?? 'Người dùng đã xóa' }} 
-            đến {{ $task->forwardedTo->name ?? 'Người dùng đã xóa' }}
-            @if($task->forward_reason)
-              <br><small class="text-muted">Lý do: {{ $task->forward_reason }}</small>
+            <strong>Task đã được forward:</strong>
+            @php
+              $latestForward = $task->forwards()->first();
+            @endphp
+            Từ {{ $latestForward->forwardedBy->name ?? 'Người dùng đã xóa' }} 
+            đến {{ $latestForward->forwardedTo->name ?? 'Người dùng đã xóa' }}
+            @if($task->forwards()->count() > 1)
+              <span class="badge bg-secondary ms-1">+{{ $task->forwards()->count() - 1 }} người khác</span>
             @endif
-            @if($task->forwarded_at)
-              <br><small class="text-muted">Thời gian: {{ $task->forwarded_at->format('d/m/Y H:i') }}</small>
+            @if($latestForward->forward_reason)
+              <br><small class="text-muted">Lý do: {{ $latestForward->forward_reason }}</small>
+            @endif
+            @if($latestForward->forwarded_at)
+              <br><small class="text-muted">Thời gian: {{ $latestForward->forwarded_at->format('d/m/Y H:i') }}</small>
             @endif
           </div>
         </div>
@@ -449,7 +455,7 @@
       <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn btn-primary w-100 mb-2">🔄 Cập nhật trạng thái</a>
       <a href="{{ route('tasks.history',$task) }}" class="btn btn-outline-info w-100 mb-2">👁 Xem lịch sử</a>
       
-      @if((auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager()) && !$task->forwarded_to)
+      @if((auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager()) && auth()->user()->canViewTask($task))
         <a href="{{ route('tasks.forward.form', $task) }}" class="btn btn-outline-warning w-100 mb-2">
           <i class="bi bi-arrow-right-circle me-2"></i>Forward Task
         </a>

@@ -57,29 +57,61 @@
                         @csrf
                         
                         <div class="mb-3">
-                            <label for="forward_to" class="form-label">
+                            <label class="form-label">
                                 <i class="bi bi-person-check me-1"></i>Chuyển tiếp đến Quản lý
                                 <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select @error('forward_to') is-invalid @enderror" 
-                                    id="forward_to" name="forward_to" required>
-                                <option value="">-- Chọn Quản lý --</option>
+                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                                 @php
                                     $groupedManagers = $managers->groupBy('department.name');
                                 @endphp
                                 @foreach($groupedManagers as $departmentName => $departmentManagers)
-                                    <optgroup label="{{ $departmentName ?? 'Chưa phân phòng ban' }}">
+                                    <div class="mb-3">
+                                        <h6 class="text-primary mb-2">
+                                            <i class="bi bi-building me-1"></i>{{ $departmentName ?? 'Chưa phân phòng ban' }}
+                                        </h6>
                                         @foreach($departmentManagers as $manager)
-                                            <option value="{{ $manager->id }}" {{ old('forward_to') == $manager->id ? 'selected' : '' }}>
-                                                {{ $manager->name }}
-                                            </option>
+                                            <div class="form-check mb-2">
+                                                @php
+                                                    // Lấy danh sách người đã được forward trước đó
+                                                    $previouslyForwarded = $task->forwards()->pluck('forwarded_to')->toArray();
+                                                    // Kết hợp với old input nếu có
+                                                    $checkedUsers = array_unique(array_merge(
+                                                        old('forward_to', []), 
+                                                        $previouslyForwarded
+                                                    ));
+                                                @endphp
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       name="forward_to[]" 
+                                                       value="{{ $manager->id }}" 
+                                                       id="manager_{{ $manager->id }}"
+                                                       {{ in_array($manager->id, $checkedUsers) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="manager_{{ $manager->id }}">
+                                                    {{ $manager->name }}
+                                                    <small class="text-muted d-block">{{ $manager->email }}</small>
+                                                    @if(in_array($manager->id, $previouslyForwarded))
+                                                        <small class="text-success d-block">
+                                                            <i class="bi bi-check-circle me-1"></i>Đã được forward trước đó
+                                                        </small>
+                                                    @endif
+                                                </label>
+                                            </div>
                                         @endforeach
-                                    </optgroup>
+                                    </div>
                                 @endforeach
-                            </select>
+                            </div>
                             @error('forward_to')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="text-danger small mt-1">{{ $message }}</div>
                             @enderror
+                            @error('forward_to.*')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Bạn có thể chọn nhiều Quản lý để chuyển tiếp công việc cùng lúc. 
+                                Những người đã được forward trước đó sẽ được tự động tick và hiển thị trạng thái "Đã được forward trước đó".
+                            </div>
                         </div>
 
                         <div class="mb-3">

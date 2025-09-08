@@ -210,8 +210,8 @@ class EmployeeController extends Controller
     {
         $user = auth()->user();
         
-        // Kiểm tra xem user có phải là nhân viên mới không
-        if ($user->role !== 'employee' || $user->employee_type !== 'new') {
+        // Admin và Director luôn luôn active, chuyển về dashboard
+        if ($user->isAdmin() || $user->isDirector() || $user->account_status === 'active') {
             return redirect()->route('dashboard');
         }
         
@@ -259,6 +259,7 @@ class EmployeeController extends Controller
             'password'=>'nullable|min:8|confirmed',
             'role'=>'required|in:admin,manager,employee',
             'department_id'=>'required|exists:departments,id',
+            'account_status'=>'required|in:active,inactive',
             'add_contract'=>'nullable|boolean',
             // Thông tin hợp đồng thử việc
             'probation_salary'=>'nullable|numeric|min:0',
@@ -298,6 +299,11 @@ class EmployeeController extends Controller
             $data['password'] = bcrypt($data['password']);
         } else {
             unset($data['password']);
+        }
+        
+        // Admin và Director luôn luôn active
+        if ($user->isAdmin() || $user->isDirector()) {
+            $data['account_status'] = 'active';
         }
         
         $user->update($data);

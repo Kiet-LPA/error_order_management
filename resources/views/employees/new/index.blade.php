@@ -230,12 +230,25 @@
                                                    title="Chỉnh sửa">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                                @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
+                                                @php
+                                                    $hasActiveContract = $employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active';
+                                                @endphp
+                                                @if($hasActiveContract)
                                                     <button type="button" class="btn btn-sm btn-outline-success" 
                                                             data-bs-toggle="modal" data-bs-target="#convertModal{{ $employee->id }}"
-                                                            title="Chuyển thành chính thức">
+                                                            title="Chuyển thành chính thức"
+                                                            onclick="console.log('Opening modal for employee {{ $employee->id }}')">
                                                         <i class="bi bi-check-circle"></i>
                                                     </button>
+                                                @else
+                                                    <!-- Debug info -->
+                                                    <small class="text-muted">
+                                                        @if($employee->contracts->isEmpty())
+                                                            No contracts
+                                                        @else
+                                                            Contract: {{ $employee->contracts->first()->status }}
+                                                        @endif
+                                                    </small>
                                                 @endif
                                                 <button type="button" class="btn btn-sm btn-outline-danger" 
                                                         onclick="deleteEmployee({{ $employee->id }}, '{{ $employee->name }}')"
@@ -315,8 +328,13 @@
 </div>
 
 <!-- Modals for converting employees -->
+@php
+    $modalCount = 0;
+@endphp
 @foreach($newEmployees as $employee)
     @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
+    @php $modalCount++; @endphp
+    <!-- Modal for employee {{ $employee->id }} (Modal #{{ $modalCount }}) -->
     <div class="modal fade" id="convertModal{{ $employee->id }}" tabindex="-1" aria-labelledby="convertModalLabel{{ $employee->id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -443,5 +461,55 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Debug function
+function debugModals() {
+    console.log('=== DEBUG MODALS ===');
+    const modals = document.querySelectorAll('[id^="convertModal"]');
+    console.log('Found modals:', modals.length);
+    modals.forEach((modal, index) => {
+        console.log(`Modal ${index + 1}:`, modal.id);
+    });
+    
+    const buttons = document.querySelectorAll('[data-bs-target^="#convertModal"]');
+    console.log('Found buttons:', buttons.length);
+    buttons.forEach((button, index) => {
+        console.log(`Button ${index + 1}:`, button.getAttribute('data-bs-target'));
+    });
+}
+
+// Run debug on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(debugModals, 1000);
+});
 </script>
+
+@if(config('app.debug'))
+<div class="mt-4 p-3 bg-light border rounded">
+    <h6>Debug Info:</h6>
+    <p>Total employees: {{ $newEmployees->count() }}</p>
+    <p>Modals created: {{ $modalCount }}</p>
+    <p>Employees with active contracts:</p>
+    <ul>
+        @foreach($newEmployees as $employee)
+            @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
+                <li>Employee {{ $employee->id }}: {{ $employee->name }} (Contract status: {{ $employee->contracts->first()->status }})</li>
+            @endif
+        @endforeach
+    </ul>
+</div>
+@endif
+
+<!-- Alert for approval process -->
+<div class="mt-4 alert alert-info">
+    <h6><i class="bi bi-info-circle me-2"></i>Hướng dẫn duyệt tài khoản:</h6>
+    <ol class="mb-0">
+        <li><strong>Tìm nhân viên</strong> có nút <span class="badge bg-success"><i class="bi bi-check-circle"></i></span> (màu xanh)</li>
+        <li><strong>Click nút xanh</strong> để mở modal "Chuyển nhân viên thành chính thức"</li>
+        <li><strong>Điền thông tin:</strong> Vai trò, Lương chính thức, Ngày bắt đầu, Thời hạn hợp đồng</li>
+        <li><strong>Submit</strong> để duyệt tài khoản</li>
+    </ol>
+    <p class="mb-0 mt-2"><small class="text-muted">Nếu không thấy nút xanh, nhân viên chưa có hợp đồng active hoặc cần refresh trang (Ctrl+F5)</small></p>
+</div>
+
 @endpush

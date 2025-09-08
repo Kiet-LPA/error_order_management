@@ -110,6 +110,17 @@ class Task extends Model
         return $this->hasMany(DepartmentTask::class);
     }
 
+    // Task forwards
+    public function forwards()
+    {
+        return $this->hasMany(TaskForward::class)->orderBy('forwarded_at', 'desc');
+    }
+
+    public function latestForward()
+    {
+        return $this->hasOne(TaskForward::class)->latest('forwarded_at');
+    }
+
     // Multi-assigned tasks (for users)
     public function multiAssignedTasks()
     {

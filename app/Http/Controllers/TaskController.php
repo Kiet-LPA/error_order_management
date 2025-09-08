@@ -96,57 +96,92 @@ class TaskController extends Controller
         }
         
         $data = $request->validate([
-            'forward_to' => 'required|exists:users,id',
+            'forward_to' => 'required|array|min:1',
+            'forward_to.*' => 'exists:users,id',
             'forward_reason' => 'required|string|max:1000',
         ]);
         
-        // Kiểm tra người được forward phải là Manager
-        $forwardToUser = User::find($data['forward_to']);
-        if (!$forwardToUser->isManager()) {
-            abort(403, 'Chỉ có thể forward task cho Manager khác');
-        }
-        
-        // Kiểm tra quyền forward task
-        if (!$user->canForwardTask($task, $forwardToUser)) {
-            abort(403, 'Bạn không có quyền forward task này cho người này');
+        // Kiểm tra tất cả người được forward phải là Manager
+        $forwardToUsers = User::whereIn('id', $data['forward_to'])->get();
+        foreach ($forwardToUsers as $forwardToUser) {
+            if (!$forwardToUser->isManager()) {
+                abort(403, 'Chỉ có thể forward task cho Manager khác');
+            }
+            
+            // Kiểm tra quyền forward task cho từng người
+            if (!$user->canForwardTask($task, $forwardToUser)) {
+                abort(403, "Bạn không có quyền forward task này cho {$forwardToUser->name}");
+            }
         }
         
         // Lưu lịch sử forward trước đó (nếu có)
-        $previousForward = null;
-        if ($task->forwarded_to) {
-            $previousForward = [
-                'forwarded_to' => $task->forwarded_to,
-                'forwarded_by' => $task->forwarded_by,
-                'forward_reason' => $task->forward_reason,
-                'forwarded_at' => $task->forwarded_at,
+        $previousForwards = $task->forwards()->get()->map(function($forward) {
+            return [
+                'forwarded_to' => $forward->forwarded_to,
+                'forwarded_by' => $forward->forwarded_by,
+                'forward_reason' => $forward->forward_reason,
+                'forwarded_at' => $forward->forwarded_at,
             ];
+        })->toArray();
+        
+        // Lấy danh sách người đã được forward trước đó
+        $previouslyForwarded = $task->forwards()->pluck('forwarded_to')->toArray();
+        
+        // Tạo forward records cho từng người (chỉ những người chưa được forward)
+        $forwardedUserNames = [];
+        $newForwardedUsers = [];
+        
+        foreach ($forwardToUsers as $forwardToUser) {
+            // Chỉ tạo record mới nếu chưa được forward trước đó
+            if (!in_array($forwardToUser->id, $previouslyForwarded)) {
+                $task->forwards()->create([
+                    'forwarded_to' => $forwardToUser->id,
+                    'forwarded_by' => $user->id,
+                    'forward_reason' => $data['forward_reason'],
+                    'forwarded_at' => now(),
+                ]);
+                
+                $newForwardedUsers[] = $forwardToUser;
+                
+                // Gửi thông báo cho Manager mới được forward
+                NotificationService::taskForwarded($task, $user, $forwardToUser);
+            }
+            
+            $forwardedUserNames[] = $forwardToUser->name;
         }
         
-        // Cập nhật task với thông tin forward mới
+        // Cập nhật task với thông tin forward mới (giữ lại cho backward compatibility)
         $task->update([
-            'forwarded_to' => $data['forward_to'],
+            'forwarded_to' => $data['forward_to'][0], // Lưu người đầu tiên cho compatibility
             'forwarded_by' => $user->id,
             'forward_reason' => $data['forward_reason'],
             'forwarded_at' => now(),
         ]);
         
-        // Lưu lịch sử forward vào task_activities
-        $task->activities()->create([
-            'user_id' => $user->id,
-            'action' => 'forwarded',
-            'description' => "Task được forward từ {$user->name} đến {$forwardToUser->name}",
-            'metadata' => [
-                'forward_to' => $forwardToUser->id,
-                'forward_reason' => $data['forward_reason'],
-                'previous_forward' => $previousForward,
-            ],
-        ]);
+        // Lưu lịch sử forward vào task_activities (chỉ nếu có người mới)
+        if (!empty($newForwardedUsers)) {
+            $newForwardedNames = array_map(fn($user) => $user->name, $newForwardedUsers);
+            $task->activities()->create([
+                'user_id' => $user->id,
+                'action' => 'forwarded',
+                'description' => "Task được forward từ {$user->name} đến: " . implode(', ', $newForwardedNames),
+                'metadata' => [
+                    'forward_to' => array_map(fn($user) => $user->id, $newForwardedUsers),
+                    'forward_reason' => $data['forward_reason'],
+                    'previous_forwards' => $previousForwards,
+                ],
+            ]);
+        }
         
-        // Gửi thông báo cho Manager được forward
-        NotificationService::taskForwarded($task, $user, $forwardToUser);
+        // Tạo message phù hợp
+        if (!empty($newForwardedUsers)) {
+            $newForwardedNames = array_map(fn($user) => $user->name, $newForwardedUsers);
+            $message = 'Task đã được forward thành công cho: ' . implode(', ', $newForwardedNames);
+        } else {
+            $message = 'Danh sách người forward đã được cập nhật (không có người mới)';
+        }
         
-        return redirect()->route('task-detail', $task)
-                        ->with('success', 'Task đã được forward thành công cho ' . $forwardToUser->name);
+        return redirect()->route('task-detail', $task)->with('success', $message);
     }
     public function create()
     {
@@ -281,14 +316,13 @@ class TaskController extends Controller
             }
         }
 
-        // Tự động phát hiện và gán phòng ban dựa trên assignees
-        $task->updateDepartmentsFromAssignees();
-
         // Xử lý multi-department assignments
         if ($r->boolean('is_multi_department') && $r->has('department_ids')) {
-            foreach ($r->department_ids as $departmentId) {
-                $task->departments()->attach($departmentId);
-            }
+            // Nếu user chọn manual departments, sử dụng departments từ form
+            $task->departments()->sync($r->department_ids);
+        } else {
+            // Tự động phát hiện và gán phòng ban dựa trên assignees
+            $task->updateDepartmentsFromAssignees();
         }
 
         // Xử lý followers khi tạo task

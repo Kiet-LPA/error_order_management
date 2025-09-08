@@ -18,6 +18,7 @@ class User extends Authenticatable
         'role',
         'department_id',
         'employee_type', // new, official
+        'account_status', // active, inactive
         'position',
         'social_insurance_number',
         'health_insurance_number',
@@ -125,6 +126,27 @@ class User extends Authenticatable
     public function isEmployee()
     { 
         return $this->normalizedRole() === 'employee'; 
+    }
+
+    // Account status methods
+    public function isAccountActive(): bool
+    {
+        return $this->account_status === 'active';
+    }
+
+    public function isAccountInactive(): bool
+    {
+        return $this->account_status === 'inactive';
+    }
+
+    public function activateAccount(): bool
+    {
+        return $this->update(['account_status' => 'active']);
+    }
+
+    public function deactivateAccount(): bool
+    {
+        return $this->update(['account_status' => 'inactive']);
     }
 
     /**

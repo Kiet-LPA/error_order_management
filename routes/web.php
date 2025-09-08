@@ -40,7 +40,7 @@ Route::get('/admin/update-overdue', function () {
 })->name('admin.update-overdue');
 
 // Các route yêu cầu đăng nhập (KHÔNG dùng verified)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'employee.type'])->group(function () {
 
     // Dashboard: đổ dữ liệu động (controller trả về view 'welcome')
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -177,13 +177,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Task Followers routes (cho tất cả users)
-    Route::middleware(['auth'])->group(function () {
+    Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::post('/tasks/{task}/followers/follow', [TaskFollowerController::class, 'follow'])->name('tasks.followers.follow');
         Route::delete('/tasks/{task}/followers/unfollow', [TaskFollowerController::class, 'unfollow'])->name('tasks.followers.unfollow');
     });
 
     // Notification routes (cho tất cả users)
-    Route::middleware(['auth'])->group(function () {
+    Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
         Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
@@ -192,7 +192,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Comment routes
-    Route::middleware(['auth'])->group(function () {
+    Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::post('/tasks/{task}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
         Route::put('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'update'])->name('comments.update');
         Route::delete('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
@@ -256,7 +256,7 @@ Route::middleware(['auth', 'role:admin,director'])->group(function () {
 });
 
 // Profile routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     
