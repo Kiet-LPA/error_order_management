@@ -1,5 +1,5 @@
 <div class="dropdown">
-    <button class="btn btn-link position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="btn btn-link position-relative" type="button" id="notificationDropdown" aria-expanded="false">
         <i class="bi bi-bell fs-5"></i>
         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" id="notificationBadge" style="display: none;">
             0
@@ -36,6 +36,300 @@
 
 .notification-item:active {
     background-color: #e9ecef !important;
+}
+
+/* Responsive notification dropdown */
+@media (max-width: 768px) {
+    /* Notification dropdown specific */
+    #notificationDropdown + .dropdown-menu {
+        width: 90vw !important;
+        max-width: 350px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: auto !important;
+        margin-top: 10px;
+        position: fixed !important;
+        z-index: 1051 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+    
+    /* User dropdown specific - keep normal positioning */
+    #userDropdown + .dropdown-menu {
+        width: auto !important;
+        max-width: 200px !important;
+        left: auto !important;
+        transform: none !important;
+        right: 0 !important;
+        margin-top: 5px;
+        position: absolute !important;
+        z-index: 1052 !important;
+    }
+    
+    .dropdown-menu::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid white;
+    }
+    
+    /* Force show dropdown when Bootstrap adds show class */
+    .dropdown-menu.show {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .dropdown-menu {
+        width: 95vw !important;
+        max-height: 60vh !important;
+    }
+    
+    .notification-item {
+        padding: 0.75rem !important;
+    }
+    
+    .notification-item h6 {
+        font-size: 0.9rem;
+    }
+    
+    .notification-item p {
+        font-size: 0.8rem;
+    }
+}
+
+/* Ensure dropdown doesn't interfere with main content */
+.dropdown-menu {
+    position: absolute;
+    z-index: 1050;
+}
+
+/* Specific z-index for notification dropdown */
+#notificationDropdown + .dropdown-menu {
+    z-index: 1051 !important;
+}
+
+/* Specific z-index for user dropdown */
+#userDropdown + .dropdown-menu {
+    z-index: 1052 !important;
+}
+
+/* Desktop dropdown styling */
+@media (min-width: 769px) {
+    .dropdown-menu {
+        position: absolute !important;
+        z-index: 1050 !important;
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+    
+    .dropdown-menu.show {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+/* Force hide notification dropdown by default */
+#notificationDropdown + .dropdown-menu {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    z-index: 1051 !important;
+}
+
+#notificationDropdown + .dropdown-menu.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: absolute !important;
+    z-index: 1051 !important;
+}
+
+/* Override Bootstrap dropdown behavior - ONLY for notification dropdown */
+#notificationDropdown + .dropdown-menu:not(.show) {
+    display: none !important;
+}
+
+#notificationDropdown + .dropdown-menu.show {
+    display: block !important;
+}
+
+/* Ensure user dropdown works normally with Bootstrap */
+#userDropdown + .dropdown-menu {
+    display: none;
+    position: absolute;
+    z-index: 1052;
+}
+
+#userDropdown + .dropdown-menu.show {
+    display: block;
+    position: absolute;
+    z-index: 1052;
+}
+
+/* Ensure user dropdown doesn't interfere with notification */
+#userDropdown {
+    position: relative;
+    z-index: 1052;
+}
+
+/* Allow normal Bootstrap behavior for all other dropdowns */
+.dropdown:not(#notificationDropdown) .dropdown-menu {
+    display: none;
+}
+
+.dropdown:not(#notificationDropdown) .dropdown-menu.show {
+    display: block;
+}
+
+/* Ensure pagination works normally */
+.pagination {
+    display: flex !important;
+    padding-left: 0 !important;
+    list-style: none !important;
+    border-radius: 0.375rem !important;
+    margin: 0 !important;
+}
+
+.pagination .page-item {
+    margin: 0 2px !important;
+}
+
+.pagination .page-link {
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    border: 1px solid #dee2e6 !important;
+    background-color: #fff !important;
+    color: #0d6efd !important;
+    text-decoration: none !important;
+    display: block !important;
+    cursor: pointer !important;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #0a58ca !important;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: #fff !important;
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+    pointer-events: none !important;
+}
+
+/* Responsive pagination */
+@media (max-width: 576px) {
+    .pagination {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+    
+    .pagination .page-item {
+        margin: 2px !important;
+    }
+    
+    .pagination .page-link {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* Pagination trong card-footer */
+.card-footer .pagination {
+    margin-bottom: 0 !important;
+}
+
+.card-footer .pagination .page-link {
+    border-radius: 0.25rem !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 0.75rem !important;
+}
+
+/* Ensure Bootstrap dropdown toggle works for user menu */
+#userDropdown[data-bs-toggle="dropdown"] {
+    cursor: pointer;
+}
+
+/* Force Bootstrap to work for user dropdown */
+.dropdown:not(#notificationDropdown) .dropdown-toggle[data-bs-toggle="dropdown"] {
+    cursor: pointer;
+}
+
+/* Ensure user dropdown menu is properly positioned */
+#userDropdown + .dropdown-menu {
+    right: 0;
+    left: auto;
+    top: 100%;
+    margin-top: 0.125rem;
+}
+
+/* Notification dropdown specific styling */
+#notificationDropdown + .dropdown-menu {
+    transition: all 0.3s ease;
+}
+
+#notificationDropdown + .dropdown-menu.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Fix for mobile viewport */
+@media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+}
+
+/* Ensure notification button is clickable */
+#notificationDropdown {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 1060 !important;
+    position: relative !important;
+}
+
+#notificationDropdown:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+#notificationDropdown:active {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Prevent other elements from interfering */
+.nav-link {
+    pointer-events: auto !important;
+}
+
+/* Ensure notification dropdown is properly positioned */
+#notificationDropdown + .dropdown-menu {
+    position: absolute !important;
+    z-index: 1051 !important;
 }
 </style>
 
@@ -307,8 +601,176 @@ function formatTime(timestamp) {
 }
 
 // Load notifications when dropdown is shown
-document.getElementById('notificationDropdown').addEventListener('click', function() {
-    loadNotifications();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, looking for notification button...');
+    const notificationButton = document.getElementById('notificationDropdown');
+    
+    if (notificationButton) {
+        console.log('Notification button found, adding click listener...');
+        
+        // Disable Bootstrap dropdown behavior
+        notificationButton.removeAttribute('data-bs-toggle');
+        notificationButton.removeAttribute('data-bs-auto-close');
+        
+        // Ensure dropdown is hidden by default
+        const notificationDropdown = document.querySelector('#notificationDropdown + .dropdown-menu');
+        if (notificationDropdown) {
+            notificationDropdown.style.display = 'none';
+            notificationDropdown.style.visibility = 'hidden';
+            notificationDropdown.style.opacity = '0';
+            notificationDropdown.style.pointerEvents = 'none';
+            notificationDropdown.classList.remove('show');
+            console.log('Notification dropdown hidden by default');
+        }
+        
+        // Remove any existing event listeners
+        notificationButton.removeEventListener('click', handleNotificationClick);
+        
+        // Add new event listener
+        notificationButton.addEventListener('click', handleNotificationClick);
+        
+        function handleNotificationClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Notification button clicked!');
+            
+            const notificationDropdown = document.querySelector('#notificationDropdown + .dropdown-menu');
+            if (!notificationDropdown) {
+                console.error('Notification dropdown not found!');
+                return;
+            }
+            
+            // Check if dropdown is currently visible
+            const isVisible = notificationDropdown.classList.contains('show') && 
+                             notificationDropdown.style.display === 'block' && 
+                             notificationDropdown.style.visibility === 'visible' && 
+                             notificationDropdown.style.opacity === '1';
+            
+            console.log('Dropdown is visible:', isVisible);
+            
+            if (isVisible) {
+                // Close dropdown
+                notificationDropdown.style.display = 'none';
+                notificationDropdown.style.visibility = 'hidden';
+                notificationDropdown.style.opacity = '0';
+                notificationDropdown.style.pointerEvents = 'none';
+                notificationDropdown.classList.remove('show');
+                notificationButton.setAttribute('aria-expanded', 'false');
+                console.log('Notification dropdown closed');
+            } else {
+                // Open dropdown
+                loadNotifications();
+                
+                // Force show dropdown with all necessary properties
+                notificationDropdown.style.display = 'block';
+                notificationDropdown.style.visibility = 'visible';
+                notificationDropdown.style.opacity = '1';
+                notificationDropdown.style.pointerEvents = 'auto';
+                notificationDropdown.style.position = 'absolute';
+                notificationDropdown.style.zIndex = '1051';
+                notificationDropdown.classList.add('show');
+                notificationButton.setAttribute('aria-expanded', 'true');
+                
+                // Handle responsive positioning
+                if (window.innerWidth <= 768) {
+                    // Mobile - center
+                    notificationDropdown.style.left = '50%';
+                    notificationDropdown.style.transform = 'translateX(-50%)';
+                    notificationDropdown.style.right = 'auto';
+                    notificationDropdown.style.position = 'fixed';
+                    console.log('Mobile notification dropdown positioned and shown');
+                } else {
+                    // Desktop - right align
+                    notificationDropdown.style.left = 'auto';
+                    notificationDropdown.style.transform = 'none';
+                    notificationDropdown.style.right = '0';
+                    notificationDropdown.style.position = 'absolute';
+                    console.log('Desktop notification dropdown shown');
+                }
+                
+                console.log('Dropdown should be visible now');
+            }
+        }
+    } else {
+        console.error('Notification button not found!');
+    }
+});
+
+// Close notification dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const notificationDropdown = document.querySelector('#notificationDropdown + .dropdown-menu');
+    const notificationButton = document.getElementById('notificationDropdown');
+    
+    // Only close notification dropdown if clicking outside notification dropdown and its button
+    if (notificationDropdown && 
+        !notificationDropdown.contains(event.target) && 
+        !notificationButton.contains(event.target)) {
+        
+        // Close notification dropdown
+        notificationDropdown.style.display = 'none';
+        notificationDropdown.style.visibility = 'hidden';
+        notificationDropdown.style.opacity = '0';
+        notificationDropdown.style.pointerEvents = 'none';
+        notificationDropdown.classList.remove('show');
+        notificationButton.setAttribute('aria-expanded', 'false');
+        console.log('Notification dropdown closed by clicking outside');
+    }
+});
+
+// Force close dropdown on page load
+window.addEventListener('load', function() {
+    const notificationDropdown = document.querySelector('#notificationDropdown + .dropdown-menu');
+    if (notificationDropdown) {
+        notificationDropdown.style.display = 'none';
+        notificationDropdown.style.visibility = 'hidden';
+        notificationDropdown.style.opacity = '0';
+        notificationDropdown.classList.remove('show');
+        console.log('Notification dropdown force closed on page load');
+    }
+});
+
+// Handle dropdown toggle events
+document.addEventListener('DOMContentLoaded', function() {
+    const button = document.getElementById('notificationDropdown');
+    if (button) {
+        button.addEventListener('shown.bs.dropdown', function() {
+            console.log('Dropdown shown');
+            const dropdown = document.querySelector('.dropdown-menu');
+            if (dropdown && window.innerWidth <= 768) {
+                // Mobile - ensure it's visible
+                dropdown.style.display = 'block';
+                dropdown.style.visibility = 'visible';
+                dropdown.style.opacity = '1';
+            }
+        });
+        
+        button.addEventListener('hidden.bs.dropdown', function() {
+            console.log('Dropdown hidden');
+        });
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    const dropdown = document.querySelector('.dropdown-menu');
+    if (dropdown && window.innerWidth <= 768) {
+        dropdown.style.left = '50%';
+        dropdown.style.transform = 'translateX(-50%)';
+        dropdown.style.right = 'auto';
+    } else if (dropdown) {
+        dropdown.style.left = 'auto';
+        dropdown.style.transform = 'none';
+        dropdown.style.right = '0';
+    }
+});
+
+// Debug click events
+document.addEventListener('click', function(e) {
+    console.log('Click detected on:', e.target);
+    console.log('Click target class:', e.target.className);
+    console.log('Click target id:', e.target.id);
+    console.log('Click target tag:', e.target.tagName);
 });
 
 // Load initial notification count

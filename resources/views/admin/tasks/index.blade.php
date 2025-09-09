@@ -51,8 +51,78 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer">
-        {{ $tasks->withQueryString()->links() }}
-    </div>
+    @if($tasks->hasPages())
+        <div class="card-footer bg-light border-0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    Hiển thị {{ $tasks->firstItem() ?? 0 }} - {{ $tasks->lastItem() ?? 0 }} 
+                    trong tổng số {{ $tasks->total() }} kết quả
+                </div>
+                
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mb-0">
+                        @if ($tasks->onFirstPage())
+                            <li class="page-item disabled">
+                                <span class="page-link">« Previous</span>
+                            </li>
+                        @else
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $tasks->withQueryString()->previousPageUrl() }}" rel="prev">« Previous</a>
+                            </li>
+                        @endif
+
+                        @php
+                            $start = max(1, $tasks->currentPage() - 2);
+                            $end = min($tasks->lastPage(), $tasks->currentPage() + 2);
+                        @endphp
+                        
+                        @if($start > 1)
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $tasks->withQueryString()->url(1) }}">1</a>
+                            </li>
+                            @if($start > 2)
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            @endif
+                        @endif
+                        
+                        @for ($page = $start; $page <= $end; $page++)
+                            @if ($page == $tasks->currentPage())
+                                <li class="page-item active">
+                                    <span class="page-link">{{ $page }}</span>
+                                </li>
+                            @else
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $tasks->withQueryString()->url($page) }}">{{ $page }}</a>
+                                </li>
+                            @endif
+                        @endfor
+                        
+                        @if($end < $tasks->lastPage())
+                            @if($end < $tasks->lastPage() - 1)
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            @endif
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $tasks->withQueryString()->url($tasks->lastPage()) }}">{{ $tasks->lastPage() }}</a>
+                            </li>
+                        @endif
+
+                        @if ($tasks->hasMorePages())
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $tasks->withQueryString()->nextPageUrl() }}" rel="next">Next »</a>
+                            </li>
+                        @else
+                            <li class="page-item disabled">
+                                <span class="page-link">Next »</span>
+                            </li>
+                        @endif
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

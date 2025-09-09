@@ -301,51 +301,75 @@
             </div>
             <!-- Pagination -->
             @if($newEmployees->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination">
-                            {{-- Previous Page Link --}}
-                            @if ($newEmployees->onFirstPage())
-                                <li class="page-item disabled">
-                                    <span class="page-link">« Trước</span>
-                                </li>
-                            @else
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ $newEmployees->previousPageUrl() }}" rel="prev">« Trước</a>
-                                </li>
-                            @endif
-
-                            {{-- Pagination Elements --}}
-                            @foreach ($newEmployees->getUrlRange(1, $newEmployees->lastPage()) as $page => $url)
-                                @if ($page == $newEmployees->currentPage())
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ $page }}</span>
+                <div class="card-footer bg-light border-0 mt-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            Hiển thị {{ $newEmployees->firstItem() ?? 0 }} - {{ $newEmployees->lastItem() ?? 0 }} 
+                            trong tổng số {{ $newEmployees->total() }} kết quả
+                        </div>
+                        
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination mb-0">
+                                @if ($newEmployees->onFirstPage())
+                                    <li class="page-item disabled">
+                                        <span class="page-link">« Previous</span>
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                        <a class="page-link" href="{{ $newEmployees->previousPageUrl() }}" rel="prev">« Previous</a>
                                     </li>
                                 @endif
-                            @endforeach
 
-                            {{-- Next Page Link --}}
-                            @if ($newEmployees->hasMorePages())
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ $newEmployees->nextPageUrl() }}" rel="next">Sau »</a>
-                                </li>
-                            @else
-                                <li class="page-item disabled">
-                                    <span class="page-link">Sau »</span>
-                                </li>
-                            @endif
-                        </ul>
-                    </nav>
-                    
-                    {{-- Page Info --}}
-                    <div class="text-center mt-2">
-                        <small class="text-muted">
-                            Hiển thị {{ $newEmployees->firstItem() ?? 0 }} đến {{ $newEmployees->lastItem() ?? 0 }} trong tổng số {{ $newEmployees->total() }} kết quả
-                        </small>
+                                @php
+                                    $start = max(1, $newEmployees->currentPage() - 2);
+                                    $end = min($newEmployees->lastPage(), $newEmployees->currentPage() + 2);
+                                @endphp
+                                
+                                @if($start > 1)
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $newEmployees->url(1) }}">1</a>
+                                    </li>
+                                    @if($start > 2)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                @endif
+                                
+                                @for ($page = $start; $page <= $end; $page++)
+                                    @if ($page == $newEmployees->currentPage())
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ $page }}</span>
+                                        </li>
+                                    @else
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $newEmployees->url($page) }}">{{ $page }}</a>
+                                        </li>
+                                    @endif
+                                @endfor
+                                
+                                @if($end < $newEmployees->lastPage())
+                                    @if($end < $newEmployees->lastPage() - 1)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $newEmployees->url($newEmployees->lastPage()) }}">{{ $newEmployees->lastPage() }}</a>
+                                    </li>
+                                @endif
+
+                                @if ($newEmployees->hasMorePages())
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $newEmployees->nextPageUrl() }}" rel="next">Next »</a>
+                                    </li>
+                                @else
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next »</span>
+                                    </li>
+                                @endif
+                            </ul>
+                        </nav>
                     </div>
                 </div>
             @endif

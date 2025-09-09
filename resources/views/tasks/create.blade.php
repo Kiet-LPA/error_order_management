@@ -145,11 +145,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 <label class="form-label fw-bold text-dark">
                   <i class="bi bi-building me-2"></i>Phòng ban phụ trách
                 </label>
-                <div class="alert alert-info mb-3">
+                <!-- <div class="alert alert-info mb-3">
                   <i class="bi bi-lightbulb me-2"></i>
                   <strong>Lưu ý:</strong> Phòng ban sẽ được tự động phát hiện dựa trên assignees bạn chọn. 
                   Nếu bạn chọn nhân viên từ nhiều phòng ban khác nhau, task sẽ tự động trở thành "Đa phòng ban".
-                </div>
+                </div> -->
                 @if(auth()->user()->isManager())
                   {{-- Manager: tự động chọn phòng ban của họ --}}
                   <input type="hidden" name="department_id" value="{{ auth()->user()->department_id }}">

@@ -116,15 +116,75 @@
                     </div>
                     
                     @if($supportRequests->hasPages())
-                    <div class="card-footer">
+                    <div class="card-footer bg-light border-0">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="text-muted">
-                                Hiển thị {{ $supportRequests->firstItem() }} đến {{ $supportRequests->lastItem() }} 
-                                trong tổng số {{ $supportRequests->total() }} yêu cầu
+                                Hiển thị {{ $supportRequests->firstItem() ?? 0 }} - {{ $supportRequests->lastItem() ?? 0 }} 
+                                trong tổng số {{ $supportRequests->total() }} kết quả
                             </div>
-                            <div>
-                                {{ $supportRequests->links() }}
-                            </div>
+                            
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination mb-0">
+                                    @if ($supportRequests->onFirstPage())
+                                        <li class="page-item disabled">
+                                            <span class="page-link">« Previous</span>
+                                        </li>
+                                    @else
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $supportRequests->previousPageUrl() }}" rel="prev">« Previous</a>
+                                        </li>
+                                    @endif
+
+                                    @php
+                                        $start = max(1, $supportRequests->currentPage() - 2);
+                                        $end = min($supportRequests->lastPage(), $supportRequests->currentPage() + 2);
+                                    @endphp
+                                    
+                                    @if($start > 1)
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $supportRequests->url(1) }}">1</a>
+                                        </li>
+                                        @if($start > 2)
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        @endif
+                                    @endif
+                                    
+                                    @for ($page = $start; $page <= $end; $page++)
+                                        @if ($page == $supportRequests->currentPage())
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ $page }}</span>
+                                            </li>
+                                        @else
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ $supportRequests->url($page) }}">{{ $page }}</a>
+                                            </li>
+                                        @endif
+                                    @endfor
+                                    
+                                    @if($end < $supportRequests->lastPage())
+                                        @if($end < $supportRequests->lastPage() - 1)
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        @endif
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $supportRequests->url($supportRequests->lastPage()) }}">{{ $supportRequests->lastPage() }}</a>
+                                        </li>
+                                    @endif
+
+                                    @if ($supportRequests->hasMorePages())
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $supportRequests->nextPageUrl() }}" rel="next">Next »</a>
+                                        </li>
+                                    @else
+                                        <li class="page-item disabled">
+                                            <span class="page-link">Next »</span>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                     @endif

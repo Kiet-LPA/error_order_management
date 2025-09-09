@@ -392,12 +392,75 @@
     
     {{-- Thông tin kết quả --}}
     @if($users->hasPages())
-        <div class="card-footer">
-            <div class="d-flex justify-content-center">
+        <div class="card-footer bg-light border-0">
+            <div class="d-flex justify-content-between align-items-center">
                 <div class="text-muted">
                     Hiển thị {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
                     trong tổng số {{ $users->total() }} kết quả
                 </div>
+                
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mb-0">
+                        @if ($users->onFirstPage())
+                            <li class="page-item disabled">
+                                <span class="page-link">« Previous</span>
+                            </li>
+                        @else
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $users->previousPageUrl() }}" rel="prev">« Previous</a>
+                            </li>
+                        @endif
+
+                        @php
+                            $start = max(1, $users->currentPage() - 2);
+                            $end = min($users->lastPage(), $users->currentPage() + 2);
+                        @endphp
+                        
+                        @if($start > 1)
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $users->url(1) }}">1</a>
+                            </li>
+                            @if($start > 2)
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            @endif
+                        @endif
+                        
+                        @for ($page = $start; $page <= $end; $page++)
+                            @if ($page == $users->currentPage())
+                                <li class="page-item active">
+                                    <span class="page-link">{{ $page }}</span>
+                                </li>
+                            @else
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $users->url($page) }}">{{ $page }}</a>
+                                </li>
+                            @endif
+                        @endfor
+                        
+                        @if($end < $users->lastPage())
+                            @if($end < $users->lastPage() - 1)
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            @endif
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $users->url($users->lastPage()) }}">{{ $users->lastPage() }}</a>
+                            </li>
+                        @endif
+
+                        @if ($users->hasMorePages())
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $users->nextPageUrl() }}" rel="next">Next »</a>
+                            </li>
+                        @else
+                            <li class="page-item disabled">
+                                <span class="page-link">Next »</span>
+                            </li>
+                        @endif
+                    </ul>
+                </nav>
             </div>
         </div>
     @endif
