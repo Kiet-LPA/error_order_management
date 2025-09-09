@@ -175,9 +175,6 @@
                                         @if(auth()->user()->isAdmin() || auth()->user()->isDirector())
                                             <option value="director" {{ old('role', $user->role) == 'director' ? 'selected' : '' }}>Director</option>
                                         @endif
-                                        @if(auth()->user()->isAdmin())
-                                            <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Quản trị viên</option>
-                                        @endif
                                     </select>
                                     @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>

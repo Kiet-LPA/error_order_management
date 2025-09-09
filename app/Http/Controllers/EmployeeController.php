@@ -257,7 +257,7 @@ class EmployeeController extends Controller
             'email'=>'required|email|unique:users,email,' . $user->id,
             'phone'=>'nullable|string|max:20|unique:users,phone,' . $user->id,
             'password'=>'nullable|min:8|confirmed',
-            'role'=>'required|in:admin,manager,employee',
+            'role'=>'required|in:manager,employee',
             'department_id'=>'required|exists:departments,id',
             'account_status'=>'required|in:active,inactive',
             'add_contract'=>'nullable|boolean',

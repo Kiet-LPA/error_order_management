@@ -296,21 +296,42 @@
                                                 $currentRecipients = array_unique($currentRecipients);
                                             @endphp
                                             
-                                            @foreach(\App\Models\User::whereIn('role', ['admin', 'director', 'manager'])->get() as $user)
+                                            @foreach(\App\Models\User::whereIn('role', ['director', 'manager'])->get() as $user)
                                                 @php
                                                     $isDisabled = in_array($user->id, $currentRecipients);
+                                                    
+                                                    // Disable Manager cùng phòng ban nếu user hiện tại là Manager
+                                                    $shouldDisable = false;
+                                                    if (auth()->user()->isManager() && $user->isManager() && $user->department_id === auth()->user()->department_id) {
+                                                        $shouldDisable = true;
+                                                    }
+                                                    
+                                                    // Disable chính mình nếu user hiện tại là Director
+                                                    if (auth()->user()->isDirector() && $user->id === auth()->user()->id) {
+                                                        $shouldDisable = true;
+                                                    }
+                                                    
+                                                    // Disable nếu đã tham gia request
+                                                    if ($isDisabled) {
+                                                        $shouldDisable = true;
+                                                    }
                                                 @endphp
+                                                
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" 
                                                            name="new_recipients[]" 
                                                            value="{{ $user->id }}" 
                                                            id="recipient_{{ $user->id }}"
-                                                           {{ $isDisabled ? 'disabled' : '' }}>
-                                                    <label class="form-check-label {{ $isDisabled ? 'text-muted' : '' }}" 
+                                                           {{ $shouldDisable ? 'disabled' : '' }}>
+                                                    <label class="form-check-label {{ $shouldDisable ? 'text-muted' : '' }}" 
                                                            for="recipient_{{ $user->id }}">
                                                         {{ $user->name }} ({{ ucfirst($user->role) }})
                                                         @if($isDisabled)
                                                             <small class="text-warning"> - Đã tham gia</small>
+                                                        @elseif(auth()->user()->isManager() && $user->isManager() && $user->department_id === auth()->user()->department_id)
+                                                            <small class="text-danger"> - Cùng phòng ban</small>
+                                                        @elseif(auth()->user()->isDirector() && $user->id === auth()->user()->id)
+                                                            <small class="text-danger"> - Chính mình</small>
                                                         @endif
                                                     </label>
                                                 </div>

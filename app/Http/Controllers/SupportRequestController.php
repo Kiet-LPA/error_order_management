@@ -48,7 +48,7 @@ class SupportRequestController extends Controller
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
-        // Lấy danh sách recipients dựa trên role của user
+        // Lấy danh sách recipients dựa trên role của user (không bao gồm Admin)
         if ($user->isEmployee()) {
             // Employee: Lấy Manager của phòng ban của mình
             $managers = User::where('role', 'manager')
@@ -283,7 +283,8 @@ class SupportRequestController extends Controller
     {
         $user = auth()->user();
         
-        if (!$supportRequest->canBeForwardedBy($user)) {
+        // Kiểm tra quyền forward
+        if (!$this->canForwardSupportRequest($user, $supportRequest)) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
@@ -298,11 +299,26 @@ class SupportRequestController extends Controller
             'forwarding_reason' => 'required|string|max:1000',
         ]);
         
-        // Kiểm tra new_recipients có quyền nhận yêu cầu không
+        // Kiểm tra recipients có phù hợp không
         $newRecipients = User::whereIn('id', $request->new_recipients)->get();
         foreach ($newRecipients as $recipient) {
-            if (!$recipient->canManageDepartment($supportRequest->source_department_id)) {
-                abort(403, 'Người nhận không có quyền quản lý phòng ban này.');
+            if (!$this->canReceiveSupportRequest($user, $recipient)) {
+                abort(403, 'Người nhận không phù hợp. Chỉ có thể chuyển tiếp đến Manager, Director hoặc Admin.');
+            }
+            
+            // Kiểm tra logic forward cụ thể
+            if ($user->isManager()) {
+                if ($recipient->isManager()) {
+                    // Manager không thể forward đến Manager cùng phòng ban
+                    if ($recipient->department_id === $user->department_id) {
+                        abort(403, 'Bạn không thể chuyển tiếp đến Manager cùng phòng ban.');
+                    }
+                }
+            } elseif ($user->isDirector()) {
+                // Director không thể forward đến chính mình
+                if ($recipient->id === $user->id) {
+                    abort(403, 'Bạn không thể chuyển tiếp đến chính mình.');
+                }
             }
         }
         
@@ -338,6 +354,49 @@ class SupportRequestController extends Controller
         NotificationService::supportRequestForwarded($supportRequest, $user);
         
         return back()->with('success', 'Yêu cầu hỗ trợ đã được chuyển tiếp.');
+    }
+    
+    /**
+     * Kiểm tra user có thể forward support request không
+     */
+    private function canForwardSupportRequest(User $user, SupportRequest $supportRequest): bool
+    {
+        // Admin và Director có thể forward tất cả
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+        
+        // Manager có thể forward nếu:
+        // 1. Là recipient hiện tại, HOẶC
+        // 2. Là người tạo request, HOẶC  
+        // 3. Là người đã forward request
+        if ($user->isManager()) {
+            return $supportRequest->isRecipient($user) || 
+                   $supportRequest->requester_id === $user->id || 
+                   $supportRequest->forwarded_by === $user->id;
+        }
+        
+        // Employee không thể forward
+        return false;
+    }
+    
+    /**
+     * Kiểm tra recipient có thể nhận support request không
+     */
+    private function canReceiveSupportRequest(User $forwarder, User $recipient): bool
+    {
+        // Chỉ Manager và Director mới có thể nhận (không bao gồm Admin)
+        if (!$recipient->isManager() && !$recipient->isDirector()) {
+            return false;
+        }
+        
+        // Employee không thể forward, nên không cần kiểm tra
+        if ($forwarder->isEmployee()) {
+            return false;
+        }
+        
+        // Manager, Director có thể nhận từ bất kỳ ai
+        return true;
     }
 
     public function comment(Request $request, SupportRequest $supportRequest)

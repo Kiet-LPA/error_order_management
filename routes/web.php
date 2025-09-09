@@ -239,7 +239,7 @@ Route::middleware(['auth', 'role:admin,director'])->group(function () {
     Route::post('/employees/new', [App\Http\Controllers\EmployeeController::class, 'newEmployeesStore'])->name('employees.new.store');
     Route::get('/employees/new/{user}/edit', [App\Http\Controllers\EmployeeController::class, 'newEmployeesEdit'])->name('employees.new.edit');
     Route::put('/employees/new/{user}', [App\Http\Controllers\EmployeeController::class, 'newEmployeesUpdate'])->name('employees.new.update');
-    Route::delete('/employees/new/{user}', [App\Http\Controllers\EmployeeController::class, 'newEmployeesDestroy'])->name('employees.new.destroy');
+    Route::delete('/employees/new/{employee}', [App\Http\Controllers\EmployeeController::class, 'newEmployeesDestroy'])->name('employees.new.destroy');
     Route::post('/employees/{user}/convert', [App\Http\Controllers\EmployeeController::class, 'convertToOfficial'])->name('employees.convert');
 });
 
@@ -247,6 +247,7 @@ Route::middleware(['auth', 'role:admin,director'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/employees/new/notice', [App\Http\Controllers\EmployeeController::class, 'newEmployeeNotice'])->name('employees.new.notice');
 });
+
 
 // Quản lý lương
 Route::middleware(['auth', 'role:admin,director'])->group(function () {

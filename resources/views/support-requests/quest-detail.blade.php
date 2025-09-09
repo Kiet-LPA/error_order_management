@@ -473,7 +473,10 @@
                                 </thead>
                                 <tbody>
                                     @foreach($supportRequests as $request)
-                                        <tr>
+                                        <tr data-request-id="{{ $request->id }}" 
+                                            data-requester-id="{{ $request->requester_id }}"
+                                            data-recipients="{{ json_encode($request->recipients ? (is_string($request->recipients) ? json_decode($request->recipients, true) : $request->recipients) : []) }}"
+                                            data-forwarded-by="{{ $request->forwarded_by }}">
                                             <td>
                                                 @if($request->request_type === 'employee')
                                                     <span class="badge bg-primary">
@@ -660,11 +663,26 @@
                                 // Note: $request sẽ được set bằng JavaScript khi modal được mở
                             @endphp
                             
-                            @foreach(\App\Models\User::whereIn('role', ['admin', 'director', 'manager'])->with('department')->get() as $user)
+                            @foreach(\App\Models\User::whereIn('role', ['director', 'manager'])->with('department')->get() as $user)
+                                @php
+                                    // Disable Manager cùng phòng ban nếu user hiện tại là Manager
+                                    $shouldDisable = false;
+                                    if (auth()->user()->isManager() && $user->isManager() && $user->department_id === auth()->user()->department_id) {
+                                        $shouldDisable = true;
+                                    }
+                                    
+                                    // Disable chính mình nếu user hiện tại là Director
+                                    if (auth()->user()->isDirector() && $user->id === auth()->user()->id) {
+                                        $shouldDisable = true;
+                                    }
+                                @endphp
+                                
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="checkbox" name="new_recipients[]" 
-                                           value="{{ $user->id }}" id="recipient_{{ $user->id }}">
-                                    <label class="form-check-label" for="recipient_{{ $user->id }}">
+                                           value="{{ $user->id }}" id="recipient_{{ $user->id }}"
+                                           data-user-id="{{ $user->id }}"
+                                           {{ $shouldDisable ? 'disabled' : '' }}>
+                                    <label class="form-check-label {{ $shouldDisable ? 'text-muted' : '' }}" for="recipient_{{ $user->id }}">
                                         <strong>{{ $user->name }}</strong> 
                                         <span class="badge bg-info ms-1">
                                             @if($user->role === 'admin')
@@ -680,6 +698,12 @@
                                             @endif
                                         </span>
                                         <small class="text-muted d-block">{{ $user->department->name ?? 'Chưa phân phòng ban' }}</small>
+                                        @if(auth()->user()->isManager() && $user->isManager() && $user->department_id === auth()->user()->department_id)
+                                            <small class="text-danger d-block">- Cùng phòng ban</small>
+                                        @elseif(auth()->user()->isDirector() && $user->id === auth()->user()->id)
+                                            <small class="text-danger d-block">- Chính mình</small>
+                                        @endif
+                                        <!-- <small class="text-warning d-block" id="warning_{{ $user->id }}" style="display: none;">- Đã tham gia</small> -->
                                     </label>
                                 </div>
                             @endforeach
@@ -709,17 +733,92 @@ function showRejectModal(requestId) {
 function showForwardModal(requestId) {
     document.getElementById('forwardForm').action = `/support-requests/${requestId}/forward`;
     
-    // Reset tất cả checkbox về trạng thái ban đầu
+    // Lấy thông tin request từ data attributes hoặc từ table
+    const requestRow = document.querySelector(`tr[data-request-id="${requestId}"]`);
+    let requesterId = null;
+    let recipients = [];
+    let forwardedBy = null;
+    
+    if (requestRow) {
+        // Lấy requester_id từ data attribute
+        requesterId = requestRow.getAttribute('data-requester-id');
+        // Lấy recipients từ data attribute (nếu có)
+        const recipientsData = requestRow.getAttribute('data-recipients');
+        if (recipientsData) {
+            try {
+                recipients = JSON.parse(recipientsData);
+            } catch (e) {
+                recipients = [];
+            }
+        }
+        // Lấy forwarded_by từ data attribute (nếu có)
+        forwardedBy = requestRow.getAttribute('data-forwarded-by');
+    }
+    
+    // Tạo danh sách người đã tham gia (đảm bảo tất cả là số)
+    const currentRecipients = [];
+    
+    // Thêm recipients (đảm bảo convert thành số)
+    if (recipients && Array.isArray(recipients)) {
+        recipients.forEach(id => {
+            const numId = parseInt(id);
+            if (!isNaN(numId)) {
+                currentRecipients.push(numId);
+            }
+        });
+    }
+    
+    // Thêm forwarded_by
+    if (forwardedBy) {
+        const numId = parseInt(forwardedBy);
+        if (!isNaN(numId)) {
+            currentRecipients.push(numId);
+        }
+    }
+    
+    // Thêm requester_id
+    if (requesterId) {
+        const numId = parseInt(requesterId);
+        if (!isNaN(numId)) {
+            currentRecipients.push(numId);
+        }
+    }
+    
+    // Debug: Log thông tin
+    console.log('Request ID:', requestId);
+    console.log('Requester ID:', requesterId);
+    console.log('Recipients:', recipients);
+    console.log('Forwarded By:', forwardedBy);
+    console.log('Current Recipients:', currentRecipients);
+    
+    // Reset và disable checkboxes
     const checkboxes = document.querySelectorAll('#forwardModal input[name="new_recipients[]"]');
     checkboxes.forEach(checkbox => {
-        checkbox.disabled = false;
-        checkbox.checked = false;
-        const label = checkbox.nextElementSibling;
-        label.classList.remove('text-muted');
-        // Ẩn warning message nếu có
-        const warningMsg = label.querySelector('.text-warning');
-        if (warningMsg) {
-            warningMsg.style.display = 'none';
+        const userId = parseInt(checkbox.getAttribute('data-user-id'));
+        const isParticipant = currentRecipients.includes(userId);
+        
+        console.log(`User ${userId}: isParticipant = ${isParticipant}`);
+        
+        // Disable nếu đã tham gia
+        if (isParticipant) {
+            checkbox.disabled = true;
+            checkbox.checked = false;
+            const label = checkbox.nextElementSibling;
+            label.classList.add('text-muted');
+            const warning = label.querySelector(`#warning_${userId}`);
+            if (warning) {
+                warning.style.display = 'block';
+            }
+        } else {
+            // Reset checkbox không bị disabled
+            if (!checkbox.disabled) {
+                checkbox.checked = false;
+            }
+            const label = checkbox.nextElementSibling;
+            const warning = label.querySelector(`#warning_${userId}`);
+            if (warning) {
+                warning.style.display = 'none';
+            }
         }
     });
     

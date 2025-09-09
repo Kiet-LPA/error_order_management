@@ -129,7 +129,7 @@ class UserController extends Controller
             'email'=>['nullable','email','unique:users,email'],
             'phone'=>['nullable','string','max:20','unique:users,phone'],
             'password'=>'required|min:8|confirmed',
-            'role'=>'required|in:admin,director,manager,employee',
+            'role'=>'required|in:director,manager,employee',
             'department_id'=>'nullable|exists:departments,id',
             'position'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
@@ -255,12 +255,13 @@ class UserController extends Controller
             'email'=>['nullable','email', Rule::unique('users','email')->ignore($user->id)],
             'phone'=>['nullable','string','max:20', Rule::unique('users','phone')->ignore($user->id)],
             'password'=>'nullable|min:8|confirmed',
-            'role'=>'required|in:admin,director,manager,employee',
+            'role'=>'required|in:director,manager,employee',
             'department_id'=>'nullable|exists:departments,id',
             'position'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
             'health_insurance_number'=>'nullable|string|max:50',
             'personal_identification_number'=>'nullable|string|max:50',
+            'account_status'=>'required|in:active,inactive',
             'contract_images.*'=>'nullable|image|mimes:jpeg,png,jpg|max:2048',
             // Thông tin hợp đồng
             'contract_salary'=>'nullable|numeric|min:0',
@@ -385,6 +386,11 @@ class UserController extends Controller
         }
         
         if (!empty($data['password'])) $data['password'] = bcrypt($data['password']); else unset($data['password']);
+        
+        // Admin và Director luôn luôn active
+        if ($user->isAdmin() || $user->isDirector()) {
+            $data['account_status'] = 'active';
+        }
         
         $user->update($data);
         

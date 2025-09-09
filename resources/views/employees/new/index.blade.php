@@ -57,6 +57,32 @@
     border-radius: 50%;
     color: #6c757d;
 }
+
+/* Modal confirm styles */
+.modal.show {
+    display: block !important;
+}
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-header.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.modal-content {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-body .alert {
+    border-left: 4px solid #ffc107;
+}
+
+.modal-footer .btn {
+    min-width: 120px;
+}
 </style>
 @endpush
 
@@ -418,30 +444,106 @@
 <script>
 // Function xóa nhân viên
 function deleteEmployee(employeeId, employeeName) {
-    if (confirm(`Bạn có chắc chắn muốn xóa nhân viên "${employeeName}"?\n\nHành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.`)) {
-        // Tạo form để gửi DELETE request
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/employees/new/${employeeId}`;
-        
-        // Thêm CSRF token
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = '_token';
-        csrfToken.value = '{{ csrf_token() }}';
-        form.appendChild(csrfToken);
-        
-        // Thêm method override
-        const methodField = document.createElement('input');
-        methodField.type = 'hidden';
-        methodField.name = '_method';
-        methodField.value = 'DELETE';
-        form.appendChild(methodField);
-        
-        // Thêm form vào body và submit
-        document.body.appendChild(form);
-        form.submit();
+    // Tạo modal confirm đẹp hơn
+    const modal = document.createElement('div');
+    modal.className = 'modal fade show';
+    modal.style.display = 'block';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Xác nhận xóa nhân viên
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-warning me-2"></i>
+                        <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác!
+                    </div>
+                    <p>Bạn có chắc chắn muốn xóa nhân viên <strong>"${employeeName}"</strong>?</p>
+                    <p class="text-muted mb-0">Tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn bao gồm:</p>
+                    <ul class="text-muted mt-2">
+                        <li>Thông tin cá nhân</li>
+                        <li>Hợp đồng thử việc</li>
+                        <li>Lịch sử lương</li>
+                        <li>Avatar (nếu có)</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Hủy bỏ
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete(${employeeId})">
+                        <i class="bi bi-trash me-1"></i>
+                        Xóa nhân viên
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Thêm event listener để đóng modal khi click bên ngoài
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeDeleteModal();
+        }
+    });
+    
+    // Thêm event listener để đóng modal khi nhấn ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeDeleteModal();
+        }
+    });
+    
+    document.body.appendChild(modal);
+}
+
+// Function đóng modal
+function closeDeleteModal() {
+    const modal = document.querySelector('.modal.show');
+    if (modal) {
+        // Xóa event listener ESC
+        document.removeEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDeleteModal();
+            }
+        });
+        modal.remove();
     }
+}
+
+// Function xác nhận xóa
+function confirmDelete(employeeId) {
+    // Tạo form để gửi DELETE request
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/employees/new/${employeeId}`;
+    
+    // Thêm CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = '_token';
+    csrfToken.value = '{{ csrf_token() }}';
+    form.appendChild(csrfToken);
+    
+    // Thêm method override
+    const methodField = document.createElement('input');
+    methodField.type = 'hidden';
+    methodField.name = '_method';
+    methodField.value = 'DELETE';
+    form.appendChild(methodField);
+    
+    // Đóng modal trước khi submit
+    closeDeleteModal();
+    
+    // Thêm form vào body và submit
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // Auto-submit form khi thay đổi filter
