@@ -45,6 +45,17 @@
       color: #e0e0e0;
     }
     
+    /* Container fluid adjustments */
+    .container-fluid {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+    
+    .container-fluid .row {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    
     /* Dark mode for cards and other elements */
     [data-theme="dark"] .card {
       background-color: #1e1e1e;
@@ -162,6 +173,9 @@
       min-width: 60px !important;
       flex: 0 0 60px !important;
       max-width: 60px !important;
+      overflow: hidden !important;
+      padding: 0 !important;
+      margin: 0 !important;
     }
     
     .sidebar.collapsed .list-group-item {
@@ -195,14 +209,14 @@
     }
     
     .sidebar-toggle {
-      position: absolute;
+      position: fixed;
       top: 30%;
-      right: -15px;
+      left: 0;
       width: 30px;
       height: 30px;
       background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%);
       border: 2px solid #fff;
-      border-radius: 50%;
+      border-radius: 0 50% 50% 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -211,6 +225,14 @@
       transition: all 0.3s ease;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       transform: translateY(-30%);
+    }
+    
+    .sidebar.collapsed .sidebar-toggle {
+      left: 60px;
+    }
+    
+    .sidebar:not(.collapsed) .sidebar-toggle {
+      left: calc(16.666% - 15px);
     }
     
     .sidebar-toggle:hover {
@@ -222,18 +244,31 @@
       color: #fff;
       font-size: 0.8rem;
       transition: transform 0.3s ease;
+      display: block;
     }
     
     .sidebar.collapsed .sidebar-toggle i {
       transform: rotate(180deg);
     }
     
+    /* Ensure icon changes are visible */
+    .sidebar-toggle i.bi-chevron-left {
+      transform: rotate(0deg);
+    }
+    
+    .sidebar-toggle i.bi-chevron-right {
+      transform: rotate(180deg);
+    }
+    
     .main-content {
       transition: all 0.3s ease;
+      flex: 1;
     }
     
     .main-content.expanded {
       margin-left: 0;
+      width: calc(100% - 60px) !important;
+      max-width: calc(100% - 60px) !important;
     }
     
     /* Bottom Navigation for Mobile */
@@ -813,13 +848,15 @@
       
       // Update icon with animation
       if (isCollapsed) {
-        toggleIcon.style.transform = 'rotate(180deg)';
+        // Sidebar collapsed: show right arrow (pointing right to expand)
         toggleIcon.classList.remove('bi-chevron-left');
         toggleIcon.classList.add('bi-chevron-right');
-      } else {
         toggleIcon.style.transform = 'rotate(0deg)';
+      } else {
+        // Sidebar expanded: show left arrow (pointing left to collapse)
         toggleIcon.classList.remove('bi-chevron-right');
         toggleIcon.classList.add('bi-chevron-left');
+        toggleIcon.style.transform = 'rotate(0deg)';
       }
       
       // Trigger resize event for charts if they exist
@@ -841,9 +878,10 @@
       if (isCollapsed) {
         sidebar.classList.add('collapsed');
         mainContent.classList.add('expanded');
-        toggleIcon.style.transform = 'rotate(180deg)';
+        // Sidebar collapsed: show right arrow (pointing right to expand)
         toggleIcon.classList.remove('bi-chevron-left');
         toggleIcon.classList.add('bi-chevron-right');
+        toggleIcon.style.transform = 'rotate(0deg)';
       }
       
       // Add keyboard shortcut (Ctrl + B) to toggle sidebar

@@ -380,6 +380,19 @@
     border: 2px dashed #2196f3;
 }
 
+/* Sidebar collapsed adjustments */
+.main-content.expanded .kanban-board {
+    width: calc(100% - 60px) !important;
+    max-width: calc(100% - 60px) !important;
+    margin: 0 !important;
+    padding: 20px !important;
+}
+
+.main-content.expanded .kanban-column {
+    flex: 1;
+    min-width: 280px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .kanban-board {
