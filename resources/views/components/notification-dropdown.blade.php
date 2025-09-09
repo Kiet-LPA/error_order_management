@@ -331,6 +331,33 @@
     position: absolute !important;
     z-index: 1051 !important;
 }
+
+/* Notification item clickable styling */
+.notification-item {
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    user-select: none !important;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa !important;
+    transform: translateX(2px) !important;
+}
+
+.notification-item:active {
+    background-color: #e9ecef !important;
+    transform: translateX(1px) !important;
+}
+
+/* Unread notification styling */
+.notification-item.bg-light {
+    background-color: #e3f2fd !important;
+    border-left: 3px solid #2196f3 !important;
+}
+
+.notification-item.bg-light:hover {
+    background-color: #bbdefb !important;
+}
 </style>
 
 <script>
@@ -363,32 +390,69 @@ function displayNotifications(notifications) {
         return;
     }
     
-         container.innerHTML = notifications.map(notification => `
-         <div class="notification-item p-3 border-bottom ${notification.is_read ? '' : 'bg-light'}" 
-              data-notification-id="${notification.id}"
-              onclick="handleNotificationClick(event, ${notification.id}, '${notification.type}', ${JSON.stringify(notification.data)})">
-             <div class="d-flex align-items-start">
-                 <div class="me-3">
-                     <i class="bi bi-${getNotificationIcon(notification.type)} text-${getNotificationColor(notification.type)}"></i>
-                 </div>
-                 <div class="flex-grow-1">
-                     <div class="d-flex justify-content-between align-items-start">
-                         <div>
-                             <h6 class="mb-1">${notification.title}</h6>
-                             <p class="mb-1 small">${notification.message}</p>
-                             <small class="text-muted">${formatTime(notification.created_at)}</small>
-                         </div>
-                         <div class="d-flex align-items-center">
-                             ${!notification.is_read ? '<span class="badge bg-primary me-2"></span>' : ''}
-                             <button class="btn btn-sm btn-link text-muted p-0" onclick="deleteNotification(${notification.id}); event.stopPropagation();">
-                                 <i class="bi bi-x"></i>
-                             </button>
-                         </div>
-                     </div>
-                 </div>
-             </div>
-         </div>
-     `).join('');
+    container.innerHTML = notifications.map(notification => {
+        const dataJson = JSON.stringify(notification.data || {});
+        return `
+        <div class="notification-item p-3 border-bottom ${notification.is_read ? '' : 'bg-light'}" 
+             data-notification-id="${notification.id}"
+             data-notification-type="${notification.type}"
+             data-notification-data='${dataJson}'>
+            <div class="d-flex align-items-start">
+                <div class="me-3">
+                    <i class="bi bi-${getNotificationIcon(notification.type)} text-${getNotificationColor(notification.type)}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${notification.title}</h6>
+                            <p class="mb-1 small">${notification.message}</p>
+                            <small class="text-muted">${formatTime(notification.created_at)}</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            ${!notification.is_read ? '<span class="badge bg-primary me-2"></span>' : ''}
+                            <button class="btn btn-sm btn-link text-muted p-0 delete-notification-btn" data-notification-id="${notification.id}">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+    
+    // Add event listeners after rendering
+    addNotificationEventListeners();
+}
+
+// Add event listeners for notifications
+function addNotificationEventListeners() {
+    // Add click listeners to notification items
+    const notificationItems = document.querySelectorAll('.notification-item');
+    notificationItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Don't trigger if clicking delete button
+            if (e.target.closest('.delete-notification-btn')) {
+                return;
+            }
+            
+            const notificationId = this.dataset.notificationId;
+            const notificationType = this.dataset.notificationType;
+            const notificationData = this.dataset.notificationData;
+            
+            handleNotificationClick(e, notificationId, notificationType, notificationData);
+        });
+    });
+    
+    // Add click listeners to delete buttons
+    const deleteButtons = document.querySelectorAll('.delete-notification-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const notificationId = this.dataset.notificationId;
+            deleteNotification(notificationId);
+        });
+    });
 }
 
 // Get notification icon
@@ -444,6 +508,19 @@ function updateNotificationBadge(count) {
 
 // Mark notification as read
 function markAsRead(notificationId) {
+    // Update UI immediately for better UX
+    const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+    if (notificationElement) {
+        notificationElement.classList.remove('bg-light');
+        notificationElement.style.borderLeft = 'none';
+        
+        // Remove unread badge
+        const badge = notificationElement.querySelector('.badge.bg-primary');
+        if (badge) {
+            badge.remove();
+        }
+    }
+    
     const csrfToken = document.querySelector('meta[name="csrf-token"]');
     if (!csrfToken) {
         console.error('CSRF token not found');
@@ -468,7 +545,7 @@ function markAsRead(notificationId) {
     .then(data => {
         if (data.success) {
             updateNotificationBadge(data.unread_count);
-            loadNotifications();
+            // Don't reload notifications to avoid UI flicker
         }
     })
     .catch(error => console.error('Error marking notification as read:', error));
@@ -547,22 +624,51 @@ function deleteNotification(notificationId) {
 }
 
 // Handle notification click
-function handleNotificationClick(event, notificationId, type, data) {
+function handleNotificationClick(event, notificationId, type, dataString) {
+    // Prevent event bubbling
+    event.stopPropagation();
+    
+    console.log('Notification clicked:', { notificationId, type, dataString });
+    
+    // Parse data safely
+    let data = {};
+    try {
+        data = JSON.parse(dataString || '{}');
+    } catch (e) {
+        console.error('Error parsing notification data:', e);
+        data = {};
+    }
+    
     // Mark as read first
     markAsRead(notificationId);
+    
+    // Close dropdown
+    const notificationDropdown = document.querySelector('#notificationDropdown + .dropdown-menu');
+    if (notificationDropdown) {
+        notificationDropdown.style.display = 'none';
+        notificationDropdown.style.visibility = 'hidden';
+        notificationDropdown.style.opacity = '0';
+        notificationDropdown.classList.remove('show');
+    }
     
     // Navigate based on notification type
     switch(type) {
         case 'task_assigned':
         case 'task_updated':
         case 'task_followed':
+        case 'task_forwarded':
             if (data.task_id) {
                 window.location.href = `/task-detail/${data.task_id}`;
+            } else {
+                window.location.href = '{{ route("dashboard") }}';
             }
             break;
         case 'work_report_submitted':
+        case 'work_report_approved':
+        case 'work_report_rejected':
             if (data.report_id) {
-                // Navigate to work reports page
+                window.location.href = '{{ route("work-reports.index") }}';
+            } else {
                 window.location.href = '{{ route("work-reports.index") }}';
             }
             break;
@@ -575,10 +681,24 @@ function handleNotificationClick(event, notificationId, type, data) {
         case 'support_request_deleted':
             if (data.support_request_id) {
                 window.location.href = `/support-requests/${data.support_request_id}`;
+            } else {
+                window.location.href = '{{ route("support-requests.index") }}';
             }
+            break;
+        case 'user_created':
+        case 'user_updated':
+        case 'user_deleted':
+            window.location.href = '{{ route("users.index") }}';
+            break;
+        case 'department_created':
+        case 'department_updated':
+        case 'department_deleted':
+            window.location.href = '{{ route("departments.index") }}';
             break;
         default:
             console.log('Unknown notification type:', type);
+            // Default to dashboard
+            window.location.href = '{{ route("dashboard") }}';
     }
 }
 
