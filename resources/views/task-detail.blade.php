@@ -2,6 +2,7 @@
 @section('title',$task->title)
 
 @section('content')
+
 <div class="task-header">
   <h3 class="mb-2">{{ $task->title }}</h3>
   <div class="d-flex gap-2">
@@ -13,6 +14,38 @@
       Độ ưu tiên: {{ __("priorities.$task->priority") }}
     </span>
     @endif
+  </div>
+</div>
+
+<!-- Mô tả công việc - Đặt ở đây để đảm bảo hiển thị -->
+<div class="card mb-3">
+  <div class="card-header bg-info text-white">
+    <h6 class="mb-0">
+      <i class="bi bi-file-text me-2"></i>Mô tả công việc
+    </h6>
+  </div>
+  <div class="card-body">
+    @if($task->description && trim($task->description) !== '')
+      <div class="description-content">
+        {{ $task->description }}
+      </div>
+    @else
+      <em class="text-muted">Không có mô tả</em>
+    @endif
+    
+    <!-- Debug info -->
+    <div class="mt-2 p-2 bg-warning border rounded">
+      <small class="text-muted">
+        <strong>Debug:</strong><br>
+        Description value: "{{ $task->description ?? 'NULL' }}"<br>
+        Type: {{ gettype($task->description) }}<br>
+        Empty: {{ empty($task->description) ? 'Yes' : 'No' }}<br>
+        Length: {{ strlen($task->description ?? '') }}<br>
+        Trimmed empty: {{ trim($task->description ?? '') === '' ? 'Yes' : 'No' }}<br>
+        Raw attributes: {{ json_encode($task->getAttributes()) }}
+      </small>
+    </div>
+    
   </div>
 </div>
 
@@ -127,24 +160,10 @@
           </div>
         </div>
         @endif
+        
       </div>
     </div>
 
-    <!-- Mô tả công việc (nếu có) -->
-    @if($task->description)
-    <div class="card mb-3 border-info">
-      <div class="card-header bg-info text-white">
-        <h6 class="mb-0">
-          <i class="bi bi-file-text me-2"></i>Mô tả công việc
-        </h6>
-      </div>
-      <div class="card-body">
-        <div class="task-description">
-          {!! nl2br(e($task->description)) !!}
-        </div>
-      </div>
-    </div>
-    @endif
 
     <!-- Lý do từ chối (nếu có) -->
     @if($task->rejection_reason)
@@ -780,6 +799,15 @@ html, body {
 .task-description {
   line-height: 1.6;
   color: #495057;
+}
+
+.description-content {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #dee2e6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .comment-section, .progress-section {

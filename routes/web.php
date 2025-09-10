@@ -23,6 +23,14 @@ Route::get('/', function () {
     return redirect()->route('kanban');
 });
 
+// Route test trang 404 (chỉ trong development)
+Route::get('/test-404', function () {
+    if (app()->environment('production')) {
+        abort(404);
+    }
+    abort(404, 'Test trang 404 với con cá tra nhảy nhảy');
+})->name('test.404');
+
 // Route để chạy thủ công cập nhật overdue (chỉ admin)
 Route::get('/admin/update-overdue', function () {
     if (!auth()->check() || !auth()->user()->isAdmin()) {

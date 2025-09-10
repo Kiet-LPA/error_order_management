@@ -35,12 +35,33 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        // Xử lý lỗi 404 Not Found
+        if ($exception instanceof HttpException && $exception->getStatusCode() === 404) {
+            return $this->render404Error($request, $exception);
+        }
+
         // Xử lý lỗi 403 Forbidden
         if ($exception instanceof HttpException && $exception->getStatusCode() === 403) {
             return $this->render403Error($request, $exception);
         }
 
         return parent::render($request, $exception);
+    }
+
+    /**
+     * Render 404 Not Found error page
+     */
+    protected function render404Error(Request $request, HttpException $exception)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Chức năng này không tồn tại hoặc đã bị xóa'
+            ], 404);
+        }
+
+        return response()->view('errors.404', [
+            'message' => 'Chức năng này không tồn tại hoặc đã bị xóa'
+        ], 404);
     }
 
     /**

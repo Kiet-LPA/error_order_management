@@ -233,6 +233,10 @@ class TaskController extends Controller
             'is_recurring' => 'nullable|boolean',
         ]);
 
+        // Debug: Log raw request data
+        \Log::info('Raw request data:', $r->all());
+        \Log::info('Description from request:', ['description' => $r->input('description')]);
+
         // Bắt buộc phải có phòng ban
         $isMultiDepartment = $r->boolean('is_multi_department');
         if ($isMultiDepartment) {
@@ -325,7 +329,20 @@ class TaskController extends Controller
             $data['is_multi_department'] = false;
         }
 
+        // Debug description
+        \Log::info('Task creation data:', $data);
+        \Log::info('Description value:', ['description' => $data['description'] ?? 'NULL']);
+        
+        // Ensure description is properly handled
+        if (isset($data['description']) && $data['description'] === '') {
+            $data['description'] = null;
+        }
+        
         $task = Task::create($data);
+        
+        // Debug: Check if task was created with description
+        \Log::info('Task created with ID:', ['id' => $task->id]);
+        \Log::info('Task description after creation:', ['description' => $task->description]);
 
         // Xử lý user assignments
         if ($r->boolean('is_multi_user') && $r->has('assignee_ids') && is_array($r->assignee_ids)) {
@@ -398,10 +415,22 @@ class TaskController extends Controller
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
+        // Load relationships
         $task->load(['creator','assignee','assignees','departments','followers.department','approvals.department','approvals.manager','forwardedTo','forwardedBy']);
         $task->load(['activities' => function($query) {
             $query->orderBy('created_at', 'desc');
         }, 'activities.user']);
+        
+        // Ensure description is loaded
+        $task->refresh();
+        
+        // Debug description
+        \Log::info('DEBUG TASK DESCRIPTION', [
+            'id' => $task->id,
+            'attributes' => $task->getAttributes(),
+            'description' => $task->description,
+        ]);
+        
         return view('tasks.show', compact('task'));
     }
 

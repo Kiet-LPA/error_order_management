@@ -879,7 +879,6 @@
             <tr class="border-bottom">
               <td class="px-4 py-3">
                 <div class="fw-medium text-dark task-title">{{ $task->title }}</div>
-                <small class="text-muted">{{ Str::limit($task->description, 50) }}</small>
               </td>
               <td class="px-4 py-3">
                 @if($task->assignees->count() > 0)
