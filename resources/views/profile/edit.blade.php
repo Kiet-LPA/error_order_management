@@ -179,8 +179,12 @@
                                 <div class="mb-3">
                                     <label class="form-label">Phòng ban</label>
                                     <div class="form-control-plaintext">
-                                        @if($user->department)
-                                            {{ $user->department->name }}
+                                        @if($user->departments->count() > 0)
+                                            @foreach($user->departments as $department)
+                                                <span class="badge bg-secondary me-1">
+                                                    {{ $department->name }}
+                                                </span>
+                                            @endforeach
                                         @else
                                             <span class="text-muted">Chưa được phân công</span>
                                         @endif

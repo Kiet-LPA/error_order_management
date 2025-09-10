@@ -108,14 +108,39 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="department_id" class="form-label">Phòng ban (nếu có)</label>
-                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror">
-                                        <option value="">-- Không chọn --</option>
-                                        @foreach($departments as $department)
-                                            <option value="{{ $department->id }}" {{ old('department_id', $user->department_id)==$department->id?'selected':'' }}>{{ $department->name }}</option>
-                                        @endforeach
+                                    <label for="account_status" class="form-label">Trạng thái tài khoản</label>
+                                    <select name="account_status" id="account_status" class="form-select @error('account_status') is-invalid @enderror" required>
+                                        <option value="active" {{ old('account_status', $user->account_status)=='active'?'selected':'' }}>Hoạt động</option>
+                                        <option value="inactive" {{ old('account_status', $user->account_status)=='inactive'?'selected':'' }}>Không hoạt động</option>
                                     </select>
-                                    @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    @error('account_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Phòng ban</label>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                        @foreach($departments as $department)
+                                            @php
+                                                $isChecked = in_array($department->id, old('department_ids', $user->departments->pluck('id')->toArray()));
+                                            @endphp
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="department_ids[]" value="{{ $department->id }}" 
+                                                       id="department_{{ $department->id }}" 
+                                                       {{ $isChecked ? 'checked' : '' }}
+                                                <label class="form-check-label" for="department_{{ $department->id }}">
+                                                    {{ $department->name }}
+                                                </label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="form-text">
+                                        <strong>Manager/Employee:</strong> Bắt buộc chọn ít nhất một phòng ban.<br>
+                                        <strong>Director/Admin:</strong> Nếu không chọn phòng ban nào, sẽ mặc định quản lý tất cả phòng ban.
+                                    </div>
+                                    @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    
+                                    
                                 </div>
                             </div>
                         </div>
@@ -349,6 +374,7 @@ function createNewContract() {
         document.querySelector('form').submit();
     }
 }
+
 </script>
 @endpush
 @endsection

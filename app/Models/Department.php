@@ -14,6 +14,12 @@ class Department extends Model
     { 
         return $this->hasMany(User::class); 
     }
+
+    public function departmentUsers()
+    {
+        return $this->belongsToMany(User::class, 'user_departments')
+                    ->withTimestamps();
+    }
     
     public function tasks()
     { 

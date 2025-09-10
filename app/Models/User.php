@@ -31,7 +31,14 @@ class User extends Authenticatable
     // Relationships
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        // Giữ lại để backward compatibility - trả về phòng ban chính
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'user_departments')
+                    ->withTimestamps();
     }
 
     public function contracts()
@@ -309,5 +316,31 @@ class User extends Authenticatable
               ->orWhere('email', 'like', "%{$search}%")
               ->orWhere('phone', 'like', "%{$search}%");
         });
+    }
+
+    /**
+     * Kiểm tra xem Manager có quản lý nhiều phòng ban không
+     */
+    public function isMultiManager(): bool
+    {
+        return $this->isManager() && $this->departments->count() > 1;
+    }
+
+    /**
+     * Lấy tên role hiển thị (bao gồm Multi Manager)
+     */
+    public function getDisplayRoleAttribute(): string
+    {
+        if ($this->isMultiManager()) {
+            return 'Quản lý đa phòng ban';
+        }
+        
+        return match($this->role) {
+            'admin' => 'Quản trị viên',
+            'director' => 'Giám đốc',
+            'manager' => 'Quản lý',
+            'employee' => 'Nhân viên',
+            default => ucfirst($this->role)
+        };
     }
 }

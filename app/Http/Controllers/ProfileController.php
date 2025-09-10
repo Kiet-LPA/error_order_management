@@ -19,7 +19,7 @@ class ProfileController extends Controller
         $user = $request->user();
         
         // Load relationships
-        $user->load(['department', 'contracts']);
+        $user->load(['department', 'departments', 'contracts']);
         
         return view('profile.edit', [
             'user' => $user,

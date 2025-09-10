@@ -377,7 +377,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     @if($task->is_multi_department)
                         <span class="badge bg-warning">Đa phòng ban</span>
                         <small class="text-muted d-block mt-1">
-                            <i class="bi bi-info-circle me-1"></i>Tự động phát hiện từ assignees
+                            <i class="bi bi-info-circle me-1"></i>Tự động phát hiện dựa trên người được chỉ định
                         </small>
                     @else
                         <span class="badge bg-primary">Đơn phòng ban</span>
@@ -386,8 +386,8 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
             </div>
             <div class="alert alert-info mt-3 mb-0">
                 <i class="bi bi-lightbulb me-2"></i>
-                <strong>Lưu ý:</strong> Phòng ban sẽ được tự động cập nhật dựa trên assignees của task. 
-                Nếu bạn thêm/xóa assignees, phòng ban sẽ được điều chỉnh tương ứng.
+                <strong>Lưu ý:</strong> Phòng ban sẽ được tự động cập nhật dựa trên người được chỉ định của công việc. 
+                Nếu bạn thêm/xóa người được chỉ định, phòng ban sẽ được điều chỉnh tương ứng.
             </div>
         </div>
     </div>
@@ -457,7 +457,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     </div>
                     <small class="form-text text-muted">
                         <i class="bi bi-info-circle me-1"></i>
-                        Công việc sẽ được tự động tạo lại với deadline mới mỗi {{ old('recurring_days', $task->recurring_days) ?: 'X' }} ngày sau khi hoàn thành
+                        Công việc sẽ được tự động tạo lại với hạn cuối mới mỗi {{ old('recurring_days', $task->recurring_days) ?: 'X' }} ngày sau khi hoàn thành
                     </small>
                     
                     {{-- Recurring Days Input --}}
@@ -597,7 +597,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                             @foreach($sortedUsers as $user)
                                 @if($user)
                                     <option value="{{ $user->id }}" {{ old('assignee_id', $task->assignee_id) == $user->id ? 'selected' : '' }}>
-                                        {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                        {{ $user->name ?? 'Không có tên' }} - {{ $user->display_role }}
                                     </option>
                                 @endif
                             @endforeach
@@ -636,7 +636,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                         @if($user)
                                             @php
                                                 $isFromOtherDept = auth()->user()->isManager() && 
-                                                                  $user->department_id !== auth()->user()->department_id;
+                                                                  !auth()->user()->departments->contains('id', $user->department_id);
                                                 $isAlreadyAssigned = in_array($user->id, old('assignee_ids', $task->assignees->pluck('id')->toArray()));
                                                 $isDisabled = $isFromOtherDept && $isAlreadyAssigned;
                                             @endphp
@@ -647,7 +647,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                                        {{ $isAlreadyAssigned ? 'checked' : '' }}
                                                        {{ $isDisabled ? 'disabled' : '' }}>
                                                 <label class="form-check-label {{ $isDisabled ? 'text-muted' : '' }}" for="user_{{ $user->id }}">
-                                                    {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                                    {{ $user->name ?? 'Không có tên' }} - {{ $user->display_role }}
                                                     @if($isFromOtherDept)
                                                         <small class="text-muted">(Phòng ban khác)</small>
                                                     @endif
@@ -784,7 +784,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                             <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}"
                                                    {{ in_array($user->id, old('followers', $task->followers->pluck('id')->toArray())) ? 'checked' : '' }}>
                                             <label class="form-check-label" for="follower_{{ $user->id }}">
-                                                {{ $user->name ?? 'Không có tên' }} - {{ ucfirst($user->role) }}
+                                                {{ $user->name ?? 'Không có tên' }} - {{ $user->display_role }}
                                             </label>
                                         </div>
                                     @endif
@@ -794,9 +794,9 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                     </div>
                     <small class="form-text text-muted">
                         @if(auth()->user()->isManager())
-                            Manager chỉ có thể thêm Employee làm follower. Người tham gia task sẽ không thể làm follower.
+                            Quản lý chỉ có thể thêm nhân viên làm người theo dõi. Người tham gia công việc sẽ không thể làm người theo dõi.
                         @else
-                            Những người này sẽ nhận thông báo khi task có thay đổi. Người tham gia task sẽ không thể làm follower.
+                            Những người này sẽ nhận thông báo khi công việc có thay đổi. Người tham gia việc sẽ không thể làm người thheo dõi.
                         @endif
                     </small>
                 </div>

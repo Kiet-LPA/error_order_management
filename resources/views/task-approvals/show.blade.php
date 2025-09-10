@@ -46,7 +46,7 @@
                                 <h5>Người thực hiện</h5>
                                 <div class="mt-1">
                                     @foreach($approval->task->assignees as $assignee)
-                                        <div class="text-dark mb-1">{{ $assignee->name }} ({{ ucfirst($assignee->role) }})</div>
+                                        <div class="text-dark mb-1">{{ $assignee->name }} ({{ $assignee->display_role }})</div>
                                     @endforeach
                                 </div>
                             </div>
@@ -58,7 +58,7 @@
                                 <h5>Người theo dõi</h5>
                                 <div class="mt-1">
                                     @foreach($approval->task->followers as $follower)
-                                        <div class="text-dark mb-1">{{ $follower->user->name }} ({{ ucfirst($follower->user->role) }})</div>
+                                        <div class="text-dark mb-1">{{ $follower->user->name }} ({{ $follower->user->display_role }})</div>
                                     @endforeach
                                 </div>
                             </div>

@@ -18,17 +18,24 @@ class DashboardController extends Controller
         
         // Filter theo quyền của user
         if ($user->isManager()) {
-            // Manager chỉ thấy tasks của phòng ban mình + multi-department tasks có tham gia + tasks được forward
-            $query->where(function($q) use ($user) {
-                $q->where('department_id', $user->department_id)
-                  ->orWhereHas('departments', function($subQ) use ($user) {
-                      $subQ->where('department_id', $user->department_id);
+            // Manager thấy tasks của tất cả phòng ban mà Manager quản lý + multi-department tasks có tham gia + tasks được forward
+            $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+            
+            $query->where(function($q) use ($user, $managerDepartmentIds) {
+                // Tasks thuộc các phòng ban mà Manager quản lý
+                $q->whereIn('department_id', $managerDepartmentIds)
+                  // Multi-department tasks có phòng ban mà Manager quản lý
+                  ->orWhereHas('departments', function($subQ) use ($managerDepartmentIds) {
+                      $subQ->whereIn('department_id', $managerDepartmentIds);
                   })
+                  // Tasks được assign cho Manager
                   ->orWhereHas('assignees', function($subQ) use ($user) {
                       $subQ->where('user_id', $user->id);
                   })
-                  ->orWhere('forwarded_to', $user->id)  // Task được forward cho Manager này
-                  ->orWhere('creator_id', $user->id);   // Task do Manager này tạo
+                  // Task được forward cho Manager này
+                  ->orWhere('forwarded_to', $user->id)
+                  // Task do Manager này tạo
+                  ->orWhere('creator_id', $user->id);
             });
         } elseif ($user->isEmployee()) {
             // Employee chỉ thấy tasks của mình + tasks được forward

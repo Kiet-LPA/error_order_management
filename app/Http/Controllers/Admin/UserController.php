@@ -18,7 +18,7 @@ class UserController extends Controller
         }
         
         // Base query
-        $query = User::with('department')->where('employee_type', 'official');
+        $query = User::with(['department', 'departments'])->where('employee_type', 'official');
         
         // Manager chỉ có thể xem users cùng phòng ban
         if ($user->isManager()) {
@@ -129,8 +129,9 @@ class UserController extends Controller
             'email'=>['nullable','email','unique:users,email'],
             'phone'=>['nullable','string','max:20','unique:users,phone'],
             'password'=>'required|min:8|confirmed',
-            'role'=>'required|in:director,manager,employee',
-            'department_id'=>'nullable|exists:departments,id',
+            'role'=>'required|in:admin,director,manager,employee',
+            'department_ids'=>'nullable|array',
+            'department_ids.*'=>'exists:departments,id',
             'position'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
             'health_insurance_number'=>'nullable|string|max:50',
@@ -143,15 +144,28 @@ class UserController extends Controller
         }
         
         // Bắt buộc department cho manager/employee
-        if (in_array($data['role'], ['manager','employee']) && empty($data['department_id'])) {
-            return back()->withErrors(['department_id'=>'Bắt buộc chọn phòng ban.'])->withInput();
+        if (in_array($data['role'], ['manager','employee']) && empty($data['department_ids'])) {
+            return back()->withErrors(['department_ids'=>'Bắt buộc chọn ít nhất một phòng ban.'])->withInput();
         }
         
-        // Director không bắt buộc phải có phòng ban
+        // Director và Admin: nếu không chọn phòng ban nào thì mặc định quản lý tất cả phòng ban
+        if (in_array($data['role'], ['director', 'admin']) && empty($data['department_ids'])) {
+            $data['department_ids'] = Department::pluck('id')->toArray();
+        }
         
         // Manager chỉ có thể tạo user cho phòng ban của mình
-        if ($user->isManager() && $data['department_id'] !== $user->department_id) {
-            abort(403, 'Bạn chỉ có thể tạo người dùng cho phòng ban của mình.');
+        if ($user->isManager() && !empty($data['department_ids'])) {
+            $userDepartments = $user->departments->pluck('id')->toArray();
+            $hasValidDepartment = false;
+            foreach ($data['department_ids'] as $deptId) {
+                if (in_array($deptId, $userDepartments)) {
+                    $hasValidDepartment = true;
+                    break;
+                }
+            }
+            if (!$hasValidDepartment) {
+                abort(403, 'Bạn chỉ có thể tạo người dùng cho phòng ban của mình.');
+            }
         }
         
         // Director có thể tạo user cho tất cả phòng ban (như Admin)
@@ -168,7 +182,26 @@ class UserController extends Controller
         }
         
         $data['password'] = bcrypt($data['password']);
-        User::create($data);
+        
+        // Xử lý department_ids - lưu phòng ban đầu tiên làm department_id
+        if (!empty($data['department_ids'])) {
+            $data['department_id'] = $data['department_ids'][0]; // Phòng ban đầu tiên
+        }
+        
+        $newUser = User::create($data);
+        
+        // Xử lý multiple departments
+        if (!empty($data['department_ids'])) {
+            $departmentsToAttach = [];
+            foreach ($data['department_ids'] as $deptId) {
+                $departmentsToAttach[$deptId] = [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            $newUser->departments()->attach($departmentsToAttach);
+        }
+        
         return redirect()->route('users.index')->with('success','Tạo người dùng thành công.');
     }
 
@@ -195,10 +228,10 @@ class UserController extends Controller
         }
         
         // Load các relationship cần thiết
-        $user->load(['department', 'contracts.images', 'activeContract']);
+        $user->load(['department', 'departments', 'contracts.images', 'activeContract']);
         
         $departments = Department::orderBy('name')->get();
-        return view('admin.users.edit-official', compact('user', 'departments', 'canEdit'));
+        return view('admin.users.edit', compact('user', 'departments', 'canEdit'));
     }
 
     public function show(User $user)
@@ -221,7 +254,7 @@ class UserController extends Controller
         }
         
         // Load các relationship cần thiết
-        $user->load(['department', 'contracts.images', 'salary']);
+        $user->load(['department', 'departments', 'contracts.images', 'salary']);
         
         return view('admin.users.show', compact('user'));
     }
@@ -255,8 +288,9 @@ class UserController extends Controller
             'email'=>['nullable','email', Rule::unique('users','email')->ignore($user->id)],
             'phone'=>['nullable','string','max:20', Rule::unique('users','phone')->ignore($user->id)],
             'password'=>'nullable|min:8|confirmed',
-            'role'=>'required|in:director,manager,employee',
-            'department_id'=>'nullable|exists:departments,id',
+            'role'=>'required|in:admin,director,manager,employee',
+            'department_ids'=>'nullable|array',
+            'department_ids.*'=>'exists:departments,id',
             'position'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
             'health_insurance_number'=>'nullable|string|max:50',
@@ -269,6 +303,7 @@ class UserController extends Controller
             'contract_start_date'=>'nullable|date',
             'contract_status'=>'nullable|in:active,completed,terminated',
         ]);
+        
         
         // Kiểm tra ít nhất phải có email hoặc số điện thoại cho nhân viên chính thức
         if (empty($data['email']) && empty($data['phone'])) {
@@ -285,15 +320,28 @@ class UserController extends Controller
             }
         }
         
-        if (in_array($data['role'], ['manager','employee']) && empty($data['department_id'])) {
-            return back()->withErrors(['department_id'=>'Bắt buộc chọn phòng ban.'])->withInput();
+        if (in_array($data['role'], ['manager','employee']) && empty($data['department_ids'])) {
+            return back()->withErrors(['department_ids'=>'Bắt buộc chọn ít nhất một phòng ban.'])->withInput();
         }
         
-        // Director không bắt buộc phải có phòng ban
+        // Director và Admin: nếu không chọn phòng ban nào thì mặc định quản lý tất cả phòng ban
+        if (in_array($data['role'], ['director', 'admin']) && empty($data['department_ids'])) {
+            $data['department_ids'] = Department::pluck('id')->toArray();
+        }
         
         // Manager chỉ có thể cập nhật user cho phòng ban của mình
-        if ($currentUser->isManager() && $data['department_id'] !== $currentUser->department_id) {
-            abort(403, 'Bạn chỉ có thể cập nhật người dùng cho phòng ban của mình.');
+        if ($currentUser->isManager() && !empty($data['department_ids'])) {
+            $userDepartments = $currentUser->departments->pluck('id')->toArray();
+            $hasValidDepartment = false;
+            foreach ($data['department_ids'] as $deptId) {
+                if (in_array($deptId, $userDepartments)) {
+                    $hasValidDepartment = true;
+                    break;
+                }
+            }
+            if (!$hasValidDepartment) {
+                abort(403, 'Bạn chỉ có thể cập nhật người dùng cho phòng ban của mình.');
+            }
         }
         
         // Manager không thể tạo admin
@@ -387,12 +435,35 @@ class UserController extends Controller
         
         if (!empty($data['password'])) $data['password'] = bcrypt($data['password']); else unset($data['password']);
         
+        // Xử lý department_ids - lưu phòng ban đầu tiên làm department_id
+        if (!empty($data['department_ids'])) {
+            $data['department_id'] = $data['department_ids'][0];
+        }
+        
         // Admin và Director luôn luôn active
         if ($user->isAdmin() || $user->isDirector()) {
             $data['account_status'] = 'active';
         }
         
         $user->update($data);
+        
+        // Xử lý multiple departments
+        if (isset($data['department_ids'])) {
+            // Xóa tất cả departments cũ
+            $user->departments()->detach();
+            
+            // Thêm departments mới
+            if (!empty($data['department_ids'])) {
+                $departmentsToAttach = [];
+                foreach ($data['department_ids'] as $deptId) {
+                    $departmentsToAttach[$deptId] = [
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                $user->departments()->attach($departmentsToAttach);
+            }
+        }
         
         $message = 'Cập nhật thông tin thành công.';
         
@@ -414,6 +485,7 @@ class UserController extends Controller
         if ($oldPosition != $newPosition) {
             $message .= ' Đã chuyển trạng thái từ "' . $oldPosition . '" sang "' . $newPosition . '".';
         }
+        
         
         return redirect()->route('users.index')->with('success', $message);
     }

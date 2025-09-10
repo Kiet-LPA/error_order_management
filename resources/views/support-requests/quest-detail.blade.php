@@ -764,7 +764,7 @@
                                             @elseif($user->role === 'employee')
                                                 Nhân viên
                                             @else
-                                                {{ ucfirst($user->role) }}
+                                                {{ $user->display_role }}
                                             @endif
                                         </span>
                                         <small class="text-muted d-block">{{ $user->department->name ?? 'Chưa phân phòng ban' }}</small>

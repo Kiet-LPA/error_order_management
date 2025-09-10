@@ -694,8 +694,13 @@
           <input type="checkbox" class="btn-check" id="st_doing" autocomplete="off" name="statuses[]" value="in_progress" {{ $selected->contains('in_progress') ? 'checked' : '' }}>
           <label class="btn btn-sm btn-outline-primary" for="st_doing" style="border-color: #558EC1; color: #558EC1;">Đang làm</label>
 
-          <input type="checkbox" class="btn-check" id="st_completed" autocomplete="off" name="statuses[]" value="completed" {{ $selected->contains('completed') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-warning" for="st_completed">Chờ duyệt</label>
+          <!-- <input type="checkbox" class="btn-check" id="st_completed" autocomplete="off" name="statuses[]" value="completed" {{ $selected->contains('completed') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-warning" for="st_completed">Chờ duyệt</label> -->
+          <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
+
+          <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
+          <label class="btn btn-sm btn-outline-success" for="st_finished">Hoàn thành</label>
 
           <input type="checkbox" class="btn-check" id="st_rejected" autocomplete="off" name="statuses[]" value="rejected" {{ $selected->contains('rejected') ? 'checked' : '' }}>
           <label class="btn btn-sm btn-outline-danger" for="st_rejected">Từ chối</label>
@@ -703,11 +708,9 @@
           <input type="checkbox" class="btn-check" id="st_overdue" autocomplete="off" name="statuses[]" value="overdue" {{ $selected->contains('overdue') ? 'checked' : '' }}>
           <label class="btn btn-sm btn-outline-danger" for="st_overdue">Trễ hạn</label>
 
-          <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-success" for="st_finished">Hoàn thành</label>
 
-          <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
+
+          
         </div>
         
         <button type="submit" class="btn btn-sm btn-primary" style="background-color: #558EC1; border-color: #558EC1;">Áp dụng</button>
@@ -882,7 +885,7 @@
                 @if($task->assignees->count() > 0)
                   @php
                     $assigneeDetails = $task->assignees->map(function($assignee) {
-                        $role = ucfirst($assignee->role);
+                        $role = $assignee->display_role;
                         $department = $assignee->department ? $assignee->department->name : 'N/A';
                         return "• {$assignee->name} ({$role} - {$department})";
                     })->implode("\n");
@@ -903,7 +906,7 @@
                 @if($task->followers->count() > 0)
                   @php
                     $followerDetails = $task->followers->map(function($follower) {
-                        $role = ucfirst($follower->role);
+                        $role = $follower->display_role;
                         $department = $follower->department ? $follower->department->name : 'N/A';
                         return "• {$follower->name} ({$role} - {$department})";
                     })->implode("\n");
@@ -1016,7 +1019,7 @@
                   @if($task->assignees->count() > 0)
                     @php
                       $assigneeDetails = $task->assignees->map(function($assignee) {
-                          $role = ucfirst($assignee->role);
+                          $role = $assignee->display_role;
                           $department = $assignee->department ? $assignee->department->name : 'N/A';
                           return "• {$assignee->name} ({$role} - {$department})";
                       })->implode("\n");
@@ -1040,7 +1043,7 @@
                   @if($task->followers->count() > 0)
                     @php
                       $followerDetails = $task->followers->map(function($follower) {
-                          $role = ucfirst($follower->role);
+                          $role = $follower->display_role;
                           $department = $follower->department ? $follower->department->name : 'N/A';
                           return "• {$follower->name} ({$role} - {$department})";
                       })->implode("\n");

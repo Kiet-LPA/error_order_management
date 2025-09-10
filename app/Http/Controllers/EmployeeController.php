@@ -17,7 +17,7 @@ class EmployeeController extends Controller
     public function newEmployeesIndex(Request $request)
     {
         $query = User::where('employee_type', 'new')
-                    ->with(['department', 'contracts' => function($query) {
+                    ->with(['department', 'departments', 'contracts' => function($query) {
                         $query->where('status', 'active')->latest();
                     }]);
 
@@ -70,7 +70,8 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
-            'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'required|array',
+            'department_ids.*' => 'exists:departments,id',
             'probation_salary' => 'required|numeric|min:0',
             'probation_period' => 'required|integer|min:1|max:12', // tháng
         ]);
@@ -82,10 +83,22 @@ class EmployeeController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'role' => 'employee', // Mặc định là employee
-                'department_id' => $request->department_id,
+                'department_id' => $request->department_ids[0], // Phòng ban đầu tiên
                 'employee_type' => 'new',
                 'password' => bcrypt('password123'), // mật khẩu mặc định
             ]);
+
+            // Xử lý multiple departments
+            if (!empty($request->department_ids)) {
+                $departmentsToAttach = [];
+                foreach ($request->department_ids as $deptId) {
+                    $departmentsToAttach[$deptId] = [
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                $user->departments()->attach($departmentsToAttach);
+            }
 
             // Lưu thông tin hợp đồng
             $contract = EmployeeContract::create([
@@ -233,6 +246,7 @@ class EmployeeController extends Controller
             abort(404, 'Chỉ có thể chỉnh sửa nhân viên mới.');
         }
         
+        $user->load(['departments']);
         $departments = \App\Models\Department::orderBy('name')->get();
         return view('admin.users.edit-new', compact('user', 'departments'));
     }
@@ -258,7 +272,8 @@ class EmployeeController extends Controller
             'phone'=>'nullable|string|max:20|unique:users,phone,' . $user->id,
             'password'=>'nullable|min:8|confirmed',
             'role'=>'required|in:manager,employee',
-            'department_id'=>'required|exists:departments,id',
+            'department_ids'=>'required|array',
+            'department_ids.*'=>'exists:departments,id',
             'account_status'=>($user->isAdmin() || $user->isDirector()) ? 'nullable|in:active,inactive' : 'required|in:active,inactive',
             'add_contract'=>'nullable|boolean',
             // Thông tin hợp đồng thử việc
@@ -301,12 +316,35 @@ class EmployeeController extends Controller
             unset($data['password']);
         }
         
+        // Xử lý department_ids - lưu phòng ban đầu tiên làm department_id
+        if (!empty($data['department_ids'])) {
+            $data['department_id'] = $data['department_ids'][0];
+        }
+        
         // Admin và Director luôn luôn active
         if ($user->isAdmin() || $user->isDirector()) {
             $data['account_status'] = 'active';
         }
         
         $user->update($data);
+        
+        // Xử lý multiple departments
+        if (isset($data['department_ids'])) {
+            // Xóa tất cả departments cũ
+            $user->departments()->detach();
+            
+            // Thêm departments mới
+            if (!empty($data['department_ids'])) {
+                $departmentsToAttach = [];
+                foreach ($data['department_ids'] as $deptId) {
+                    $departmentsToAttach[$deptId] = [
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                $user->departments()->attach($departmentsToAttach);
+            }
+        }
         
         // Xử lý hợp đồng thử việc
         if ($user->activeContract) {

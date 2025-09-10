@@ -79,14 +79,25 @@
                 @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="mb-3">
-                <label for="department_id" class="form-label">Phòng ban (nếu có)</label>
-                <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror">
-                    <option value="">-- Không chọn --</option>
+                <label class="form-label">Phòng ban</label>
+                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
                     @foreach($departments as $department)
-                        <option value="{{ $department->id }}" {{ old('department_id')==$department->id?'selected':'' }}>{{ $department->name }}</option>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="department_ids[]" value="{{ $department->id }}" 
+                                   id="department_{{ $department->id }}" 
+                                   {{ in_array($department->id, old('department_ids', [])) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="department_{{ $department->id }}">
+                                {{ $department->name }}
+                            </label>
+                        </div>
                     @endforeach
-                </select>
-                @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="form-text">
+                    <strong>Manager/Employee:</strong> Bắt buộc chọn ít nhất một phòng ban.<br>
+                    <strong>Director/Admin:</strong> Nếu không chọn phòng ban nào, sẽ mặc định quản lý tất cả phòng ban.
+                </div>
+                @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">Lưu</button>
             <a href="{{ route('users.index') }}" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">Quay lại</a>

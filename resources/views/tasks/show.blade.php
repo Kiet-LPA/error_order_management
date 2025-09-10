@@ -222,7 +222,7 @@
                             @foreach($task->assignees as $assignee)
                                 @php
                                     $isFromOtherDept = auth()->user()->isManager() && 
-                                                      $assignee->department_id !== auth()->user()->department_id;
+                                                      !auth()->user()->departments->contains('id', $assignee->department_id);
                                 @endphp
                                 <span class="badge {{ $isFromOtherDept ? 'bg-secondary' : 'bg-primary' }}" 
                                       title="{{ $isFromOtherDept ? 'Phòng ban khác' : 'Cùng phòng ban' }}">
@@ -236,7 +236,7 @@
                     @elseif($task->assignee)
                         @php
                             $isFromOtherDept = auth()->user()->isManager() && 
-                                              $task->assignee->department_id !== auth()->user()->department_id;
+                                              !auth()->user()->departments->contains('id', $task->assignee->department_id);
                         @endphp
                         <span class="badge {{ $isFromOtherDept ? 'bg-secondary' : 'bg-primary' }}"
                               title="{{ $isFromOtherDept ? 'Phòng ban khác' : 'Cùng phòng ban' }}">

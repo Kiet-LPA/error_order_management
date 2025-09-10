@@ -21,23 +21,31 @@ class TaskController extends Controller
      */
     private function canManagerAccessTask(User $user, Task $task): bool
     {
-        // Kiểm tra nếu assignee cùng phòng ban
-        if ($task->assignee && $task->assignee->department_id === $user->department_id) {
+        // Lấy tất cả phòng ban mà Manager quản lý
+        $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+        
+        // Kiểm tra nếu assignee thuộc phòng ban mà Manager quản lý
+        if ($task->assignee && in_array($task->assignee->department_id, $managerDepartmentIds)) {
             return true;
         }
         
-        // Kiểm tra nếu creator cùng phòng ban
-        if ($task->creator && $task->creator->department_id === $user->department_id) {
+        // Kiểm tra nếu creator thuộc phòng ban mà Manager quản lý
+        if ($task->creator && in_array($task->creator->department_id, $managerDepartmentIds)) {
             return true;
         }
         
-        // Kiểm tra nếu có assignee nào cùng phòng ban
-        if ($task->assignees->where('department_id', $user->department_id)->count() > 0) {
+        // Kiểm tra nếu có assignee nào thuộc phòng ban mà Manager quản lý
+        if ($task->assignees->whereIn('department_id', $managerDepartmentIds)->count() > 0) {
             return true;
         }
         
-        // Kiểm tra nếu task thuộc phòng ban của manager
-        if ($task->department_id === $user->department_id) {
+        // Kiểm tra nếu task thuộc phòng ban mà Manager quản lý
+        if ($task->department_id && in_array($task->department_id, $managerDepartmentIds)) {
+            return true;
+        }
+        
+        // Kiểm tra nếu task là multi-department và có phòng ban mà Manager quản lý
+        if ($task->is_multi_department && $task->departments->whereIn('id', $managerDepartmentIds)->count() > 0) {
             return true;
         }
         
@@ -321,22 +329,28 @@ class TaskController extends Controller
 
         // Xử lý user assignments
         if ($r->boolean('is_multi_user') && $r->has('assignee_ids') && is_array($r->assignee_ids)) {
-            // Multi-user assignment
-            foreach ($r->assignee_ids as $assigneeId) {
-                $task->assignees()->attach($assigneeId);
-                // Gửi thông báo cho assignee
-                $assignee = User::find($assigneeId);
-                if ($assignee) {
-                    NotificationService::taskAssigned($task, $user, $assignee);
+            // Multi-user assignment - loại bỏ duplicate
+            $uniqueAssigneeIds = array_unique($r->assignee_ids);
+            foreach ($uniqueAssigneeIds as $assigneeId) {
+                // Kiểm tra xem đã tồn tại chưa để tránh duplicate
+                if (!$task->assignees()->where('user_id', $assigneeId)->exists()) {
+                    $task->assignees()->attach($assigneeId);
+                    // Gửi thông báo cho assignee
+                    $assignee = User::find($assigneeId);
+                    if ($assignee) {
+                        NotificationService::taskAssigned($task, $user, $assignee);
+                    }
                 }
             }
         } elseif ($r->filled('assignee_id')) {
             // Single user assignment - cũng lưu vào pivot table để thống nhất
-            $task->assignees()->attach($r->assignee_id);
-            // Gửi thông báo cho assignee
-            $assignee = User::find($r->assignee_id);
-            if ($assignee) {
-                NotificationService::taskAssigned($task, $user, $assignee);
+            if (!$task->assignees()->where('user_id', $r->assignee_id)->exists()) {
+                $task->assignees()->attach($r->assignee_id);
+                // Gửi thông báo cho assignee
+                $assignee = User::find($r->assignee_id);
+                if ($assignee) {
+                    NotificationService::taskAssigned($task, $user, $assignee);
+                }
             }
         }
 

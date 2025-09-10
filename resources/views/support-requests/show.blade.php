@@ -97,7 +97,7 @@
 
                                 @if($supportRequest->deadline)
                                     <div class="col-12 mb-3">
-                                        <span class="fw-bold">Deadline:</span>
+                                        <span class="fw-bold">Hạn Cuối:</span>
                                         <p class="mb-0">{{ \Carbon\Carbon::parse($supportRequest->deadline)->format('d/m/Y') }}</p>
                                     </div>
                                 @endif
@@ -325,7 +325,7 @@
                                                            {{ $shouldDisable ? 'disabled' : '' }}>
                                                     <label class="form-check-label {{ $shouldDisable ? 'text-muted' : '' }}" 
                                                            for="recipient_{{ $user->id }}">
-                                                        {{ $user->name }} ({{ ucfirst($user->role) }})
+                                                        {{ $user->name }} ({{ $user->display_role }})
                                                         @if($isDisabled)
                                                             <small class="text-warning"> - Đã tham gia</small>
                                                         @elseif(auth()->user()->isManager() && $user->isManager() && $user->department_id === auth()->user()->department_id)

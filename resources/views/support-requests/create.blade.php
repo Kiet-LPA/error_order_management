@@ -161,7 +161,7 @@
                                                                 @elseif($manager->role === 'director')
                                                                     Giám đốc
                                                                 @else
-                                                                    {{ ucfirst($manager->role) }}
+                                                                    {{ $manager->display_role }}
                                                                 @endif
                                                             </span>
                                                         </label>

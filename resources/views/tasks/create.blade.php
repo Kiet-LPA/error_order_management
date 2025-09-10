@@ -214,14 +214,53 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                 <label class="form-label fw-bold text-dark">
                   <i class="bi bi-people me-2"></i>Chọn người nhận (có thể chọn nhiều)
                 </label>
-                <div id="user_selection_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa; {{ auth()->user()->isManager() ? 'display: none;' : '' }}">
+                <div id="user_selection_disabled" class="border rounded p-3 text-center" style="background: #f8f9fa; display: block;">
                   <i class="bi bi-exclamation-triangle text-warning fs-1 mb-2"></i>
                   <p class="mb-0">Vui lòng chọn phòng ban trước khi chọn người nhận</p>
                 </div>
-                <div id="user_selection_enabled" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; {{ auth()->user()->isManager() ? 'display: block;' : 'display: none;' }}">
+                <div id="user_selection_enabled" class="border rounded p-3" style="max-height: 300px; overflow-y: auto; display: none;">
+                  @php
+                    // Lấy users đa phòng ban (thuộc nhiều hơn 1 phòng ban)
+                    $multiDepartmentUsers = $users->filter(function($user) {
+                      return $user->departments->count() > 1;
+                    });
+                    
+                    // Lấy users single department
+                    $singleDepartmentUsers = $users->filter(function($user) {
+                      return $user->departments->count() == 1;
+                    });
+                  @endphp
+                  
+                  {{-- Hiển thị users đa phòng ban trước --}}
+                  @if($multiDepartmentUsers->count() > 0)
+                    <div class="mb-3">
+                      <div class="fw-bold text-warning mb-2" style="background: #fff3cd; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                        <i class="bi bi-people-fill me-2"></i>Nhân viên đa phòng ban
+                        <small class="text-muted">({{ $multiDepartmentUsers->count() }} người)</small>
+                      </div>
+                      @foreach($multiDepartmentUsers as $u)
+                        <div class="form-check mb-2 user-option ms-3" data-user-id="{{ $u->id }}" data-multi-department="true">
+                          <input class="form-check-input" type="checkbox" 
+                                 name="assignee_ids[]" 
+                                 value="{{ $u->id }}" 
+                                 id="user_{{ $u->id }}"
+                                 {{ in_array($u->id, old('assignee_ids', [])) ? 'checked' : '' }}>
+                          <label class="form-check-label" for="user_{{ $u->id }}">
+                            {{ $u->name }} - {{ $u->display_role }}
+                            <small class="text-muted">({{ $u->departments->pluck('name')->join(', ') }})</small>
+                          </label>
+                        </div>
+                      @endforeach
+                    </div>
+                  @endif
+                  
+                  {{-- Hiển thị users theo từng phòng ban --}}
                   @foreach($departments as $department)
                     @php
-                      $departmentUsers = $users->where('department_id', $department->id);
+                      // Lấy users thuộc phòng ban này (chỉ single department)
+                      $departmentUsers = $singleDepartmentUsers->filter(function($user) use ($department) {
+                        return $user->departments->contains('id', $department->id);
+                      });
                     @endphp
                     <div class="mb-3 department-user-group" data-department="{{ $department->id }}">
                       <div class="fw-bold text-primary mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #007bff;">
@@ -232,14 +271,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                       </div>
                       @if($departmentUsers->count() > 0)
                         @foreach($departmentUsers as $u)
-                          <div class="form-check mb-2 user-option ms-3" data-department="{{ $u->department_id ?? '' }}">
+                          <div class="form-check mb-2 user-option ms-3" data-department="{{ $u->department_id ?? '' }}" data-user-id="{{ $u->id }}">
                             <input class="form-check-input" type="checkbox" 
                                    name="assignee_ids[]" 
                                    value="{{ $u->id }}" 
                                    id="user_{{ $u->id }}"
                                    {{ in_array($u->id, old('assignee_ids', [])) ? 'checked' : '' }}>
                             <label class="form-check-label" for="user_{{ $u->id }}">
-                              {{ $u->name }} - {{ ucfirst($u->role) }}
+                              {{ $u->name }} - {{ $u->display_role }}
                             </label>
                           </div>
                         @endforeach
@@ -268,7 +307,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                   <option value="">Chọn người nhận</option>
                   @foreach($departments as $department)
                     @php
-                      $departmentUsers = $users->where('department_id', $department->id);
+                      // Lấy users thuộc phòng ban này (hỗ trợ multi-department)
+                      $departmentUsers = $users->filter(function($user) use ($department) {
+                        return $user->departments->contains('id', $department->id);
+                      });
                     @endphp
                     <optgroup label="{{ $department->name }}{{ $departmentUsers->count() == 0 ? ' (Không có nhân viên)' : '' }}" data-department="{{ $department->id }}">
                       @if($departmentUsers->count() > 0)
@@ -276,7 +318,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                           <option value="{{ $u->id }}" 
                                   data-department="{{ $u->department_id ?? '' }}"
                                   @selected(old('assignee_id')==$u->id)>
-                            {{ $u->name }} - {{ ucfirst($u->role) }}
+                            {{ $u->name }} - {{ $u->display_role }}
                           </option>
                         @endforeach
                       @else
@@ -393,7 +435,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
               <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                 @foreach($departments as $department)
                   @php
-                    $departmentUsers = $users->where('department_id', $department->id);
+                    // Lấy users thuộc phòng ban này (hỗ trợ multi-department)
+                    $departmentUsers = $users->filter(function($user) use ($department) {
+                      return $user->departments->contains('id', $department->id);
+                    });
                   @endphp
                   <div class="mb-3">
                     <div class="fw-bold text-dark mb-2" style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #6c757d;">
@@ -407,7 +452,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                         <div class="form-check mb-2 ms-3 follower-option" data-department="{{ $user->department_id ?? '' }}" data-user-id="{{ $user->id }}" data-user-role="{{ $user->role }}">
                           <input class="form-check-input" type="checkbox" name="followers[]" value="{{ $user->id }}" id="follower_{{ $user->id }}">
                           <label class="form-check-label" for="follower_{{ $user->id }}">
-                            {{ $user->name }} - {{ ucfirst($user->role) }}
+                            {{ $user->name }} - {{ $user->display_role }}
                           </label>
                         </div>
                       @endforeach
@@ -477,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Showing single department section');
             }
             // Trigger filter after toggle
-            setTimeout(filterUsersByDepartments, 100);
+            filterUsersByDepartments();
         });
         
         // Trigger on load if checked
@@ -490,6 +535,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (singleDeptSection) singleDeptSection.style.display = 'block';
             console.log('Initial state: single department');
         }
+        // Trigger filter on load
+        filterUsersByDepartments();
     } else if (isManager) {
         // Manager: luôn hiển thị single department section và tự động chọn phòng ban
         if (singleDeptSection) {
@@ -500,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Manager: tự động trigger filter vì phòng ban đã được chọn sẵn
-        setTimeout(filterUsersByDepartments, 100);
+        filterUsersByDepartments();
     }
     
     // Multi-user toggle
@@ -565,25 +612,37 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Selected department from select:', singleDepartmentSelect.value);
         }
         
-        // Manager: lấy phòng ban từ hidden input
-        if (managerDepartmentInput && managerDepartmentInput.value) {
-            selectedDepartments.push(managerDepartmentInput.value);
-            console.log('Selected department from manager input:', managerDepartmentInput.value);
+        // Manager: lấy tất cả phòng ban mà Manager quản lý
+        if (isManager) {
+            @php
+                $managerDepartmentIds = auth()->user()->departments->pluck('id')->toArray();
+            @endphp
+            const managerDepartmentIds = @json($managerDepartmentIds);
+            managerDepartmentIds.forEach(deptId => {
+                if (!selectedDepartments.includes(deptId.toString())) {
+                    selectedDepartments.push(deptId.toString());
+                }
+            });
+            console.log('Manager departments:', managerDepartmentIds);
         }
 
         console.log('Total selected departments:', selectedDepartments);
         
         // Kiểm tra logic đa phòng ban cho Manager (chỉ khi có nhiều phòng ban được chọn)
-        const isManager = {{ auth()->user()->isManager() ? 'true' : 'false' }};
-        const managerDepartmentId = {{ auth()->user()->department_id ?? 'null' }};
+        @php
+            $managerDepartmentIds = auth()->user()->departments->pluck('id')->toArray();
+        @endphp
+        const managerDepartmentIds = @json($managerDepartmentIds);
         
         if (isManager && selectedDepartments.length > 1) {
-            const hasOwnDepartment = selectedDepartments.includes(managerDepartmentId.toString());
+            const hasOwnDepartment = selectedDepartments.some(deptId => 
+                managerDepartmentIds.includes(parseInt(deptId))
+            );
             if (!hasOwnDepartment) {
                 alert('Quản lý chỉ có thể tạo công việc đa phòng ban khi có phòng ban của mình tham gia');
                 // Uncheck the last selected department (not the manager's department)
                 departmentCheckboxes.forEach(checkbox => {
-                    if (checkbox.value !== managerDepartmentId.toString() && checkbox.checked) {
+                    if (!managerDepartmentIds.includes(parseInt(checkbox.value)) && checkbox.checked) {
                         checkbox.checked = false;
                     }
                 });
@@ -608,8 +667,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const multiDeptElement = document.getElementById('is_multi_department');
         const isMultiDepartment = multiDeptElement ? multiDeptElement.checked : false;
 
-        if (selectedDepartments.length === 0 && !isManager) {
-            // No department selected - show disabled message (trừ Manager vì họ đã có phòng ban mặc định)
+        if (selectedDepartments.length === 0) {
+            // No department selected - show disabled message
             console.log('No departments selected, showing disabled state');
             if (userSelectionDisabled) {
                 userSelectionDisabled.style.display = 'block';
@@ -647,32 +706,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Showing assignee select');
             }
 
-            // Filter multi-user section - show/hide entire department groups
-            const departmentGroups = document.querySelectorAll('.department-user-group');
-            console.log('Department groups found:', departmentGroups.length);
-            departmentGroups.forEach(group => {
-                const departmentId = group.getAttribute('data-department');
-                console.log('Department group:', departmentId, 'Selected departments:', selectedDepartments);
+            // Filter multi-user section - show/hide users based on selected departments
+            const userOptions = document.querySelectorAll('.user-option');
+            console.log('User options found:', userOptions.length);
+            userOptions.forEach(option => {
+                const userId = option.getAttribute('data-user-id');
+                const isMultiDepartment = option.getAttribute('data-multi-department') === 'true';
+                const departmentId = option.getAttribute('data-department');
                 
-                // Nếu không phải đa phòng ban và là Manager, chỉ hiển thị phòng ban của manager
-                if (!isMultiDepartment && isManager) {
-                    if (departmentId === managerDepartmentId.toString()) {
-                        group.style.display = 'block';
-                    } else {
-                        group.style.display = 'none';
-                        // Uncheck all checkboxes in hidden groups
-                        const checkboxes = group.querySelectorAll('input[type="checkbox"]');
-                        checkboxes.forEach(checkbox => checkbox.checked = false);
-                    }
+                console.log('User option:', userId, 'isMultiDepartment:', isMultiDepartment, 'departmentId:', departmentId);
+                
+                if (isMultiDepartment) {
+                    // Hiển thị users đa phòng ban luôn
+                    option.style.display = 'block';
                 } else {
-                    // Đa phòng ban hoặc không phải Manager - hiển thị theo phòng ban được chọn
+                    // Hiển thị users single department theo phòng ban được chọn
                     if (selectedDepartments.includes(departmentId)) {
-                        group.style.display = 'block';
+                        option.style.display = 'block';
                     } else {
-                        group.style.display = 'none';
-                        // Uncheck all checkboxes in hidden groups
-                        const checkboxes = group.querySelectorAll('input[type="checkbox"]');
-                        checkboxes.forEach(checkbox => checkbox.checked = false);
+                        option.style.display = 'none';
+                        // Uncheck checkbox nếu bị ẩn
+                        const checkbox = option.querySelector('input[type="checkbox"]');
+                        if (checkbox) checkbox.checked = false;
                     }
                 }
             });
@@ -685,32 +740,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     const departmentId = optgroup.getAttribute('data-department');
                     console.log('Optgroup department:', departmentId, 'Selected departments:', selectedDepartments);
                     
-                    // Nếu không phải đa phòng ban và là Manager, chỉ hiển thị nhân viên cùng phòng ban
-                    if (!isMultiDepartment && isManager) {
-                        if (departmentId === managerDepartmentId.toString()) {
-                            optgroup.style.display = 'block';
-                        } else {
-                            optgroup.style.display = 'none';
-                            const options = optgroup.querySelectorAll('option');
-                            options.forEach(option => {
-                                if (option.selected) {
-                                    assigneeSelect.value = '';
-                                }
-                            });
-                        }
+                    // Hiển thị theo phòng ban được chọn
+                    if (selectedDepartments.includes(departmentId)) {
+                        optgroup.style.display = 'block';
                     } else {
-                        // Đa phòng ban hoặc không phải Manager - hiển thị theo phòng ban được chọn
-                        if (selectedDepartments.includes(departmentId)) {
-                            optgroup.style.display = 'block';
-                        } else {
-                            optgroup.style.display = 'none';
-                            const options = optgroup.querySelectorAll('option');
-                            options.forEach(option => {
-                                if (option.selected) {
-                                    assigneeSelect.value = '';
-                                }
-                            });
-                        }
+                        optgroup.style.display = 'none';
+                        const options = optgroup.querySelectorAll('option');
+                        options.forEach(option => {
+                            if (option.selected) {
+                                assigneeSelect.value = '';
+                            }
+                        });
                     }
                 });
             }

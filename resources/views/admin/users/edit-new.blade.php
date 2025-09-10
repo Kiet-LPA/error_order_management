@@ -124,15 +124,30 @@
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label for="department_id" class="form-label">Phòng ban <span class="text-danger">*</span></label>
-                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" required
-                                            @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
-                                        <option value="">-- Chọn phòng ban --</option>
+                                    <label class="form-label">Phòng ban <span class="text-danger">*</span></label>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
                                         @foreach($departments as $department)
-                                            <option value="{{ $department->id }}" {{ old('department_id', $user->department_id)==$department->id?'selected':'' }}>{{ $department->name }}</option>
+                                            @php
+                                                $isChecked = in_array($department->id, old('department_ids', $user->departments->pluck('id')->toArray()));
+                                            @endphp
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="department_ids[]" value="{{ $department->id }}" 
+                                                       id="department_{{ $department->id }}" 
+                                                       {{ $isChecked ? 'checked' : '' }}
+                                                       @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
+                                                <label class="form-check-label" for="department_{{ $department->id }}">
+                                                    {{ $department->name }}
+                                                </label>
+                                            </div>
                                         @endforeach
-                                    </select>
-                                    @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="form-text">
+                                        <strong>Manager/Employee:</strong> Bắt buộc chọn ít nhất một phòng ban.<br>
+                                        <strong>Director/Admin:</strong> Nếu không chọn phòng ban nào, sẽ mặc định quản lý tất cả phòng ban.
+                                    </div>
+                                    @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    
                                 </div>
 
                                 <!-- Chọn nhiều phòng ban cho Director -->
@@ -393,6 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (roleSelect && managedDepartmentsSection) {
         // Kiểm tra trạng thái ban đầu
         toggleManagedDepartmentsSection();
+        updatePrimaryDepartment();
         
         // Xử lý sự kiện thay đổi role (chỉ khi không bị disable)
         if (!roleSelect.disabled) {
@@ -400,6 +416,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Function để cập nhật phòng ban chính
+    function updatePrimaryDepartment() {
+        const checkboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
+        const primaryInput = document.getElementById('primary_department_id');
+        
+        // Ẩn tất cả badge "Chính"
+        document.querySelectorAll('[id^="primary_badge_"]').forEach(badge => {
+            badge.style.display = 'none';
+        });
+        
+        if (checkboxes.length > 0) {
+            // Nếu có phòng ban được chọn, phòng ban đầu tiên sẽ là chính
+            const firstChecked = checkboxes[0];
+            const departmentId = firstChecked.value;
+            primaryInput.value = departmentId;
+            
+            // Hiển thị badge "Chính" cho phòng ban đầu tiên
+            const primaryBadge = document.getElementById('primary_badge_' + departmentId);
+            if (primaryBadge) {
+                primaryBadge.style.display = 'inline';
+            }
+        } else {
+            primaryInput.value = '';
+        }
+    }
+
     function toggleManagedDepartmentsSection() {
         const selectedRole = roleSelect.value;
         const isDirector = selectedRole === 'director';

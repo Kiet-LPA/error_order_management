@@ -72,8 +72,27 @@
                             <div class="row mb-3">
                                 <div class="col-sm-4 fw-bold">Phòng ban:</div>
                                 <div class="col-sm-8">
-                                    @if($user->department)
-                                        <span class="badge bg-secondary">{{ $user->department->name }}</span>
+                                    @if($user->departments->count() > 0)
+                                        @php
+                                            $visibleDepartments = $user->departments->take(3);
+                                            $hiddenDepartments = $user->departments->skip(3);
+                                            $allDepartmentNames = $user->departments->pluck('name')->join(', ');
+                                        @endphp
+                                        
+                                        @foreach($visibleDepartments as $department)
+                                            <span class="badge bg-secondary me-1">
+                                                {{ $department->name }}
+                                            </span>
+                                        @endforeach
+                                        
+                                        @if($hiddenDepartments->count() > 0)
+                                            <span class="badge bg-info me-1" 
+                                                  data-bs-toggle="tooltip" 
+                                                  data-bs-placement="top" 
+                                                  title="{{ $allDepartmentNames }}">
+                                                <i class="bi bi-three-dots me-1"></i>+{{ $hiddenDepartments->count() }}
+                                            </span>
+                                        @endif
                                     @else
                                         <span class="text-muted">Chưa phân công</span>
                                     @endif

@@ -346,76 +346,78 @@
   {{-- Filter theo phòng ban --}}
   <div class="mb-2">
     <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Lọc theo phòng ban:</small>
-    <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-      <input type="hidden" name="search" value="{{ request('search') }}">
-      <input type="hidden" name="role" value="{{ request('role') }}">
-      <input type="hidden" name="sort" value="{{ request('sort') }}">
-      <input type="hidden" name="direction" value="{{ request('direction') }}">
-      <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('department') ? ' active' : '' }}">Tất cả</button>
-    </form>
-
-    @foreach($departments as $department)
-      <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
+    <div class="d-flex flex-wrap gap-2">
+      <form method="GET" action="{{ route('users.index') }}">
         <input type="hidden" name="search" value="{{ request('search') }}">
         <input type="hidden" name="role" value="{{ request('role') }}">
         <input type="hidden" name="sort" value="{{ request('sort') }}">
         <input type="hidden" name="direction" value="{{ request('direction') }}">
-        <input type="hidden" name="department" value="{{ $department->id }}">
-        <button type="submit" class="btn btn-sm btn-outline-primary{{ request('department') == $department->id ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
-          {{ $department->name }}
-        </button>
+        <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('department') ? ' active' : '' }}">Tất cả</button>
       </form>
-    @endforeach
+
+      @foreach($departments as $department)
+        <form method="GET" action="{{ route('users.index') }}">
+          <input type="hidden" name="search" value="{{ request('search') }}">
+          <input type="hidden" name="role" value="{{ request('role') }}">
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="direction" value="{{ request('direction') }}">
+          <input type="hidden" name="department" value="{{ $department->id }}">
+          <button type="submit" class="btn btn-sm btn-outline-primary{{ request('department') == $department->id ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
+            {{ $department->name }}
+          </button>
+        </form>
+      @endforeach
+    </div>
   </div>
 
   {{-- Filter theo vai trò --}}
   <div class="mb-2">
     <small class="text-muted mb-2 d-block"><i class="bi bi-person-badge me-1"></i>Lọc theo vai trò:</small>
-    <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-      <input type="hidden" name="search" value="{{ request('search') }}">
-      <input type="hidden" name="department" value="{{ request('department') }}">
-      <input type="hidden" name="sort" value="{{ request('sort') }}">
-      <input type="hidden" name="direction" value="{{ request('direction') }}">
-      <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('role') ? ' active' : '' }}">Tất cả</button>
-    </form>
+    <div class="d-flex flex-wrap gap-2">
+      <form method="GET" action="{{ route('users.index') }}">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="department" value="{{ request('department') }}">
+        <input type="hidden" name="sort" value="{{ request('sort') }}">
+        <input type="hidden" name="direction" value="{{ request('direction') }}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('role') ? ' active' : '' }}">Tất cả</button>
+      </form>
 
-            <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-          <input type="hidden" name="search" value="{{ request('search') }}">
-          <input type="hidden" name="department" value="{{ request('department') }}">
-          <input type="hidden" name="sort" value="{{ request('sort') }}">
-          <input type="hidden" name="direction" value="{{ request('direction') }}">
-          <input type="hidden" name="role" value="admin">
-          <button type="submit" class="btn btn-sm btn-outline-danger{{ request('role') == 'admin' ? ' active' : '' }}">Quản trị viên</button>
-        </form>
+      <form method="GET" action="{{ route('users.index') }}">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="department" value="{{ request('department') }}">
+        <input type="hidden" name="sort" value="{{ request('sort') }}">
+        <input type="hidden" name="direction" value="{{ request('direction') }}">
+        <input type="hidden" name="role" value="admin">
+        <button type="submit" class="btn btn-sm btn-outline-danger{{ request('role') == 'admin' ? ' active' : '' }}">Quản trị viên</button>
+      </form>
 
-        <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-          <input type="hidden" name="search" value="{{ request('search') }}">
-          <input type="hidden" name="department" value="{{ request('department') }}">
-          <input type="hidden" name="sort" value="{{ request('sort') }}">
-          <input type="hidden" name="direction" value="{{ request('direction') }}">
-          <input type="hidden" name="role" value="director">
-          <button type="submit" class="btn btn-sm btn-outline-info{{ request('role') == 'director' ? ' active' : '' }}">Director</button>
-        </form>
+      <form method="GET" action="{{ route('users.index') }}">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="department" value="{{ request('department') }}">
+        <input type="hidden" name="sort" value="{{ request('sort') }}">
+        <input type="hidden" name="direction" value="{{ request('direction') }}">
+        <input type="hidden" name="role" value="director">
+        <button type="submit" class="btn btn-sm btn-outline-info{{ request('role') == 'director' ? ' active' : '' }}">Người điều hành</button>
+      </form>
 
-        <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-          <input type="hidden" name="search" value="{{ request('search') }}">
-          <input type="hidden" name="department" value="{{ request('department') }}">
-          <input type="hidden" name="sort" value="{{ request('sort') }}">
-          <input type="hidden" name="direction" value="{{ request('direction') }}">
-          <input type="hidden" name="role" value="manager">
-          <button type="submit" class="btn btn-sm btn-outline-warning{{ request('role') == 'manager' ? ' active' : '' }}">Quản lý</button>
-        </form>
+      <form method="GET" action="{{ route('users.index') }}">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="department" value="{{ request('department') }}">
+        <input type="hidden" name="sort" value="{{ request('sort') }}">
+        <input type="hidden" name="direction" value="{{ request('direction') }}">
+        <input type="hidden" name="role" value="manager">
+        <button type="submit" class="btn btn-sm btn-outline-warning{{ request('role') == 'manager' ? ' active' : '' }}">Quản lý</button>
+      </form>
 
-        <form method="GET" action="{{ route('users.index') }}" class="d-inline me-2">
-          <input type="hidden" name="search" value="{{ request('search') }}">
-          <input type="hidden" name="department" value="{{ request('department') }}">
-          <input type="hidden" name="sort" value="{{ request('sort') }}">
-          <input type="hidden" name="direction" value="{{ request('direction') }}">
-          <input type="hidden" name="sort" value="{{ request('sort') }}">
-          <input type="hidden" name="direction" value="{{ request('direction') }}">
-          <input type="hidden" name="role" value="employee">
-          <button type="submit" class="btn btn-sm btn-outline-success{{ request('role') == 'employee' ? ' active' : '' }}">Nhân viên</button>
-        </form>
+      <form method="GET" action="{{ route('users.index') }}">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="department" value="{{ request('department') }}">
+        <input type="hidden" name="sort" value="{{ request('sort') }}">
+        <input type="hidden" name="direction" value="{{ request('direction') }}">
+        <input type="hidden" name="role" value="employee">
+        <button type="submit" class="btn btn-sm btn-outline-success{{ request('role') == 'employee' ? ' active' : '' }}">Nhân viên</button>
+      </form>
+    </div>
   </div>
 
   {{-- Search và Sort --}}
@@ -528,13 +530,27 @@
                 @endif
               </td>
               <td class="px-4 py-3">
-                @if($user->department)
-                  <span class="badge bg-light text-dark border department-tooltip" 
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        title="Phòng ban: {{ $user->department->name }}">
-                    <i class="bi bi-building me-1"></i>{{ $user->department->name }}
-                  </span>
+                @if($user->departments->count() > 0)
+                  @php
+                    $visibleDepartments = $user->departments->take(2);
+                    $hiddenDepartments = $user->departments->skip(2);
+                    $allDepartmentNames = $user->departments->pluck('name')->join(', ');
+                  @endphp
+                  
+                  @foreach($visibleDepartments as $department)
+                    <span class="badge bg-light text-dark border me-1">
+                      <i class="bi bi-building me-1"></i>{{ $department->name }}
+                    </span>
+                  @endforeach
+                  
+                  @if($hiddenDepartments->count() > 0)
+                    <span class="badge bg-secondary me-1" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="{{ $allDepartmentNames }}">
+                      <i class="bi bi-three-dots me-1"></i>+{{ $hiddenDepartments->count() }}
+                    </span>
+                  @endif
                 @else
                   <span class="text-muted">—</span>
                 @endif

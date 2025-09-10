@@ -332,6 +332,23 @@ class Task extends Model
     }
 
     /**
+     * Scope để lọc task theo nhiều phòng ban
+     */
+    public function scopeByDepartments($query, $departmentIds)
+    {
+        if (empty($departmentIds)) {
+            return $query;
+        }
+        
+        return $query->where(function($q) use ($departmentIds) {
+            $q->whereIn('department_id', $departmentIds)
+              ->orWhereHas('departments', function($subQ) use ($departmentIds) {
+                  $subQ->whereIn('department_id', $departmentIds);
+              });
+        });
+    }
+
+    /**
      * Scope để lọc task theo user
      */
     public function scopeByUser($query, $userId)

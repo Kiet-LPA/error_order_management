@@ -111,10 +111,19 @@ class TaskPermissionService
             return !$targetUser->isAdmin();
         }
 
-        // Manager chỉ có thể giao cho Employee trong cùng phòng ban
+        // Manager chỉ có thể giao cho Employee trong các phòng ban mà Manager quản lý
         if ($user->isManager()) {
-            return $targetUser->isEmployee() && 
-                   $targetUser->department_id === $user->department_id;
+            if (!$targetUser->isEmployee()) {
+                return false;
+            }
+            
+            // Lấy danh sách phòng ban mà Manager quản lý
+            $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+            
+            // Kiểm tra xem Employee có thuộc bất kỳ phòng ban nào mà Manager quản lý không
+            $employeeDepartmentIds = $targetUser->departments->pluck('id')->toArray();
+            
+            return !empty(array_intersect($managerDepartmentIds, $employeeDepartmentIds));
         }
 
         // Employee không thể giao task
@@ -136,9 +145,10 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager chỉ có thể giao cho phòng ban của mình
+        // Manager chỉ có thể giao cho các phòng ban mà Manager quản lý
         if ($user->isManager()) {
-            return $department->id === $user->department_id;
+            $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+            return in_array($department->id, $managerDepartmentIds);
         }
 
         // Employee không thể giao task
@@ -183,8 +193,11 @@ class TaskPermissionService
             }
             
             // Kiểm tra task là multi-department và có phòng ban của manager
-            if ($task->is_multi_department && $task->departments->contains('id', $user->department_id)) {
-                return true;
+            if ($task->is_multi_department) {
+                $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+                if ($task->departments->whereIn('id', $managerDepartmentIds)->count() > 0) {
+                    return true;
+                }
             }
             
             // Kiểm tra manager là follower
@@ -225,11 +238,15 @@ class TaskPermissionService
         }
 
         if ($user->isManager()) {
-            // Manager chỉ có thể giao cho Employee trong cùng phòng ban
+            // Manager có thể giao cho Employee trong các phòng ban mà Manager quản lý
+            $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+            
             return User::where('role', 'employee')
-                      ->where('department_id', $user->department_id)
                       ->where('id', '!=', $user->id)
-                      ->with('department')
+                      ->whereHas('departments', function($query) use ($managerDepartmentIds) {
+                          $query->whereIn('department_id', $managerDepartmentIds);
+                      })
+                      ->with('departments')
                       ->orderBy('name')
                       ->get();
         }
@@ -249,8 +266,9 @@ class TaskPermissionService
         }
 
         if ($user->isManager()) {
-            // Manager chỉ có thể giao cho phòng ban của mình
-            return Department::where('id', $user->department_id)->get();
+            // Manager có thể giao cho các phòng ban mà Manager quản lý
+            $managerDepartmentIds = $user->departments->pluck('id')->toArray();
+            return Department::whereIn('id', $managerDepartmentIds)->orderBy('name')->get();
         }
 
         // Employee không thể giao task
@@ -262,28 +280,40 @@ class TaskPermissionService
      */
     private static function isTaskInManagerDepartment(User $manager, Task $task): bool
     {
-        // Kiểm tra nếu assignee cùng phòng ban
-        if ($task->assignee && $task->assignee->department_id === $manager->department_id) {
+        // Lấy danh sách phòng ban mà Manager quản lý
+        $managerDepartmentIds = $manager->departments->pluck('id')->toArray();
+        
+        // Kiểm tra nếu assignee có phòng ban chung với Manager
+        if ($task->assignee) {
+            $assigneeDepartmentIds = $task->assignee->departments->pluck('id')->toArray();
+            if (!empty(array_intersect($managerDepartmentIds, $assigneeDepartmentIds))) {
+                return true;
+            }
+        }
+
+        // Kiểm tra nếu creator có phòng ban chung với Manager
+        if ($task->creator) {
+            $creatorDepartmentIds = $task->creator->departments->pluck('id')->toArray();
+            if (!empty(array_intersect($managerDepartmentIds, $creatorDepartmentIds))) {
+                return true;
+            }
+        }
+
+        // Kiểm tra nếu có assignee nào có phòng ban chung với Manager
+        foreach ($task->assignees as $assignee) {
+            $assigneeDepartmentIds = $assignee->departments->pluck('id')->toArray();
+            if (!empty(array_intersect($managerDepartmentIds, $assigneeDepartmentIds))) {
+                return true;
+            }
+        }
+
+        // Kiểm tra nếu task thuộc phòng ban mà Manager quản lý
+        if (in_array($task->department_id, $managerDepartmentIds)) {
             return true;
         }
 
-        // Kiểm tra nếu creator cùng phòng ban
-        if ($task->creator && $task->creator->department_id === $manager->department_id) {
-            return true;
-        }
-
-        // Kiểm tra nếu có assignee nào cùng phòng ban
-        if ($task->assignees->where('department_id', $manager->department_id)->count() > 0) {
-            return true;
-        }
-
-        // Kiểm tra nếu task thuộc phòng ban của manager
-        if ($task->department_id === $manager->department_id) {
-            return true;
-        }
-
-        // Kiểm tra nếu task là multi-department và có phòng ban của manager
-        if ($task->is_multi_department && $task->departments->contains('id', $manager->department_id)) {
+        // Kiểm tra nếu task là multi-department và có phòng ban của Manager
+        if ($task->is_multi_department && $task->departments->whereIn('id', $managerDepartmentIds)->count() > 0) {
             return true;
         }
 

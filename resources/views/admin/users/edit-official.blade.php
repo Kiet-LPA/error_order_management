@@ -129,14 +129,30 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="department_id" class="form-label">Phòng ban (nếu có)</label>
-                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" @if(!$canEdit) disabled @endif>
-                                        <option value="">-- Không chọn --</option>
+                                    <label class="form-label">Phòng ban</label>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
                                         @foreach($departments as $department)
-                                            <option value="{{ $department->id }}" {{ old('department_id', $user->department_id)==$department->id?'selected':'' }}>{{ $department->name }}</option>
+                                            @php
+                                                $isChecked = in_array($department->id, old('department_ids', $user->departments->pluck('id')->toArray()));
+                                            @endphp
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="department_ids[]" value="{{ $department->id }}" 
+                                                       id="department_{{ $department->id }}" 
+                                                       {{ $isChecked ? 'checked' : '' }}
+                                                       @if(!$canEdit) disabled @endif>
+                                                <label class="form-check-label" for="department_{{ $department->id }}">
+                                                    {{ $department->name }}
+                                                </label>
+                                            </div>
                                         @endforeach
-                                    </select>
-                                    @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="form-text">
+                                        <strong>Manager/Employee:</strong> Bắt buộc chọn ít nhất một phòng ban.<br>
+                                        <strong>Director/Admin:</strong> Nếu không chọn phòng ban nào, sẽ mặc định quản lý tất cả phòng ban.
+                                    </div>
+                                    @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    
                                 </div>
                                 
                                 <!-- Trạng thái tài khoản -->
@@ -356,6 +372,7 @@
 // Tính toán thời gian kết thúc khi trang load (nếu đã có dữ liệu)
 document.addEventListener('DOMContentLoaded', function() {
     calculateEndDate();
+    updatePrimaryDepartment();
 });
 
 document.getElementById('contract_images').addEventListener('change', function(e) {
@@ -411,6 +428,32 @@ function calculateEndDate() {
         endDateDisplay.value = '';
         endDateDisplay.style.backgroundColor = '';
         endDateDisplay.style.borderColor = '';
+    }
+}
+
+// Function để cập nhật phòng ban chính
+function updatePrimaryDepartment() {
+    const checkboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
+    const primaryInput = document.getElementById('primary_department_id');
+    
+    // Ẩn tất cả badge "Chính"
+    document.querySelectorAll('[id^="primary_badge_"]').forEach(badge => {
+        badge.style.display = 'none';
+    });
+    
+    if (checkboxes.length > 0) {
+        // Nếu có phòng ban được chọn, phòng ban đầu tiên sẽ là chính
+        const firstChecked = checkboxes[0];
+        const departmentId = firstChecked.value;
+        primaryInput.value = departmentId;
+        
+        // Hiển thị badge "Chính" cho phòng ban đầu tiên
+        const primaryBadge = document.getElementById('primary_badge_' + departmentId);
+        if (primaryBadge) {
+            primaryBadge.style.display = 'inline';
+        }
+    } else {
+        primaryInput.value = '';
     }
 }
 

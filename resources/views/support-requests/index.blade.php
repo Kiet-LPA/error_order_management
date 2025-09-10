@@ -188,7 +188,7 @@
                                            value="{{ $user->id }}" id="recipient_{{ $user->id }}">
                                     <label class="form-check-label" for="recipient_{{ $user->id }}">
                                         <strong>{{ $user->name }}</strong> 
-                                        <span class="badge bg-info ms-1">{{ ucfirst($user->role) }}</span>
+                                        <span class="badge bg-info ms-1">{{ $user->display_role }}</span>
                                         <small class="text-muted d-block">{{ $user->department->name ?? 'N/A' }}</small>
                                     </label>
                                 </div>

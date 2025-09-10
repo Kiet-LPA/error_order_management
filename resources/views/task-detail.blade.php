@@ -101,7 +101,7 @@
             <div class="mt-1">
               @foreach($task->followers as $follower)
                 <div class="text-dark mb-1">
-                  {{ $follower->name }} - {{ ucfirst($follower->role) }}
+                  {{ $follower->name }} - {{ $follower->display_role }}
                   @if($follower->department)
                     <small class="text-muted">({{ $follower->department->name }})</small>
                   @endif

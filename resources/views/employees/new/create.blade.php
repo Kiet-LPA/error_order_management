@@ -90,19 +90,27 @@
                                 </h6>
 
                                 <div class="mb-3">
-                                    <label for="department_id" class="form-label">Phòng ban <span class="text-danger">*</span></label>
-                                    <select class="form-select @error('department_id') is-invalid @enderror" 
-                                            id="department_id" name="department_id" required>
-                                        <option value="">Chọn phòng ban</option>
+                                    <label class="form-label">Phòng ban <span class="text-danger">*</span></label>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
                                         @foreach($departments as $department)
-                                            <option value="{{ $department->id }}" {{ old('department_id') == $department->id ? 'selected' : '' }}>
-                                                {{ $department->name }}
-                                            </option>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="department_ids[]" value="{{ $department->id }}" 
+                                                       id="department_{{ $department->id }}" 
+                                                       {{ in_array($department->id, old('department_ids', [])) ? 'checked' : '' }}
+                                                       onchange="updatePrimaryDepartment()">
+                                                <label class="form-check-label" for="department_{{ $department->id }}">
+                                                    {{ $department->name }}
+                                                    <span class="badge bg-primary ms-2" id="primary_badge_{{ $department->id }}" style="display: none;">Chính</span>
+                                                </label>
+                                            </div>
                                         @endforeach
-                                    </select>
-                                    @error('department_id')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                    </div>
+                                    <div class="form-text">Chọn một hoặc nhiều phòng ban. Phòng ban đầu tiên sẽ là phòng ban chính.</div>
+                                    @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    
+                                    <!-- Hidden input for primary department -->
+                                    <input type="hidden" name="primary_department_id" id="primary_department_id" value="{{ old('primary_department_id') }}">
                                 </div>
 
                                 <div class="mb-3">
@@ -181,6 +189,37 @@
 @endsection
 
 <script>
+// Function để cập nhật phòng ban chính
+function updatePrimaryDepartment() {
+    const checkboxes = document.querySelectorAll('input[name="department_ids[]"]:checked');
+    const primaryInput = document.getElementById('primary_department_id');
+    
+    // Ẩn tất cả badge "Chính"
+    document.querySelectorAll('[id^="primary_badge_"]').forEach(badge => {
+        badge.style.display = 'none';
+    });
+    
+    if (checkboxes.length > 0) {
+        // Nếu có phòng ban được chọn, phòng ban đầu tiên sẽ là chính
+        const firstChecked = checkboxes[0];
+        const departmentId = firstChecked.value;
+        primaryInput.value = departmentId;
+        
+        // Hiển thị badge "Chính" cho phòng ban đầu tiên
+        const primaryBadge = document.getElementById('primary_badge_' + departmentId);
+        if (primaryBadge) {
+            primaryBadge.style.display = 'inline';
+        }
+    } else {
+        primaryInput.value = '';
+    }
+}
+
+// Khởi tạo khi trang load
+document.addEventListener('DOMContentLoaded', function() {
+    updatePrimaryDepartment();
+});
+
 function togglePasswordVisibility(inputId, buttonId, iconId) {
     const input = document.getElementById(inputId);
     const button = document.getElementById(buttonId);

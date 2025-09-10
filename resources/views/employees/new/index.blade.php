@@ -198,8 +198,15 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($employee->department)
-                                                <span class="badge bg-secondary">{{ $employee->department->name }}</span>
+                                            @if($employee->departments->count() > 0)
+                                                @foreach($employee->departments as $index => $department)
+                                                    <span class="badge bg-secondary me-1">
+                                                        {{ $department->name }}
+                                                        @if($department->pivot->is_primary)
+                                                            <i class="bi bi-star-fill text-warning ms-1"></i>
+                                                        @endif
+                                                    </span>
+                                                @endforeach
                                             @else
                                                 <span class="text-muted">Chưa phân công</span>
                                             @endif
@@ -402,7 +409,7 @@
                         <div class="alert alert-info">
                             <small>
                                 <i class="bi bi-info-circle me-1"></i>
-                                <strong>Vai trò hiện tại:</strong> {{ ucfirst($employee->role ?? 'employee') }}
+                                <strong>Vai trò hiện tại:</strong> {{ $employee->display_role ?? 'Nhân viên' }}
                             </small>
                         </div>
                         

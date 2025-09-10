@@ -342,10 +342,27 @@
                                 </span>
                             </td>
                             <td>
-                                @if($user->department)
-                                    <span class="badge bg-light text-dark border">
-                                        <i class="bi bi-building me-1"></i>{{ $user->department->name }}
-                                    </span>
+                                @if($user->departments->count() > 0)
+                                    @php
+                                        $visibleDepartments = $user->departments->take(2);
+                                        $hiddenDepartments = $user->departments->skip(2);
+                                        $allDepartmentNames = $user->departments->pluck('name')->join(', ');
+                                    @endphp
+                                    
+                                    @foreach($visibleDepartments as $department)
+                                        <span class="badge bg-light text-dark border me-1">
+                                            <i class="bi bi-building me-1"></i>{{ $department->name }}
+                                        </span>
+                                    @endforeach
+                                    
+                                    @if($hiddenDepartments->count() > 0)
+                                        <span class="badge bg-secondary me-1" 
+                                              data-bs-toggle="tooltip" 
+                                              data-bs-placement="top" 
+                                              title="{{ $allDepartmentNames }}">
+                                            <i class="bi bi-three-dots me-1"></i>+{{ $hiddenDepartments->count() }}
+                                        </span>
+                                    @endif
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
