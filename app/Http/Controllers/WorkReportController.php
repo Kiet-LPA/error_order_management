@@ -143,8 +143,7 @@ class WorkReportController extends Controller
             'difficulties' => 'nullable|array',
             'difficulties.*' => 'nullable|string',
             'comments' => 'nullable|array',
-            'comments.*' => 'nullable|string',
-            'custom_fields' => 'nullable|array'
+            'comments.*' => 'nullable|string'
         ]);
 
         $createdCount = 0;
@@ -188,7 +187,6 @@ class WorkReportController extends Controller
                 'daily_work' => $request->daily_works[$index],
                 'difficulties' => $request->difficulties[$index] ?? null,
                 'comments' => $request->comments[$index] ?? null,
-                'custom_fields' => $request->custom_fields
             ]);
 
             // Gửi thông báo cho Admin và Manager
@@ -231,7 +229,6 @@ class WorkReportController extends Controller
             'daily_work' => 'required|string',
             'difficulties' => 'nullable|string',
             'comments' => 'nullable|string',
-            'custom_fields' => 'nullable|array'
         ]);
 
         $workReport->update([
@@ -242,6 +239,31 @@ class WorkReportController extends Controller
         ]);
 
         return back()->with('success', 'Báo cáo đã được cập nhật thành công.');
+    }
+
+    // Xem báo cáo cụ thể
+    public function show(WorkReport $workReport)
+    {
+        $user = Auth::user();
+        
+        // Kiểm tra quyền xem báo cáo
+        if ($user->isEmployee()) {
+            // Employee chỉ xem được báo cáo của mình
+            if ($workReport->user_id !== $user->id) {
+                abort(403, 'Bạn không có quyền xem báo cáo này.');
+            }
+        } elseif ($user->isManager()) {
+            // Manager xem được báo cáo của nhân viên trong phòng ban
+            if ($workReport->user->department_id !== $user->department_id) {
+                abort(403, 'Bạn không có quyền xem báo cáo này.');
+            }
+        }
+        // Admin và Director xem được tất cả
+        
+        // Load relationships
+        $workReport->load(['user', 'user.department']);
+        
+        return view('work-reports.show', compact('workReport'));
     }
 
     // Xem báo cáo theo tuần

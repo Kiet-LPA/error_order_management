@@ -259,7 +259,7 @@ class EmployeeController extends Controller
             'password'=>'nullable|min:8|confirmed',
             'role'=>'required|in:manager,employee',
             'department_id'=>'required|exists:departments,id',
-            'account_status'=>'required|in:active,inactive',
+            'account_status'=>($user->isAdmin() || $user->isDirector()) ? 'nullable|in:active,inactive' : 'required|in:active,inactive',
             'add_contract'=>'nullable|boolean',
             // Thông tin hợp đồng thử việc
             'probation_salary'=>'nullable|numeric|min:0',

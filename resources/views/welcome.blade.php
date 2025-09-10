@@ -660,7 +660,7 @@
   <div class="col-6 col-md-6">
     <div class="card card-stat card-stat-large p-3 text-center">
       <h5 class="text-success mb-1">{{ $stats['finished'] ?? 0 }}</h5>
-      <p class="mb-0">Kết thúc</p>
+      <p class="mb-0">Hoàn thành</p>
     </div>
   </div>
 </div>
@@ -704,7 +704,7 @@
           <label class="btn btn-sm btn-outline-danger" for="st_overdue">Trễ hạn</label>
 
           <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-success" for="st_finished">Kết thúc</label>
+          <label class="btn btn-sm btn-outline-success" for="st_finished">Hoàn thành</label>
 
           <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
           <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
@@ -924,7 +924,7 @@
                 <span class="status-badge status-{{ $task->status }}">
                   @if($task->status == 'in_progress') Đang làm
                   @elseif($task->status == 'completed') Chờ duyệt
-                  @elseif($task->status == 'finished') Kết thúc
+                  @elseif($task->status == 'finished') Hoàn thành
                   @elseif($task->status == 'pending_approval') Chờ phê duyệt
                   @else {{ __("statuses.$task->status") ?? strtoupper($task->status) }}
                   @endif
@@ -1086,7 +1086,7 @@
                     @elseif($st == 'overdue')
                       <i class="bi bi-exclamation-triangle me-1"></i>Trễ hạn
                     @elseif($st == 'finished')
-                      <i class="bi bi-flag-checkered me-1"></i>Kết thúc
+                      <i class="bi bi-flag-checkered me-1"></i>Hoàn thành
                     @elseif($st == 'pending_approval')
                       <i class="bi bi-clock me-1"></i>Chờ phê duyệt
                     @else

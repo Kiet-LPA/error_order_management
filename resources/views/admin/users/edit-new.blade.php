@@ -182,8 +182,8 @@
                                 <!-- Trạng thái tài khoản -->
                                 <div class="mb-3">
                                     <label for="account_status" class="form-label">Trạng thái tài khoản <span class="text-danger">*</span></label>
-                                    <select name="account_status" id="account_status" class="form-select @error('account_status') is-invalid @enderror" required
-                                            @if($user->isAdmin() || $user->isDirector()) disabled @endif>
+                                    <select name="account_status" id="account_status" class="form-select @error('account_status') is-invalid @enderror" 
+                                            @if($user->isAdmin() || $user->isDirector()) disabled @else required @endif>
                                         <option value="inactive" {{ old('account_status', $user->account_status ?? 'inactive') == 'inactive' ? 'selected' : '' }}>
                                             Vô hiệu hóa
                                         </option>
@@ -191,6 +191,9 @@
                                             Kích hoạt
                                         </option>
                                     </select>
+                                    @if($user->isAdmin() || $user->isDirector())
+                                        <input type="hidden" name="account_status" value="active">
+                                    @endif
                                     @error('account_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     <div class="form-text">
                                         <i class="bi bi-info-circle me-1"></i>

@@ -697,8 +697,8 @@ class TaskController extends Controller
             $updateData['finish_note'] = $finishNote;
         }
         
-        // Set completed_at khi status = 'completed'
-        if ($status === 'completed') {
+        // Set completed_at khi status = 'pending_approval' (khi employee hoàn thành task)
+        if ($status === 'pending_approval') {
             $updateData['completed_at'] = now();
         }
         
@@ -707,11 +707,10 @@ class TaskController extends Controller
         // Tạo activity log với thông tin chi tiết
         $statusMessages = [
             'in_progress' => 'Đã giao việc',
-            'completed' => 'Đã hoàn thành và gửi duyệt',
+            'pending_approval' => 'Đã hoàn thành và gửi duyệt',
             'rejected' => 'Đã từ chối' . ($rejectionReason ? ': ' . $rejectionReason : ''),
             'overdue' => 'Đã trễ hạn',
-            'finished' => 'Đã kết thúc' . ($finishNote ? ': ' . $finishNote : ''),
-            'pending_approval' => 'Đang chờ phê duyệt'
+            'finished' => 'Đã kết thúc' . ($finishNote ? ': ' . $finishNote : '')
         ];
         
         $task->activities()->create([
@@ -738,18 +737,11 @@ class TaskController extends Controller
             case 'in_progress':
                 // Role thấp có thể hoàn thành và gửi duyệt
                 if ($userRole === 'employee' && $task->assignee_id === $user->id) {
-                    return ['completed'];
+                    return ['pending_approval'];
                 }
                 // Role cao có thể thay đổi trạng thái
                 if (in_array($userRole, ['admin', 'director', 'manager'])) {
-                    return ['completed', 'approved', 'rejected'];
-                }
-                break;
-                
-            case 'completed':
-                // Chỉ role cao mới có thể kết thúc hoặc từ chối
-                if (in_array($userRole, ['admin', 'director', 'manager'])) {
-                    return ['finished', 'rejected'];
+                    return ['pending_approval', 'finished', 'rejected'];
                 }
                 break;
                 
@@ -763,7 +755,7 @@ class TaskController extends Controller
             case 'rejected':
                 // Role thấp có thể làm lại và gửi duyệt
                 if ($userRole === 'employee' && $task->assignee_id === $user->id) {
-                    return ['completed'];
+                    return ['pending_approval'];
                 }
                 break;
                 
@@ -775,7 +767,7 @@ class TaskController extends Controller
                         return ['in_progress'];
                     }
                     if (in_array($userRole, ['admin', 'director', 'manager'])) {
-                        return ['in_progress', 'completed', 'approved', 'rejected'];
+                        return ['in_progress', 'pending_approval', 'finished', 'rejected'];
                     }
                 } else {
                     // Nếu deadline vẫn trong quá khứ, chỉ cho phép cập nhật deadline
@@ -1191,7 +1183,6 @@ class TaskController extends Controller
         // Nhóm tasks theo status
         $kanbanData = [
             'in_progress' => $tasks->where('status', 'in_progress'),
-            'completed' => $tasks->where('status', 'completed'),
             'pending_approval' => $tasks->where('status', 'pending_approval'),
             'rejected' => $tasks->where('status', 'rejected'),
             'overdue' => $tasks->where('status', 'overdue'),
@@ -1225,7 +1216,7 @@ class TaskController extends Controller
         $newStatus = $request->input('status');
         
         // Validate status
-        $validStatuses = ['in_progress', 'completed', 'rejected', 'overdue', 'finished', 'pending_approval'];
+        $validStatuses = ['in_progress', 'rejected', 'overdue', 'finished', 'pending_approval'];
         if (!in_array($newStatus, $validStatuses)) {
             return response()->json(['success' => false, 'message' => 'Trạng thái không hợp lệ.'], 400);
         }
@@ -1236,17 +1227,37 @@ class TaskController extends Controller
             return response()->json(['success' => false, 'message' => 'Không thể chuyển sang trạng thái này.'], 400);
         }
         
-        // Cập nhật trạng thái
-        $task->update(['status' => $newStatus]);
+        // Cập nhật trạng thái với logic đầy đủ
+        $updateData = ['status' => $newStatus];
+        
+        // Set completed_at khi status = 'pending_approval' (khi employee hoàn thành task)
+        if ($newStatus === 'pending_approval') {
+            $updateData['completed_at'] = now();
+        }
+        
+        // Clear completed_at khi chuyển từ pending_approval sang status khác
+        if ($task->status === 'pending_approval' && $newStatus !== 'pending_approval') {
+            $updateData['completed_at'] = null;
+        }
+        
+        // Xử lý trạng thái overdue
+        if ($newStatus === 'in_progress') {
+            // Nếu chuyển về in_progress, kiểm tra lại deadline
+            if ($task->deadline && $task->deadline->isPast()) {
+                // Nếu deadline vẫn trong quá khứ, chuyển thành overdue
+                $updateData['status'] = 'overdue';
+            }
+        }
+        
+        $task->update($updateData);
         
         // Ghi log hoạt động
         $statusMessages = [
             'in_progress' => 'Đã giao việc',
-            'completed' => 'Đã hoàn thành và gửi duyệt',
+            'pending_approval' => 'Đã hoàn thành và gửi duyệt',
             'rejected' => 'Đã từ chối',
             'overdue' => 'Đã trễ hạn',
-            'finished' => 'Đã kết thúc',
-            'pending_approval' => 'Đang chờ phê duyệt'
+            'finished' => 'Đã kết thúc'
         ];
         
         $task->activities()->create([

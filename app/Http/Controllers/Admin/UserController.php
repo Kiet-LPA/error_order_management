@@ -261,7 +261,7 @@ class UserController extends Controller
             'social_insurance_number'=>'nullable|string|max:50',
             'health_insurance_number'=>'nullable|string|max:50',
             'personal_identification_number'=>'nullable|string|max:50',
-            'account_status'=>'required|in:active,inactive',
+            'account_status'=>($user->isAdmin() || $user->isDirector()) ? 'nullable|in:active,inactive' : 'required|in:active,inactive',
             'contract_images.*'=>'nullable|image|mimes:jpeg,png,jpg|max:2048',
             // Thông tin hợp đồng
             'contract_salary'=>'nullable|numeric|min:0',

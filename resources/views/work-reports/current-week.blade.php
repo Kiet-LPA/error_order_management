@@ -35,7 +35,7 @@
                         </div>
                         <div class="col-6">
                             <p class="mb-1"><strong>Bắt đầu:</strong> {{ $weekDates['start_formatted'] }}</p>
-                            <p class="mb-1"><strong>Kết thúc:</strong> {{ $weekDates['end_formatted'] }}</p>
+                            <p class="mb-1"><strong>Hoàn thành:</strong> {{ $weekDates['end_formatted'] }}</p>
                             <p class="mb-0"><strong>Tuần thứ:</strong> {{ $weekInfo['week_of_month'] }} của tháng</p>
                         </div>
                     </div>

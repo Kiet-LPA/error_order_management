@@ -20,7 +20,6 @@ class WorkReport extends Model
         'daily_work',
         'difficulties',
         'comments',
-        'custom_fields',
         'is_read',
         'read_at',
         'read_by',
@@ -31,7 +30,6 @@ class WorkReport extends Model
 
     protected $casts = [
         'report_date' => 'date',
-        'custom_fields' => 'array',
         'is_read' => 'boolean',
         'read_at' => 'datetime',
         'rejected_at' => 'datetime',

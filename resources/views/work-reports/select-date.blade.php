@@ -85,7 +85,13 @@ document.addEventListener('DOMContentLoaded', function() {
             weekInfoText.textContent = 'Đang tính toán tuần...';
             
             // Gọi API để lấy thông tin tuần
-            fetch(`{{ route('work-reports.week-from-date') }}?date=${selectedDate}`)
+            fetch(`{{ route('work-reports.week-from-date') }}?date=${selectedDate}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
                 .then(response => {
                     console.log('API response status:', response.status);
                     if (!response.ok) {

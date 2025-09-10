@@ -292,7 +292,7 @@
                                             'completed' => 'Hoàn thành',
                                             'rejected' => 'Bị từ chối',
                                             'overdue' => 'Quá hạn',
-                                            'finished' => 'Kết thúc'
+                                            'finished' => 'Hoàn thành'
                                         ];
                                     @endphp
                                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">

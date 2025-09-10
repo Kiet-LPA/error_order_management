@@ -5,6 +5,6 @@ return [
     'completed' => 'Chờ duyệt',
     'rejected' => 'Từ chối',
     'overdue' => 'Trễ hạn',
-    'finished' => 'Kết thúc',
+    'finished' => 'Hoàn thành',
     'pending_approval' => 'Chờ phê duyệt',
 ];

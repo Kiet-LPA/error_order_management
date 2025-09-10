@@ -375,17 +375,6 @@
             </button>
         </div>
 
-        <!-- Custom fields theo phòng ban -->
-        <div class="form-section" id="customFieldsSection" style="display: none;">
-            <div class="section-title">
-                <i class="bi bi-gear"></i>
-                Thông tin bổ sung ({{ auth()->user()->department->name ?? 'Phòng ban' }})
-            </div>
-            
-            <div class="custom-fields-section" id="customFieldsContent">
-                <!-- Custom fields sẽ được load bằng JavaScript -->
-            </div>
-        </div>
 
         <!-- Tùy chọn thay thế báo cáo cũ -->
         <div class="form-section">
@@ -419,8 +408,6 @@
 let rowCounter = 1;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Load custom fields theo phòng ban
-    loadCustomFields();
     
     // Cập nhật STT khi thêm/xóa hàng
     updateRowNumbers();
@@ -494,63 +481,6 @@ function updateRowNumbers() {
     });
 }
 
-function loadCustomFields() {
-    const departmentName = '{{ auth()->user()->department->name ?? "" }}';
-    
-    // Custom fields theo phòng ban
-    const customFields = {
-        'IT': [
-            { name: 'projects_worked_on', label: 'Dự án đang làm', type: 'text' },
-            { name: 'bugs_fixed', label: 'Lỗi đã sửa', type: 'number' },
-            { name: 'code_reviews', label: 'Code review', type: 'number' },
-            { name: 'meetings_attended', label: 'Cuộc họp tham gia', type: 'text' }
-        ],
-        'HR': [
-            { name: 'candidates_interviewed', label: 'Ứng viên phỏng vấn', type: 'number' },
-            { name: 'contracts_processed', label: 'Hợp đồng xử lý', type: 'number' },
-            { name: 'training_sessions', label: 'Buổi đào tạo', type: 'text' },
-            { name: 'employee_issues', label: 'Vấn đề nhân viên', type: 'textarea' }
-        ],
-        'Finance': [
-            { name: 'transactions_processed', label: 'Giao dịch xử lý', type: 'number' },
-            { name: 'reports_generated', label: 'Báo cáo tạo', type: 'number' },
-            { name: 'budget_reviews', label: 'Đánh giá ngân sách', type: 'text' },
-            { name: 'audit_tasks', label: 'Công việc kiểm toán', type: 'textarea' }
-        ]
-    };
-    
-    const fields = customFields[departmentName] || [];
-    
-    if (fields.length > 0) {
-        const section = document.getElementById('customFieldsSection');
-        const content = document.getElementById('customFieldsContent');
-        
-        let html = '';
-        fields.forEach(field => {
-            html += `
-                <div class="custom-field">
-                    <div class="custom-field-label">${field.label}</div>
-            `;
-            
-            if (field.type === 'textarea') {
-                html += `
-                    <textarea name="custom_fields[${field.name}]" class="custom-field-textarea" 
-                              placeholder="Nhập ${field.label.toLowerCase()}..."></textarea>
-                `;
-            } else {
-                html += `
-                    <input type="${field.type}" name="custom_fields[${field.name}]" class="custom-field-input" 
-                           placeholder="Nhập ${field.label.toLowerCase()}...">
-                `;
-            }
-            
-            html += '</div>';
-        });
-        
-        content.innerHTML = html;
-        section.style.display = 'block';
-    }
-}
 
 // Validate form trước khi submit
 document.getElementById('reportForm').addEventListener('submit', function(e) {

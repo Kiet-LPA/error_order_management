@@ -176,7 +176,7 @@
             @elseif($task->status == 'overdue')
                 Trễ hạn
             @elseif($task->status == 'finished')
-                Kết thúc
+                Hoàn thành
             @elseif($task->status == 'pending_approval')
                 Chờ phê duyệt
             @else
@@ -345,7 +345,7 @@
             @elseif($task->status == 'overdue')
                 <span class="text-danger">Trễ hạn</span>
             @elseif($task->status == 'finished')
-                <span class="text-success">Kết thúc</span>
+                <span class="text-success">Hoàn thành</span>
             @elseif($task->status == 'pending_approval')
                 <span class="text-info">Chờ phê duyệt</span>
             @else
@@ -831,7 +831,7 @@ function deleteAttachment(attachmentId, fileName) {
             
             @if($task->status == 'completed' || $task->status == 'pending_approval')
                 @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
-                    <button type="button" class="btn action-btn action-btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#finishModal">🏁 Kết thúc</button>
+                    <button type="button" class="btn action-btn action-btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#finishModal">🏁 Hoàn thành</button>
                     <button type="button" class="btn action-btn action-btn-red w-100 mb-2" data-bs-toggle="modal" data-bs-target="#rejectModal">❌ Từ chối</button>
                 @endif
             @endif
@@ -900,7 +900,7 @@ function deleteAttachment(attachmentId, fileName) {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Kết thúc công việc</h5>
+                        <h5 class="modal-title">Hoàn thành công việc</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <form action="{{ route('tasks.updateStatus', $task) }}" method="GET">
@@ -921,7 +921,7 @@ function deleteAttachment(attachmentId, fileName) {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                            <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">Kết thúc</button>
+                            <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">Hoàn thành</button>
                         </div>
                     </form>
                 </div>
@@ -1049,7 +1049,7 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
             if (submitBtn) {
                 submitBtn.disabled = false;
                 if (modalId === 'finishModal') {
-                    submitBtn.innerHTML = 'Kết thúc';
+                    submitBtn.innerHTML = 'Hoàn thành';
                     submitBtn.classList.remove('btn-danger');
                     submitBtn.style.background = '#5DA444';
                 } else if (modalId === 'rejectModal') {

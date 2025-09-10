@@ -42,7 +42,7 @@
                                 @elseif($task->status === 'overdue')
                                     Trễ hạn
                                 @elseif($task->status === 'finished')
-                                    Kết thúc
+                                    Hoàn thành
                                 @elseif($task->status === 'pending_approval')
                                     Chờ phê duyệt
                                 @else

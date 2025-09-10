@@ -211,17 +211,20 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::get('/work-reports/select-date', [WorkReportController::class, 'selectDate'])->name('work-reports.select-date');
         Route::get('/work-reports/create', [WorkReportController::class, 'create'])->name('work-reports.create');
         Route::post('/work-reports', [WorkReportController::class, 'store'])->name('work-reports.store');
-        Route::get('/work-reports/{workReport}/edit', [WorkReportController::class, 'edit'])->name('work-reports.edit');
-        Route::put('/work-reports/{workReport}', [WorkReportController::class, 'update'])->name('work-reports.update');
-        Route::delete('/work-reports/{workReport}', [WorkReportController::class, 'destroy'])->name('work-reports.destroy');
         
-        // API routes
+        // API routes - phải đặt trước route {workReport}
         Route::get('/work-reports/week', [WorkReportController::class, 'showWeek'])->name('work-reports.show-week');
         Route::get('/work-reports/months', [WorkReportController::class, 'getMonths'])->name('work-reports.months');
         Route::get('/work-reports/weeks', [WorkReportController::class, 'getWeeks'])->name('work-reports.weeks');
         Route::get('/work-reports/employees', [WorkReportController::class, 'getEmployeesByDepartment'])->name('work-reports.employees');
         Route::get('/work-reports/employee-reports', [WorkReportController::class, 'getEmployeeReports'])->name('work-reports.employee-reports');
         Route::get('/work-reports/week-from-date', [WorkReportController::class, 'getWeekFromDate'])->name('work-reports.week-from-date');
+        
+        // Resource routes - phải đặt sau API routes
+        Route::get('/work-reports/{workReport}', [WorkReportController::class, 'show'])->name('work-reports.show');
+        Route::get('/work-reports/{workReport}/edit', [WorkReportController::class, 'edit'])->name('work-reports.edit');
+        Route::put('/work-reports/{workReport}', [WorkReportController::class, 'update'])->name('work-reports.update');
+        Route::delete('/work-reports/{workReport}', [WorkReportController::class, 'destroy'])->name('work-reports.destroy');
         
         // Routes cho theo dõi hoạt động
         Route::get('/work-reports/current-week', [WorkReportController::class, 'currentWeek'])->name('work-reports.current-week');

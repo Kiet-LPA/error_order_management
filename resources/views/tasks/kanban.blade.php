@@ -502,26 +502,6 @@
             </div>
         </div>
 
-        <!-- Hoàn thành -->
-        <div class="kanban-column completed" data-status="completed">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Hoàn thành
-                </div>
-                <div class="kanban-count">{{ $kanbanData['completed']->count() }}</div>
-            </div>
-            <div class="kanban-tasks" data-status="completed">
-                @forelse($kanbanData['completed'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
 
         <!-- Từ chối -->
         <div class="kanban-column rejected" data-status="rejected">
@@ -565,12 +545,12 @@
             </div>
         </div>
 
-        <!-- Kết thúc -->
+        <!-- Hoàn thành -->
         <div class="kanban-column finished" data-status="finished">
             <div class="kanban-header">
                 <div class="kanban-title">
                     <i class="fas fa-flag-checkered me-2"></i>
-                    Kết thúc
+                    Hoàn thành
                 </div>
                 <div class="kanban-count">{{ $kanbanData['finished']->count() }}</div>
             </div>

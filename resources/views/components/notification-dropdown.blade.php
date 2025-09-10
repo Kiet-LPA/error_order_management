@@ -667,9 +667,14 @@ function handleNotificationClick(event, notificationId, type, dataString) {
         case 'work_report_approved':
         case 'work_report_rejected':
             if (data.report_id) {
-                window.location.href = '{{ route("work-reports.index") }}';
+                // Chuyển đến trang xem báo cáo cụ thể
+                window.location.href = `/work-reports/${data.report_id}`;
+            } else if (data.work_report_id) {
+                // Fallback nếu dùng work_report_id
+                window.location.href = `/work-reports/${data.work_report_id}`;
             } else {
-                window.location.href = '{{ route("work-reports.index") }}';
+                // Nếu không có ID, chuyển đến trang tạo báo cáo mới với ngày hiện tại
+                window.location.href = '{{ route("work-reports.create") }}?selected_date={{ now()->format("Y-m-d") }}';
             }
             break;
         case 'support_request_created':

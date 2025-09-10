@@ -728,7 +728,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                         <option value="completed" {{ old('status', $task->status) == 'completed' ? 'selected' : '' }}>Chờ duyệt</option>
                         <option value="rejected" {{ old('status', $task->status) == 'rejected' ? 'selected' : '' }}>Từ chối</option>
                         <option value="overdue" {{ old('status', $task->status) == 'overdue' ? 'selected' : '' }}>Trễ hạn</option>
-                        <option value="finished" {{ old('status', $task->status) == 'finished' ? 'selected' : '' }}>Kết thúc</option>
+                        <option value="finished" {{ old('status', $task->status) == 'finished' ? 'selected' : '' }}>Hoàn thành</option>
                     </select>
                     @error('status')
                         <div class="invalid-feedback">{{ $message }}</div>

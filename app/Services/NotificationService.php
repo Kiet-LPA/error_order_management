@@ -75,8 +75,8 @@ class NotificationService
      */
     public static function workReportSubmitted(WorkReport $report, User $submitter)
     {
-        // Thông báo cho Admin
-        $admins = User::where('role', 'admin')->get();
+        // Thông báo cho Admin và Director
+        $admins = User::whereIn('role', ['admin', 'director'])->get();
         foreach ($admins as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
