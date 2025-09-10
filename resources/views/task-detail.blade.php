@@ -451,7 +451,7 @@
 
     <div class="report-card">
       <h6 class="mb-3">Hành động</h6>
-      <a href="{{ route('tasks.updateStatus',[$task,'status'=>'done']) }}" class="btn btn-success w-100 mb-2">✅ Hoàn thành</a>
+      <a href="{{ route('tasks.updateStatus',[$task,'status'=>'finished']) }}" class="btn btn-success w-100 mb-2">✅ Hoàn thành</a>
       <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn btn-primary w-100 mb-2">🔄 Cập nhật trạng thái</a>
       <a href="{{ route('tasks.history',$task) }}" class="btn btn-outline-info w-100 mb-2">👁 Xem lịch sử</a>
       
@@ -466,6 +466,16 @@
           @csrf
           <button type="submit" class="btn btn-undo w-100">
             <i class="bi bi-arrow-counterclockwise me-2"></i>Hoàn tác
+          </button>
+        </form>
+      @endif
+      
+      @if(auth()->user()->canDeleteTask($task))
+        <form action="{{ route('tasks.destroy', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn xóa công việc này? Hành động này không thể hoàn tác.')">
+          @csrf
+          @method('DELETE')
+          <button type="submit" class="btn btn-danger w-100">
+            <i class="bi bi-trash me-2"></i>Xóa công việc
           </button>
         </form>
       @endif

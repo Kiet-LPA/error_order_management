@@ -225,6 +225,30 @@ class TaskController extends Controller
             'is_recurring' => 'nullable|boolean',
         ]);
 
+        // Bắt buộc phải có phòng ban
+        $isMultiDepartment = $r->boolean('is_multi_department');
+        if ($isMultiDepartment) {
+            if (!$r->has('department_ids') || empty($r->department_ids)) {
+                return back()->withErrors(['department_ids' => 'Vui lòng chọn ít nhất một phòng ban'])->withInput();
+            }
+        } else {
+            if (!$r->has('department_id') || !$r->department_id) {
+                return back()->withErrors(['department_id' => 'Vui lòng chọn phòng ban'])->withInput();
+            }
+        }
+
+        // Bắt buộc phải có employee
+        $isMultiUser = $r->boolean('is_multi_user');
+        if ($isMultiUser) {
+            if (!$r->has('assignee_ids') || empty($r->assignee_ids)) {
+                return back()->withErrors(['assignee_ids' => 'Vui lòng chọn ít nhất một nhân viên'])->withInput();
+            }
+        } else {
+            if (!$r->has('assignee_id') || !$r->assignee_id) {
+                return back()->withErrors(['assignee_id' => 'Vui lòng chọn nhân viên phụ trách'])->withInput();
+            }
+        }
+
         // Validate task assignment permissions
         $permissionErrors = TaskPermissionService::validateTaskAssignment($user, $data);
         if (!empty($permissionErrors)) {
@@ -488,22 +512,27 @@ class TaskController extends Controller
             $task->assignees()->detach();
         }
         
-        // Xóa departments cũ
-        $task->departments()->detach();
-
+        // Xử lý departments
         if ($isMultiDepartment && $request->has('department_ids')) {
-            // Multi-department assignment
+            // Multi-department assignment - chỉ update khi có department_ids mới
             $departmentIds = $request->department_ids;
-            $task->departments()->attach($departmentIds);
+            $task->departments()->sync($departmentIds); // Dùng sync thay vì detach + attach
             $data['department_id'] = null; // Clear single department
             $data['is_multi_department'] = true;
         } elseif ($request->has('department_id') && $request->department_id) {
             // Single department assignment
+            $task->departments()->detach(); // Xóa multi-department
             $data['department_id'] = $request->department_id;
             $data['is_multi_department'] = false;
         } else {
-            $data['department_id'] = null;
-            $data['is_multi_department'] = false;
+            // Nếu không có thay đổi gì về department, giữ nguyên
+            if (!$request->has('department_ids') && !$request->has('department_id')) {
+                // Không thay đổi gì về departments - giữ nguyên
+                // Không cần update gì cả
+            } else {
+                // Có thay đổi nhưng không hợp lệ - giữ nguyên departments hiện tại
+                // Không làm gì cả để preserve departments
+            }
         }
 
         // Xử lý upload file
@@ -648,22 +677,8 @@ class TaskController extends Controller
         $user = $r->user();
         
         // Kiểm tra quyền cập nhật trạng thái task
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể cập nhật mọi task
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể cập nhật task của phòng ban mình
-            if (!$this->canManagerAccessTask($user, $task)) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
-        } else {
-            // Employee chỉ có thể cập nhật task mà họ được assign hoặc tạo
-            $isAssigned = $task->assignee_id === $user->id || 
-                         $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
-            
-            if (!$isAssigned) {
-                abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-            }
+        if (!$user->canApproveTask($task)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
         // Load assignees trước khi kiểm tra quyền

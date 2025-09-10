@@ -1102,7 +1102,7 @@
                     <a href="{{ route('tasks.edit',$task) }}" class="btn btn-sm btn-outline-warning border-0">
                       <i class="bi bi-pencil me-1"></i>Sửa
                     </a>
-                    <form action="{{ route('tasks.destroy',$task) }}" method="POST" class="d-inline" data-confirm="Xoá công việc này?">
+                    <form action="{{ route('tasks.destroy',$task) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa công việc này? Hành động này không thể hoàn tác.')">
                       @csrf @method('DELETE')
                       <button class="btn btn-sm btn-outline-danger border-0 rounded-end">
                         <i class="bi bi-trash me-1"></i>Xoá

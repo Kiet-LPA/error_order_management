@@ -139,6 +139,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                     @endforeach
                   </div>
                 </div>
+                @error('department_ids')
+                  <div class="text-danger mt-2">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ $message }}
+                  </div>
+                @enderror
               </div>
               
               <div id="single_department_section">
@@ -168,6 +173,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                       </option>
                     @endforeach
                   </select>
+                  @error('department_id')
+                    <div class="text-danger mt-2">
+                      <i class="bi bi-exclamation-circle me-1"></i>{{ $message }}
+                    </div>
+                  @enderror
                 @endif
               </div>
             </div>
@@ -241,6 +251,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                     </div>
                   @endforeach
                 </div>
+                @error('assignee_ids')
+                  <div class="text-danger mt-2">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ $message }}
+                  </div>
+                @enderror
               </div>
               
               <div id="single_user_section">
@@ -270,6 +285,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                     </optgroup>
                   @endforeach
                 </select>
+                @error('assignee_id')
+                  <div class="text-danger mt-2">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ $message }}
+                  </div>
+                @enderror
               </div>
               
               @if(auth()->user()->isManager())

@@ -26,9 +26,11 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager có thể xem task của phòng ban mình
+        // Manager có thể xem task của phòng ban mình hoặc task mà họ follow
         if ($user->isManager()) {
-            return self::isTaskInManagerDepartment($user, $task);
+            return self::isTaskInManagerDepartment($user, $task) ||
+                   $task->followers->contains('id', $user->id) ||
+                   $task->forwarded_to === $user->id;
         }
 
         // Employee có thể xem task được assign, tạo, follow, hoặc forward
@@ -52,9 +54,11 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager có thể sửa task của phòng ban mình
+        // Manager có thể sửa task của phòng ban mình hoặc task mà họ follow
         if ($user->isManager()) {
-            return self::isTaskInManagerDepartment($user, $task);
+            return self::isTaskInManagerDepartment($user, $task) ||
+                   $task->followers->contains('id', $user->id) ||
+                   $task->forwarded_to === $user->id;
         }
 
         // Employee có thể sửa task được assign hoặc tạo
@@ -76,9 +80,11 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager có thể xóa task của phòng ban mình
+        // Manager có thể xóa task của phòng ban mình hoặc task mà họ follow
         if ($user->isManager()) {
-            return self::isTaskInManagerDepartment($user, $task);
+            return self::isTaskInManagerDepartment($user, $task) ||
+                   $task->followers->contains('id', $user->id) ||
+                   $task->forwarded_to === $user->id;
         }
 
         // Employee có thể xóa task được assign hoặc tạo
@@ -169,9 +175,29 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager có thể approve task của phòng ban mình
+        // Manager có thể approve task của phòng ban mình hoặc task mà họ follow
         if ($user->isManager()) {
-            return self::isTaskInManagerDepartment($user, $task);
+            // Kiểm tra task thuộc phòng ban của manager
+            if (self::isTaskInManagerDepartment($user, $task)) {
+                return true;
+            }
+            
+            // Kiểm tra task là multi-department và có phòng ban của manager
+            if ($task->is_multi_department && $task->departments->contains('id', $user->department_id)) {
+                return true;
+            }
+            
+            // Kiểm tra manager là follower
+            if ($task->followers->contains('id', $user->id)) {
+                return true;
+            }
+            
+            // Kiểm tra task được forward đến manager
+            if ($task->forwarded_to === $user->id) {
+                return true;
+            }
+            
+            return false;
         }
 
         return false;
@@ -253,6 +279,11 @@ class TaskPermissionService
 
         // Kiểm tra nếu task thuộc phòng ban của manager
         if ($task->department_id === $manager->department_id) {
+            return true;
+        }
+
+        // Kiểm tra nếu task là multi-department và có phòng ban của manager
+        if ($task->is_multi_department && $task->departments->contains('id', $manager->department_id)) {
             return true;
         }
 
