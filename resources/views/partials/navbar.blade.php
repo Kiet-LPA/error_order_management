@@ -18,7 +18,7 @@
       
       <!-- User Menu -->
       <div class="dropdown">
-        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
           <i class="bi bi-person-circle me-1"></i>{{ auth()->user()->name }}
         </button>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -107,4 +107,5 @@
     transform: translateY(-1px);
     box-shadow: 0 0.25rem 0.5rem rgba(108, 117, 125, 0.25);
 }
+
 </style>

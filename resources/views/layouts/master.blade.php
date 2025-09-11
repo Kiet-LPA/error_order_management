@@ -56,6 +56,7 @@
       margin-right: 0 !important;
     }
     
+    
     /* Dark mode for cards and other elements */
     [data-theme="dark"] .card {
       background-color: #1e1e1e;
@@ -82,7 +83,13 @@
     /* Sidebar toggle styles */
     .sidebar {
       transition: all 0.3s ease;
-      position: relative;
+      position: fixed;
+      top: 56px;
+      left: 0;
+      width: 16.666% !important;
+      height: calc(100vh - 56px);
+      overflow-y: auto;
+      z-index: 1000;
       background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
       border-right: 1px solid rgba(255,255,255,0.1);
     }
@@ -210,7 +217,7 @@
     
     .sidebar-toggle {
       position: fixed;
-      top: 30%;
+      top: calc(56px + 30%);
       left: 0;
       width: 30px;
       height: 30px;
@@ -221,7 +228,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 1000;
+      z-index: 1001;
       transition: all 0.3s ease;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       transform: translateY(-30%);
@@ -233,6 +240,19 @@
     
     .sidebar:not(.collapsed) .sidebar-toggle {
       left: calc(16.666% - 15px);
+    }
+    
+    /* Main content adjustment for fixed sidebar */
+    .main-content {
+      margin-left: 16.666%;
+      transition: margin-left 0.3s ease;
+      width: calc(100% - 16.666%);
+    }
+    
+    /* Use body class for collapsed state */
+    body.sidebar-collapsed .main-content {
+      margin-left: 60px;
+      width: calc(100% - 60px);
     }
     
     .sidebar-toggle:hover {
@@ -556,6 +576,8 @@
       }
       
       .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
         margin-bottom: 90px !important;
         padding-bottom: 20px !important;
       }
@@ -714,12 +736,19 @@
              data-title="Báo cáo công việc">
             <i class="bi bi-file-earmark-text me-2"></i> <span>Báo cáo công việc</span>
           </a>
+
+          <!-- 10. Phê duyệt đề xuất - cho tất cả role -->
+          <a href="{{ route('approval.index') }}"
+             class="list-group-item {{ request()->routeIs('approval.*')?'active':'' }}"
+             data-title="Phê duyệt đề xuất">
+            <i class="bi bi-clipboard-check me-2"></i> <span>Phê duyệt đề xuất</span>
+          </a>
           @endauth
         </div>
       </aside>
 
       {{-- Nội dung --}}
-      <main class="col-12 col-md-9 col-lg-10 py-3 main-content" id="main-content">
+      <main class="main-content py-3" id="main-content">
         @yield('content')
       </main>
     </div>
@@ -805,6 +834,14 @@
           </a>
         </div>
 
+        <div class="col nav-item">
+          <a href="{{ route('approval.index') }}" 
+             class="nav-link {{ request()->routeIs('approval.*')?'active':'' }}">
+            <i class="bi bi-clipboard-check"></i>
+            <span>Phê duyệt</span>
+          </a>
+        </div>
+
         @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
           <div class="col nav-item">
             <a href="{{ route('create-task') }}" 
@@ -838,12 +875,14 @@
       const sidebar = document.getElementById('sidebar');
       const mainContent = document.getElementById('main-content');
       const toggleIcon = document.querySelector('.sidebar-toggle i');
+      const body = document.body;
       
       sidebar.classList.toggle('collapsed');
       mainContent.classList.toggle('expanded');
+      body.classList.toggle('sidebar-collapsed');
+      
       
       // Save state to localStorage
-      const isCollapsed = sidebar.classList.contains('collapsed');
       localStorage.setItem('sidebarCollapsed', isCollapsed);
       
       // Update icon with animation
@@ -872,12 +911,14 @@
       const sidebar = document.getElementById('sidebar');
       const mainContent = document.getElementById('main-content');
       const toggleIcon = document.querySelector('.sidebar-toggle i');
+      const body = document.body;
       
       const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
       
       if (isCollapsed) {
         sidebar.classList.add('collapsed');
         mainContent.classList.add('expanded');
+        body.classList.add('sidebar-collapsed');
         // Sidebar collapsed: show right arrow (pointing right to expand)
         toggleIcon.classList.remove('bi-chevron-left');
         toggleIcon.classList.add('bi-chevron-right');
@@ -988,6 +1029,21 @@
       }
     });
   </script>
+  
+  
+  <script>
+    // Simple dropdown initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize all dropdowns
+      const dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+      dropdownElementList.map(function (dropdownToggleEl) {
+        return new bootstrap.Dropdown(dropdownToggleEl);
+      });
+      
+      console.log('Bootstrap dropdowns initialized');
+    });
+  </script>
+  
   @stack('scripts')
 </body>
 </html>

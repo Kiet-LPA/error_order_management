@@ -617,32 +617,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-@if(config('app.debug'))
-<div class="mt-4 p-3 bg-light border rounded">
-    <h6>Debug Info:</h6>
-    <p>Total employees: {{ $newEmployees->count() }}</p>
-    <p>Modals created: {{ $modalCount }}</p>
-    <p>Employees with active contracts:</p>
-    <ul>
-        @foreach($newEmployees as $employee)
-            @if($employee->contracts->isNotEmpty() && $employee->contracts->first()->status == 'active')
-                <li>Employee {{ $employee->id }}: {{ $employee->name }} (Contract status: {{ $employee->contracts->first()->status }})</li>
-            @endif
-        @endforeach
-    </ul>
-</div>
-@endif
 
-<!-- Alert for approval process -->
-<div class="mt-4 alert alert-info">
-    <h6><i class="bi bi-info-circle me-2"></i>Hướng dẫn duyệt tài khoản:</h6>
-    <ol class="mb-0">
-        <li><strong>Tìm nhân viên</strong> có nút <span class="badge bg-success"><i class="bi bi-check-circle"></i></span> (màu xanh)</li>
-        <li><strong>Click nút xanh</strong> để mở modal "Chuyển nhân viên thành chính thức"</li>
-        <li><strong>Điền thông tin:</strong> Vai trò, Lương chính thức, Ngày bắt đầu, Thời hạn hợp đồng</li>
-        <li><strong>Submit</strong> để duyệt tài khoản</li>
-    </ol>
-    <p class="mb-0 mt-2"><small class="text-muted">Nếu không thấy nút xanh, nhân viên chưa có hợp đồng active hoặc cần refresh trang (Ctrl+F5)</small></p>
-</div>
 
 @endpush

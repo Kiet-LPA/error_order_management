@@ -279,4 +279,45 @@ if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
 
+// Approval System Routes
+Route::middleware(['auth'])->group(function () {
+    // Approval Requests
+    Route::get('/approval', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approval.index');
+    Route::get('/approval/create/{formType}', [App\Http\Controllers\ApprovalController::class, 'create'])->name('approval.create');
+    Route::post('/approval', [App\Http\Controllers\ApprovalController::class, 'store'])->name('approval.store');
+    Route::get('/approval/{id}', [App\Http\Controllers\ApprovalController::class, 'show'])->name('approval.show');
+    Route::get('/approval/{id}/edit', [App\Http\Controllers\ApprovalController::class, 'edit'])->name('approval.edit');
+    Route::put('/approval/{id}', [App\Http\Controllers\ApprovalController::class, 'update'])->name('approval.update');
+    Route::post('/approval/{id}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('approval.approve');
+    Route::post('/approval/{id}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('approval.reject');
+    Route::delete('/approval/{id}/cancel', [App\Http\Controllers\ApprovalController::class, 'cancel'])->name('approval.cancel');
+    
+    // Forward Requests
+    Route::post('/approval/{id}/forward', [App\Http\Controllers\ApprovalController::class, 'forward'])->name('approval.forward');
+    
+    // Status Management
+    Route::patch('/approval/{id}/discussion-status', [App\Http\Controllers\StatusController::class, 'updateDiscussionStatus'])->name('approval.update-discussion-status');
+    Route::patch('/approval/{id}/edit-status', [App\Http\Controllers\StatusController::class, 'updateEditStatus'])->name('approval.update-edit-status');
+    
+    // PDF Export
+    Route::get('/approval/{id}/preview', [App\Http\Controllers\PDFController::class, 'preview'])->name('approval.preview');
+    Route::get('/approval/{id}/pdf', [App\Http\Controllers\PDFController::class, 'generatePDF'])->name('approval.pdf');
+    Route::get('/approval/{id}/print', [App\Http\Controllers\PDFController::class, 'print'])->name('approval.print');
+    
+    // Comments
+    Route::post('/approval/{id}/comment', [App\Http\Controllers\CommentController::class, 'store'])->name('approval.comment');
+    
+    // Autocomplete suggestions
+    Route::get('/approval/suggestions/items', [App\Http\Controllers\ApprovalController::class, 'getItemSuggestions'])->name('approval.item-suggestions');
+    
+    // Get managers by department
+    Route::get('/api/managers/{departmentId}', [App\Http\Controllers\ApprovalController::class, 'getManagersByDepartment'])->name('api.managers.by-department');
+
+// Approval actions
+Route::post('/approval/{id}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('approval.approve');
+Route::post('/approval/{id}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('approval.reject');
+Route::post('/approval/bulk-approve', [App\Http\Controllers\ApprovalController::class, 'bulkApprove'])->name('approval.bulk-approve');
+Route::post('/approval/bulk-reject', [App\Http\Controllers\ApprovalController::class, 'bulkReject'])->name('approval.bulk-reject');
+});
+
 

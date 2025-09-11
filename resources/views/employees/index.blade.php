@@ -559,7 +559,7 @@
                                  @php
                    $roleBadge = [
                        'admin' => ['bg-danger', 'Quản trị viên'],
-                       'director' => ['bg-info', 'Director'],
+                       'director' => ['bg-info', 'Người điều hành'],
                        'manager' => ['bg-warning', 'Quản lý'],
                        'employee' => ['bg-success', 'Nhân viên']
                    ][$user->role] ?? ['bg-secondary', 'Không xác định'];
