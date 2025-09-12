@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\TaskApproval;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -71,10 +72,16 @@ class TaskApprovalController extends Controller
             'approved_at' => now()
         ]);
 
+        // Gửi thông báo khi đề xuất được phê duyệt
+        NotificationService::approvalRequestApproved($approval, $user);
+
         // Check if task is fully approved
         $task = $approval->task;
         if ($task->isFullyApproved()) {
             $task->update(['status' => 'in_progress']);
+            
+            // Gửi thông báo khi task được phê duyệt hoàn toàn
+            NotificationService::taskFullyApproved($task, $user);
         }
 
         return response()->json([
@@ -109,6 +116,9 @@ class TaskApprovalController extends Controller
             'comment' => $request->input('comment')
         ]);
 
+        // Gửi thông báo khi đề xuất bị từ chối
+        NotificationService::approvalRequestRejected($approval, $user);
+
         // Update task status to rejected
         $task = $approval->task;
         $task->update(['status' => 'rejected']);
@@ -129,6 +139,7 @@ class TaskApprovalController extends Controller
         }
 
         $departments = $task->departments;
+        $creator = $task->creator;
         
         foreach ($departments as $department) {
             // Find managers in this department
@@ -138,7 +149,7 @@ class TaskApprovalController extends Controller
 
             foreach ($managers as $manager) {
                 // Create or update approval request (avoid duplicate)
-                TaskApproval::updateOrCreate(
+                $approval = TaskApproval::updateOrCreate(
                     [
                         'task_id' => $task->id,
                         'department_id' => $department->id,
@@ -149,6 +160,11 @@ class TaskApprovalController extends Controller
                         'updated_at' => now()
                     ]
                 );
+
+                // Gửi thông báo cho manager khi có đề xuất phê duyệt mới
+                if ($creator) {
+                    NotificationService::approvalRequestCreated($approval, $creator);
+                }
             }
         }
 

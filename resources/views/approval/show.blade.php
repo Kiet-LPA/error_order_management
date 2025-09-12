@@ -211,7 +211,7 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="row mb-3">
+                    <div class="row mb-5 mt-4">
                         <div class="col-12">
                             <div class="btn-group" role="group">
                                 <!-- Nút hủy yêu cầu - Chỉ người gửi mới thấy -->
@@ -238,7 +238,7 @@
                         in_array(auth()->user()->role, ['manager', 'director']) && 
                         $approvalRequest->approval_status === 'pending' &&
                         $approvalRequest->created_by_id !== auth()->id())
-                        <div class="card">
+                        <div class="card mt-5">
                             <div class="card-header">
                                 <h4>Phê duyệt đề xuất</h4>
                             </div>
@@ -276,7 +276,7 @@
                     <!-- Forward Section -->
                     {{-- Chỉ manager/director mới được chuyển tiếp --}}
                     @if(in_array(auth()->user()->role, ['manager', 'director']) && $approvalRequest->approval_status === 'pending')
-                        <div class="card">
+                        <div class="card mt-4">
                             <div class="card-header">
                                 <h4>Chuyển tiếp đề xuất</h4>
                             </div>
@@ -324,7 +324,7 @@
 
                     <!-- Forwarded Users List -->
                     @if($approvalRequest->forwardedRequests->count() > 0)
-                        <div class="card">
+                        <div class="card mt-4">
                             <div class="card-header">
                                 <h4>Danh sách người được chuyển tiếp</h4>
                             </div>
@@ -357,7 +357,7 @@
 
                     <!-- Approval History -->
                     @if($approvalRequest->approvalActions->count() > 0)
-                        <div class="card">
+                        <div class="card mt-4">
                             <div class="card-header">
                                 <h4>Lịch sử phê duyệt</h4>
                             </div>
@@ -382,7 +382,7 @@
 
                     <!-- Comments Section -->
                     @if($approvalRequest->discussion_status === 'open')
-                        <div class="card">
+                        <div class="card mt-4">
                             <div class="card-header">
                                 <h4>Thảo luận</h4>
                             </div>

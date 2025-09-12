@@ -20,7 +20,8 @@
     if ($task->deadline) {
         if ($task->deadline->isPast()) {
             $deadlineClass = 'past';
-            $deadlineText = 'Quá hạn: ' . $task->deadline->format('d/m/Y');
+            $daysOverdue = $task->deadline->diffInDays(now());
+            $deadlineText = 'Quá hạn ' . $daysOverdue . ' ngày: ' . $task->deadline->format('d/m/Y');
         } else {
             $deadlineClass = 'future';
             $deadlineText = 'Hạn: ' . $task->deadline->format('d/m/Y');

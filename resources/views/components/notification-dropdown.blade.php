@@ -690,6 +690,19 @@ function handleNotificationClick(event, notificationId, type, dataString) {
                 window.location.href = '{{ route("support-requests.index") }}';
             }
             break;
+        case 'approval_request_created':
+        case 'approval_request_approved':
+        case 'approval_request_rejected':
+        case 'approval_request_cancelled':
+            if (data.approval_request_id) {
+                window.location.href = `/approval/${data.approval_request_id}`;
+            } else if (data.approval_id) {
+                // For task approval notifications
+                window.location.href = `/task-approvals/${data.approval_id}`;
+            } else {
+                window.location.href = '{{ route("approval.index") }}';
+            }
+            break;
         case 'user_created':
         case 'user_updated':
         case 'user_deleted':

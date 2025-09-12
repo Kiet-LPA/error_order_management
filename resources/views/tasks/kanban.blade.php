@@ -239,6 +239,11 @@
 
 .task-deadline.past {
     color: #dc3545;
+    background: #f8d7da;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    border: 1px solid #f5c6cb;
 }
 
 .task-deadline.future {

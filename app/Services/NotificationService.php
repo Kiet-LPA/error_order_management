@@ -7,14 +7,45 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkReport;
 use App\Models\SupportRequest;
+use App\Models\TaskApproval;
 
 class NotificationService
 {
+    /**
+     * Gửi thông báo cho tất cả admin và director
+     */
+    private static function notifyAdminsAndDirectors($type, $title, $message, $data = [])
+    {
+        // Gửi cho tất cả admin
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'data' => $data
+            ]);
+        }
+
+        // Gửi cho tất cả director
+        $directors = User::where('role', 'director')->get();
+        foreach ($directors as $director) {
+            Notification::create([
+                'user_id' => $director->id,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'data' => $data
+            ]);
+        }
+    }
     /**
      * Gửi thông báo task được giao
      */
     public static function taskAssigned(Task $task, User $assigner, User $assignee)
     {
+        // Thông báo cho người được giao
         Notification::create([
             'user_id' => $assignee->id,
             'type' => 'task_assigned',
@@ -26,6 +57,20 @@ class NotificationService
                 'assigner_name' => $assigner->name
             ]
         ]);
+
+        // Thông báo cho admin và director
+        self::notifyAdminsAndDirectors(
+            'task_assigned',
+            'Công việc mới được giao',
+            "{$assigner->name} đã giao công việc '{$task->title}' cho {$assignee->name}",
+            [
+                'task_id' => $task->id,
+                'assigner_id' => $assigner->id,
+                'assigner_name' => $assigner->name,
+                'assignee_id' => $assignee->id,
+                'assignee_name' => $assignee->name
+            ]
+        );
     }
 
     /**
@@ -68,6 +113,18 @@ class NotificationService
                 ]);
             }
         }
+
+        // Thông báo cho admin và director
+        self::notifyAdminsAndDirectors(
+            'task_updated',
+            'Công việc được cập nhật',
+            "{$updater->name} đã cập nhật công việc '{$task->title}'",
+            [
+                'task_id' => $task->id,
+                'updater_id' => $updater->id,
+                'updater_name' => $updater->name
+            ]
+        );
     }
 
     /**
@@ -115,21 +172,60 @@ class NotificationService
      */
     public static function supportRequestCreated(SupportRequest $supportRequest, User $requester)
     {
-        // Thông báo cho người phê duyệt
+        // Thông báo cho recipients (những người được chọn để nhận yêu cầu)
+        if ($supportRequest->recipients) {
+            $recipientIds = is_string($supportRequest->recipients) 
+                ? json_decode($supportRequest->recipients, true) 
+                : $supportRequest->recipients;
+                
+            if (is_array($recipientIds)) {
+                foreach ($recipientIds as $recipientId) {
+                    if ($recipientId !== $requester->id) {
+                        $recipient = User::find($recipientId);
+                        if ($recipient) {
+                            Notification::create([
+                                'user_id' => $recipientId,
+                                'type' => 'support_request_created',
+                                'title' => 'Yêu cầu hỗ trợ mới',
+                                'message' => "Bạn nhận được yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
+                                'data' => [
+                                    'support_request_id' => $supportRequest->id,
+                                    'requester_id' => $requester->id,
+                                    'requester_name' => $requester->name,
+                                    'priority' => $supportRequest->priority,
+                                    'is_urgent' => $supportRequest->is_urgent
+                                ]
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Thông báo cho người phê duyệt (nếu có và khác với recipients)
         if ($supportRequest->approver && $supportRequest->approver->id !== $requester->id) {
-            Notification::create([
-                'user_id' => $supportRequest->approver->id,
-                'type' => 'support_request_created',
-                'title' => 'Yêu cầu hỗ trợ mới',
-                'message' => "Bạn nhận được yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
-                'data' => [
-                    'support_request_id' => $supportRequest->id,
-                    'requester_id' => $requester->id,
-                    'requester_name' => $requester->name,
-                    'priority' => $supportRequest->priority,
-                    'is_urgent' => $supportRequest->is_urgent
-                ]
-            ]);
+            // Kiểm tra xem approver đã được thông báo chưa (qua recipients)
+            $recipientIds = is_string($supportRequest->recipients) 
+                ? json_decode($supportRequest->recipients, true) 
+                : $supportRequest->recipients;
+                
+            $isApproverNotified = is_array($recipientIds) && in_array($supportRequest->approver->id, $recipientIds);
+            
+            if (!$isApproverNotified) {
+                Notification::create([
+                    'user_id' => $supportRequest->approver->id,
+                    'type' => 'support_request_created',
+                    'title' => 'Yêu cầu hỗ trợ mới',
+                    'message' => "Bạn nhận được yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
+                    'data' => [
+                        'support_request_id' => $supportRequest->id,
+                        'requester_id' => $requester->id,
+                        'requester_name' => $requester->name,
+                        'priority' => $supportRequest->priority,
+                        'is_urgent' => $supportRequest->is_urgent
+                    ]
+                ]);
+            }
         }
 
         // Thông báo cho Admin
@@ -433,5 +529,347 @@ class NotificationService
                 ]
             ]);
         }
+    }
+
+    /**
+     * Gửi thông báo khi có đề xuất phê duyệt mới
+     */
+    public static function approvalRequestCreated(TaskApproval $approval, User $creator)
+    {
+        // Thông báo cho manager cần phê duyệt
+        Notification::create([
+            'user_id' => $approval->manager_id,
+            'type' => 'approval_request_created',
+            'title' => 'Có đề xuất phê duyệt mới',
+            'message' => "Bạn có đề xuất phê duyệt mới từ {$creator->name} cho công việc: {$approval->task->title}",
+            'data' => [
+                'approval_id' => $approval->id,
+                'task_id' => $approval->task_id,
+                'creator_id' => $creator->id,
+                'creator_name' => $creator->name,
+                'department_id' => $approval->department_id,
+                'department_name' => $approval->department->name ?? 'N/A'
+            ]
+        ]);
+    }
+
+    /**
+     * Gửi thông báo khi đề xuất được phê duyệt
+     */
+    public static function approvalRequestApproved(TaskApproval $approval, User $approver)
+    {
+        // Thông báo cho người tạo task
+        if ($approval->task->creator && $approval->task->creator->id !== $approver->id) {
+            Notification::create([
+                'user_id' => $approval->task->creator->id,
+                'type' => 'approval_request_approved',
+                'title' => 'Đề xuất phê duyệt được chấp nhận',
+                'message' => "Đề xuất phê duyệt của bạn đã được {$approver->name} chấp nhận cho công việc: {$approval->task->title}",
+                'data' => [
+                    'approval_id' => $approval->id,
+                    'task_id' => $approval->task_id,
+                    'approver_id' => $approver->id,
+                    'approver_name' => $approver->name,
+                    'department_id' => $approval->department_id,
+                    'department_name' => $approval->department->name ?? 'N/A',
+                    'comment' => $approval->comment
+                ]
+            ]);
+        }
+
+        // Thông báo cho tất cả assignees của task
+        foreach ($approval->task->assignees as $assignee) {
+            if ($assignee->id !== $approver->id && $assignee->id !== $approval->task->creator->id) {
+                Notification::create([
+                    'user_id' => $assignee->id,
+                    'type' => 'approval_request_approved',
+                    'title' => 'Công việc được phê duyệt',
+                    'message' => "Công việc {$approval->task->title} đã được {$approver->name} phê duyệt và có thể tiếp tục thực hiện",
+                    'data' => [
+                        'approval_id' => $approval->id,
+                        'task_id' => $approval->task_id,
+                        'approver_id' => $approver->id,
+                        'approver_name' => $approver->name,
+                        'department_id' => $approval->department_id,
+                        'department_name' => $approval->department->name ?? 'N/A'
+                    ]
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Gửi thông báo khi đề xuất bị từ chối
+     */
+    public static function approvalRequestRejected(TaskApproval $approval, User $approver)
+    {
+        // Thông báo cho người tạo task
+        if ($approval->task->creator && $approval->task->creator->id !== $approver->id) {
+            $message = "Đề xuất phê duyệt của bạn đã bị {$approver->name} từ chối cho công việc: {$approval->task->title}";
+            if ($approval->comment) {
+                $message .= " - Lý do: {$approval->comment}";
+            }
+
+            Notification::create([
+                'user_id' => $approval->task->creator->id,
+                'type' => 'approval_request_rejected',
+                'title' => 'Đề xuất phê duyệt bị từ chối',
+                'message' => $message,
+                'data' => [
+                    'approval_id' => $approval->id,
+                    'task_id' => $approval->task_id,
+                    'approver_id' => $approver->id,
+                    'approver_name' => $approver->name,
+                    'department_id' => $approval->department_id,
+                    'department_name' => $approval->department->name ?? 'N/A',
+                    'comment' => $approval->comment
+                ]
+            ]);
+        }
+
+        // Thông báo cho tất cả assignees của task
+        foreach ($approval->task->assignees as $assignee) {
+            if ($assignee->id !== $approver->id && $assignee->id !== $approval->task->creator->id) {
+                $message = "Công việc {$approval->task->title} đã bị {$approver->name} từ chối phê duyệt";
+                if ($approval->comment) {
+                    $message .= " - Lý do: {$approval->comment}";
+                }
+
+                Notification::create([
+                    'user_id' => $assignee->id,
+                    'type' => 'approval_request_rejected',
+                    'title' => 'Công việc bị từ chối phê duyệt',
+                    'message' => $message,
+                    'data' => [
+                        'approval_id' => $approval->id,
+                        'task_id' => $approval->task_id,
+                        'approver_id' => $approver->id,
+                        'approver_name' => $approver->name,
+                        'department_id' => $approval->department_id,
+                        'department_name' => $approval->department->name ?? 'N/A',
+                        'comment' => $approval->comment
+                    ]
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Gửi thông báo khi task được phê duyệt hoàn toàn (tất cả departments)
+     */
+    public static function taskFullyApproved(Task $task, User $lastApprover)
+    {
+        // Thông báo cho người tạo task
+        if ($task->creator && $task->creator->id !== $lastApprover->id) {
+            Notification::create([
+                'user_id' => $task->creator->id,
+                'type' => 'task_fully_approved',
+                'title' => 'Công việc được phê duyệt hoàn toàn',
+                'message' => "Công việc {$task->title} đã được phê duyệt hoàn toàn và có thể tiếp tục thực hiện",
+                'data' => [
+                    'task_id' => $task->id,
+                    'last_approver_id' => $lastApprover->id,
+                    'last_approver_name' => $lastApprover->name
+                ]
+            ]);
+        }
+
+        // Thông báo cho tất cả assignees
+        foreach ($task->assignees as $assignee) {
+            if ($assignee->id !== $lastApprover->id && $assignee->id !== $task->creator->id) {
+                Notification::create([
+                    'user_id' => $assignee->id,
+                    'type' => 'task_fully_approved',
+                    'title' => 'Công việc được phê duyệt hoàn toàn',
+                    'message' => "Công việc {$task->title} đã được phê duyệt hoàn toàn và có thể tiếp tục thực hiện",
+                    'data' => [
+                        'task_id' => $task->id,
+                        'last_approver_id' => $lastApprover->id,
+                        'last_approver_name' => $lastApprover->name
+                    ]
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Gửi thông báo khi tạo approval request mới (ApprovalRequest model)
+     */
+    public static function approvalRequestCreatedNew($approvalRequest, User $creator)
+    {
+        // Thông báo cho current approver (nếu có)
+        if ($approvalRequest->current_approver_id && $approvalRequest->current_approver_id !== $creator->id) {
+            $approver = User::find($approvalRequest->current_approver_id);
+            if ($approver) {
+                Notification::create([
+                    'user_id' => $approvalRequest->current_approver_id,
+                    'type' => 'approval_request_created',
+                    'title' => 'Có đề xuất phê duyệt mới',
+                    'message' => "Bạn có đề xuất phê duyệt mới từ {$creator->name} cần xử lý",
+                    'data' => [
+                        'approval_request_id' => $approvalRequest->id,
+                        'creator_id' => $creator->id,
+                        'creator_name' => $creator->name,
+                        'form_type' => $approvalRequest->form_type
+                    ]
+                ]);
+            }
+        } else {
+            // Nếu không có current approver, mặc định gửi cho admin/director
+            self::notifyAdminsAndDirectors(
+                'approval_request_created',
+                'Có đề xuất phê duyệt mới',
+                "Có đề xuất phê duyệt mới từ {$creator->name} cần xử lý",
+                [
+                    'approval_request_id' => $approvalRequest->id,
+                    'creator_id' => $creator->id,
+                    'creator_name' => $creator->name,
+                    'form_type' => $approvalRequest->form_type
+                ]
+            );
+        }
+
+        // Thông báo cho Admin và Director (luôn gửi)
+        self::notifyAdminsAndDirectors(
+            'approval_request_created',
+            'Có đề xuất phê duyệt mới',
+            "Có đề xuất phê duyệt mới từ {$creator->name} cần xử lý",
+            [
+                'approval_request_id' => $approvalRequest->id,
+                'creator_id' => $creator->id,
+                'creator_name' => $creator->name,
+                'form_type' => $approvalRequest->form_type
+            ]
+        );
+    }
+
+    /**
+     * Gửi thông báo khi approval request bị hủy
+     */
+    public static function approvalRequestCancelled($approvalRequest, User $canceller)
+    {
+        // Thông báo cho current approver (nếu có)
+        if ($approvalRequest->current_approver_id && $approvalRequest->current_approver_id !== $canceller->id) {
+            Notification::create([
+                'user_id' => $approvalRequest->current_approver_id,
+                'type' => 'approval_request_cancelled',
+                'title' => 'Đề xuất phê duyệt đã bị hủy',
+                'message' => "Đề xuất phê duyệt đã được {$canceller->name} hủy",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'canceller_id' => $canceller->id,
+                    'canceller_name' => $canceller->name,
+                    'form_type' => $approvalRequest->form_type
+                ]
+            ]);
+        }
+
+        // Thông báo cho Admin
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            if ($admin->id !== $canceller->id) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'approval_request_cancelled',
+                    'title' => 'Đề xuất phê duyệt đã bị hủy',
+                    'message' => "Đề xuất phê duyệt đã được {$canceller->name} hủy",
+                    'data' => [
+                        'approval_request_id' => $approvalRequest->id,
+                        'canceller_id' => $canceller->id,
+                        'canceller_name' => $canceller->name,
+                        'form_type' => $approvalRequest->form_type
+                    ]
+                ]);
+            }
+        }
+
+        // Thông báo cho Director
+        $directors = User::where('role', 'director')->get();
+        foreach ($directors as $director) {
+            if ($director->id !== $canceller->id) {
+                Notification::create([
+                    'user_id' => $director->id,
+                    'type' => 'approval_request_cancelled',
+                    'title' => 'Đề xuất phê duyệt đã bị hủy',
+                    'message' => "Đề xuất phê duyệt đã được {$canceller->name} hủy",
+                    'data' => [
+                        'approval_request_id' => $approvalRequest->id,
+                        'canceller_id' => $canceller->id,
+                        'canceller_name' => $canceller->name,
+                        'form_type' => $approvalRequest->form_type
+                    ]
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Gửi thông báo khi approval request được phê duyệt (ApprovalRequest model)
+     */
+    public static function approvalRequestApprovedNew($approvalRequest, User $approver)
+    {
+        // Thông báo cho người tạo
+        if ($approvalRequest->created_by_id && $approvalRequest->created_by_id !== $approver->id) {
+            Notification::create([
+                'user_id' => $approvalRequest->created_by_id,
+                'type' => 'approval_request_approved',
+                'title' => 'Đề xuất đã được phê duyệt',
+                'message' => "Đề xuất của bạn đã được {$approver->name} phê duyệt",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'approver_id' => $approver->id,
+                    'approver_name' => $approver->name,
+                    'form_type' => $approvalRequest->form_type
+                ]
+            ]);
+        }
+
+        // Thông báo cho Admin và Director
+        self::notifyAdminsAndDirectors(
+            'approval_request_approved',
+            'Đề xuất đã được phê duyệt',
+            "Đề xuất đã được {$approver->name} phê duyệt",
+            [
+                'approval_request_id' => $approvalRequest->id,
+                'approver_id' => $approver->id,
+                'approver_name' => $approver->name,
+                'form_type' => $approvalRequest->form_type
+            ]
+        );
+    }
+
+    /**
+     * Gửi thông báo khi approval request bị từ chối (ApprovalRequest model)
+     */
+    public static function approvalRequestRejectedNew($approvalRequest, User $approver)
+    {
+        // Thông báo cho người tạo
+        if ($approvalRequest->created_by_id && $approvalRequest->created_by_id !== $approver->id) {
+            Notification::create([
+                'user_id' => $approvalRequest->created_by_id,
+                'type' => 'approval_request_rejected',
+                'title' => 'Đề xuất bị từ chối',
+                'message' => "Đề xuất của bạn đã bị {$approver->name} từ chối",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'approver_id' => $approver->id,
+                    'approver_name' => $approver->name,
+                    'form_type' => $approvalRequest->form_type
+                ]
+            ]);
+        }
+
+        // Thông báo cho Admin và Director
+        self::notifyAdminsAndDirectors(
+            'approval_request_rejected',
+            'Đề xuất bị từ chối',
+            "Đề xuất đã bị {$approver->name} từ chối",
+            [
+                'approval_request_id' => $approvalRequest->id,
+                'approver_id' => $approver->id,
+                'approver_name' => $approver->name,
+                'form_type' => $approvalRequest->form_type
+            ]
+        );
     }
 }

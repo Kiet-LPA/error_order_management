@@ -126,6 +126,14 @@ class ApprovalRequest extends Model
 
     public function scopeByUser($query, $userId)
     {
+        $user = \App\Models\User::find($userId);
+        
+        // Admin và Director có thể xem tất cả
+        if ($user && in_array($user->role, ['admin', 'director'])) {
+            return $query;
+        }
+        
+        // User thường chỉ xem requests của mình hoặc được assign
         return $query->where('created_by_id', $userId)
                     ->orWhere('current_approver_id', $userId);
     }

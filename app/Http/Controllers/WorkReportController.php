@@ -115,8 +115,8 @@ class WorkReportController extends Controller
             abort(403, 'Bạn không có quyền chỉnh sửa báo cáo này.');
         }
 
-        // Manager chỉ có thể chỉnh sửa báo cáo của nhân viên cùng phòng ban
-        if ($user->isManager() && $workReport->department_id !== $user->department_id) {
+        // Manager chỉ có thể chỉnh sửa báo cáo của nhân viên cùng phòng ban (trừ admin/director)
+        if ($user->isManager() && !$user->isAdmin() && !$user->isDirector() && $workReport->department_id !== $user->department_id) {
             abort(403, 'Bạn chỉ có thể chỉnh sửa báo cáo của nhân viên cùng phòng ban.');
         }
 
@@ -392,8 +392,8 @@ class WorkReportController extends Controller
 
         $request->validate(['department_id' => 'required|exists:departments,id']);
         
-        // Manager chỉ có thể xem employees cùng phòng ban
-        if ($user->isManager() && $request->department_id != $user->department_id) {
+        // Manager chỉ có thể xem employees cùng phòng ban (trừ admin/director)
+        if ($user->isManager() && !$user->isAdmin() && !$user->isDirector() && $request->department_id != $user->department_id) {
             abort(403, 'Bạn chỉ có thể xem nhân viên cùng phòng ban.');
         }
 
@@ -418,8 +418,8 @@ class WorkReportController extends Controller
         
         $targetUser = User::find($request->user_id);
         
-        // Manager chỉ có thể xem báo cáo của nhân viên cùng phòng ban
-        if ($user->isManager() && $targetUser->department_id !== $user->department_id) {
+        // Manager chỉ có thể xem báo cáo của nhân viên cùng phòng ban (trừ admin/director)
+        if ($user->isManager() && !$user->isAdmin() && !$user->isDirector() && $targetUser->department_id !== $user->department_id) {
             abort(403, 'Bạn chỉ có thể xem báo cáo của nhân viên cùng phòng ban.');
         }
 
@@ -467,8 +467,8 @@ class WorkReportController extends Controller
             abort(403, 'Bạn không có quyền xóa báo cáo này.');
         }
 
-        // Manager chỉ có thể xóa báo cáo của nhân viên cùng phòng ban
-        if ($user->isManager() && $workReport->department_id !== $user->department_id) {
+        // Manager chỉ có thể xóa báo cáo của nhân viên cùng phòng ban (trừ admin/director)
+        if ($user->isManager() && !$user->isAdmin() && !$user->isDirector() && $workReport->department_id !== $user->department_id) {
             abort(403, 'Bạn chỉ có thể xóa báo cáo của nhân viên cùng phòng ban.');
         }
 

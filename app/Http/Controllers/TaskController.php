@@ -21,6 +21,11 @@ class TaskController extends Controller
      */
     private function canManagerAccessTask(User $user, Task $task): bool
     {
+        // Admin và Director có toàn quyền truy cập
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+        
         // Lấy tất cả phòng ban mà Manager quản lý
         $managerDepartmentIds = $user->departments->pluck('id')->toArray();
         
@@ -1238,7 +1243,17 @@ class TaskController extends Controller
         
         $tasks = $query->orderBy('created_at', 'desc')->get();
         
-        // Nhóm tasks theo status
+        // Tự động cập nhật status cho tasks quá hạn
+        $now = now();
+        foreach ($tasks as $task) {
+            if ($task->deadline && $task->deadline < $now && 
+                !in_array($task->status, ['finished', 'rejected', 'overdue'])) {
+                $task->update(['status' => 'overdue']);
+                $task->status = 'overdue'; // Cập nhật trong collection
+            }
+        }
+        
+        // Nhóm tasks theo status (sau khi đã cập nhật)
         $kanbanData = [
             'in_progress' => $tasks->where('status', 'in_progress'),
             'pending_approval' => $tasks->where('status', 'pending_approval'),

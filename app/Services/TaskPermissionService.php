@@ -49,8 +49,18 @@ class TaskPermissionService
      */
     public static function canEditTask(User $user, Task $task): bool
     {
-        // Admin và Director có thể sửa tất cả
-        if ($user->isAdmin() || $user->isDirector()) {
+        // Admin có thể sửa tất cả
+        if ($user->isAdmin()) {
+            return true;
+        }
+        
+        // Director có thể sửa tất cả (trừ Admin)
+        if ($user->isDirector()) {
+            // Kiểm tra xem creator có phải Admin không
+            $creator = $task->creator;
+            if ($creator && $creator->isAdmin()) {
+                return false; // Director không thể edit task của Admin
+            }
             return true;
         }
 
@@ -75,8 +85,18 @@ class TaskPermissionService
      */
     public static function canDeleteTask(User $user, Task $task): bool
     {
-        // Admin và Director có thể xóa tất cả
-        if ($user->isAdmin() || $user->isDirector()) {
+        // Admin có thể xóa tất cả
+        if ($user->isAdmin()) {
+            return true;
+        }
+        
+        // Director có thể xóa tất cả (trừ Admin)
+        if ($user->isDirector()) {
+            // Kiểm tra xem creator có phải Admin không
+            $creator = $task->creator;
+            if ($creator && $creator->isAdmin()) {
+                return false; // Director không thể delete task của Admin
+            }
             return true;
         }
 

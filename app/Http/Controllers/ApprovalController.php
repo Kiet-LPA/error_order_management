@@ -6,6 +6,7 @@ use App\Models\ApprovalForm;
 use App\Models\ApprovalRequest;
 use App\Models\ForwardRequest;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +131,9 @@ class ApprovalController extends Controller
             'created_by_id' => Auth::id(),
             'current_approver_id' => $currentApproverId
         ]);
+
+        // Gửi thông báo khi tạo approval request mới
+        NotificationService::approvalRequestCreatedNew($approvalRequest, Auth::user());
 
         return redirect()->route('approval.index')
             ->with('success', 'Đã tạo đề xuất thành công');
@@ -367,10 +371,10 @@ class ApprovalController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Đề xuất đã được phê duyệt thành công'
-        ]);
+        // Gửi thông báo cho người tạo và admin/director
+        NotificationService::approvalRequestApprovedNew($approvalRequest, auth()->user());
+
+        return redirect()->route('approval.index')->with('success', 'Đề xuất đã được phê duyệt thành công');
     }
 
     public function reject(Request $request, $id)
@@ -399,10 +403,10 @@ class ApprovalController extends Controller
             'action' => 'rejected'
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Đề xuất đã bị từ chối'
-        ]);
+        // Gửi thông báo cho người tạo và admin/director
+        NotificationService::approvalRequestRejectedNew($approvalRequest, auth()->user());
+
+        return redirect()->route('approval.index')->with('success', 'Đề xuất đã bị từ chối');
     }
 
     public function bulkApprove(Request $request)
@@ -502,6 +506,9 @@ class ApprovalController extends Controller
             'status' => 'cancelled',
             'cancelled_at' => now()
         ]);
+
+        // Gửi thông báo khi approval request bị hủy
+        NotificationService::approvalRequestCancelled($approvalRequest, auth()->user());
 
         return redirect()->route('approval.index')
             ->with('success', 'Đã hủy yêu cầu thành công');
