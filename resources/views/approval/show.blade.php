@@ -1,4 +1,4 @@
-@extends('layouts.master')
+    @extends('layouts.master')
 
 @section('title', 'Chi tiết đề xuất #' . $approvalRequest->id)
 
@@ -162,8 +162,96 @@
                             <h4>Nội dung đề xuất</h4>
                         </div>
                         <div class="card-body">
+                            <!-- Các trường cơ bản -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Tiêu đề đề xuất:</label>
+                                        <div class="form-control-plaintext">{{ $approvalRequest->form_data['title'] ?? '' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Phòng ban:</label>
+                                        <div class="form-control-plaintext">
+                                            @if(!empty($approvalRequest->form_data['department']))
+                                                @php
+                                                    $department = \App\Models\Department::find($approvalRequest->form_data['department']);
+                                                @endphp
+                                                {{ $department ? $department->name : 'Không xác định' }}
+                                            @else
+                                                Gửi cho Director/Admin
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Mô tả:</label>
+                                        <div class="form-control-plaintext">{{ $approvalRequest->form_data['description'] ?? '' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Người phê duyệt:</label>
+                                        <div class="form-control-plaintext">
+                                            @if(!empty($approvalRequest->form_data['manager']))
+                                                @php
+                                                    $manager = \App\Models\User::find($approvalRequest->form_data['manager']);
+                                                @endphp
+                                                {{ $manager ? $manager->name : 'Không xác định' }}
+                                            @else
+                                                Director/Admin
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Phương thức thanh toán:</label>
+                                        <div class="form-control-plaintext">
+                                            @if($approvalRequest->form_data['payment_method'] === 'bank_transfer')
+                                                Chuyển khoản
+                                            @elseif($approvalRequest->form_data['payment_method'] === 'cash')
+                                                Tiền mặt
+                                            @else
+                                                {{ $approvalRequest->form_data['payment_method'] ?? '' }}
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Số tiền:</label>
+                                        <div class="form-control-plaintext">{{ number_format($approvalRequest->form_data['amount'] ?? 0) }} VNĐ</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Thông tin ngân hàng -->
+                            @if(!empty($approvalRequest->form_data['payment_method']) && ($approvalRequest->form_data['payment_method'] === 'Chuyển khoản' || $approvalRequest->form_data['payment_method'] === 'bank_transfer'))
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Thông tin ngân hàng:</label>
+                                        <div class="form-control-plaintext">
+                                            <strong>Số tài khoản:</strong> {{ $approvalRequest->form_data['bank_account'] ?? '' }}<br>
+                                            <strong>Tên ngân hàng:</strong> {{ $approvalRequest->form_data['bank_name'] ?? '' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
                             @if($formConfig && $formConfig->form_fields)
                                 @foreach($formConfig->form_fields as $field)
+                                    @if($field['name'] !== 'title' && $field['name'] !== 'description' && $field['name'] !== 'department' && $field['name'] !== 'amount' && $field['name'] !== 'payment_method' && $field['name'] !== 'bank_account' && $field['name'] !== 'bank_name' && $field['type'] !== 'approver_select')
                                 <div class="form-group">
                                     <label class="font-weight-bold">{{ $field['label'] }}:</label>
                                     <div class="form-control-plaintext">
@@ -201,6 +289,7 @@
                                         @endif
                                     </div>
                                 </div>
+                                    @endif
                                 @endforeach
                             @else
                                 <div class="alert alert-warning">

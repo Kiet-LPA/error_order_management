@@ -13,9 +13,17 @@
                     <a href="{{ route('users.index') }}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i>Quay lại
                     </a>
-                    <a href="{{ route('users.edit', $user) }}" class="btn btn-primary">
-                        <i class="bi bi-pencil me-1"></i>Chỉnh sửa
-                    </a>
+                    @php
+                        $canEdit = true;
+                        if (auth()->user()->isDirector() && ($user->isAdmin() || $user->isDirector())) {
+                            $canEdit = false;
+                        }
+                    @endphp
+                    @if($canEdit)
+                        <a href="{{ route('users.edit', $user) }}" class="btn btn-primary">
+                            <i class="bi bi-pencil me-1"></i>Chỉnh sửa
+                        </a>
+                    @endif
                 </div>
             </div>
 

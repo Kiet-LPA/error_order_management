@@ -576,15 +576,27 @@
                   <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-outline-primary border-0 rounded-start">
                     <i class="bi bi-eye me-1"></i>Xem
                   </a>
-                  <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-warning border-0">
-                    <i class="bi bi-pencil me-1"></i>Sửa
-                  </a>
-                  <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" data-confirm="Xóa nhân viên này?">
-                    @csrf @method('DELETE')
-                    <button class="btn btn-sm btn-outline-danger border-0 rounded-end">
-                      <i class="bi bi-trash me-1"></i>Xóa
-                    </button>
-                  </form>
+                  @php
+                      $canEdit = true;
+                      $canDelete = true;
+                      if (auth()->user()->isDirector() && ($user->isAdmin() || $user->isDirector())) {
+                          $canEdit = false;
+                          $canDelete = false;
+                      }
+                  @endphp
+                  @if($canEdit)
+                      <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-warning border-0">
+                        <i class="bi bi-pencil me-1"></i>Sửa
+                      </a>
+                  @endif
+                  @if($canDelete)
+                      <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" data-confirm="Xóa nhân viên này?">
+                        @csrf @method('DELETE')
+                        <button class="btn btn-sm btn-outline-danger border-0 rounded-end">
+                          <i class="bi bi-trash me-1"></i>Xóa
+                        </button>
+                      </form>
+                  @endif
                 </div>
               </td>
             </tr>

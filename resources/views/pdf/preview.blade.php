@@ -130,7 +130,76 @@
         </div>
 
         <div class="form-info">
+            <!-- Các trường cơ bản -->
+            <div class="form-field">
+                <span class="field-label">Tiêu đề đề xuất:</span>
+                <span class="field-value">{{ $request->form_data['title'] ?? '' }}</span>
+            </div>
+            
+            <div class="form-field">
+                <span class="field-label">Phòng ban:</span>
+                <span class="field-value">
+                    @if(!empty($request->form_data['department']))
+                        @php
+                            $department = \App\Models\Department::find($request->form_data['department']);
+                        @endphp
+                        {{ $department ? $department->name : 'Không xác định' }}
+                    @else
+                        Gửi cho Director/Admin
+                    @endif
+                </span>
+            </div>
+            
+            <div class="form-field">
+                <span class="field-label">Mô tả:</span>
+                <span class="field-value">{{ $request->form_data['description'] ?? '' }}</span>
+            </div>
+            
+            <div class="form-field">
+                <span class="field-label">Người phê duyệt:</span>
+                <span class="field-value">
+                    @if(!empty($request->form_data['manager']))
+                        @php
+                            $manager = \App\Models\User::find($request->form_data['manager']);
+                        @endphp
+                        {{ $manager ? $manager->name : 'Không xác định' }}
+                    @else
+                        Director/Admin
+                    @endif
+                </span>
+            </div>
+            
+            <div class="form-field">
+                <span class="field-label">Phương thức thanh toán:</span>
+                <span class="field-value">
+                    @if($request->form_data['payment_method'] === 'bank_transfer')
+                        Chuyển khoản
+                    @elseif($request->form_data['payment_method'] === 'cash')
+                        Tiền mặt
+                    @else
+                        {{ $request->form_data['payment_method'] ?? '' }}
+                    @endif
+                </span>
+            </div>
+            
+            <div class="form-field">
+                <span class="field-label">Số tiền:</span>
+                <span class="field-value">{{ number_format($request->form_data['amount'] ?? 0) }} VNĐ</span>
+            </div>
+            
+            <!-- Thông tin ngân hàng -->
+            @if(!empty($request->form_data['payment_method']) && ($request->form_data['payment_method'] === 'Chuyển khoản' || $request->form_data['payment_method'] === 'bank_transfer'))
+            <div class="form-field">
+                <span class="field-label">Thông tin ngân hàng:</span>
+                <span class="field-value">
+                    Số tài khoản: {{ $request->form_data['bank_account'] ?? '' }}<br>
+                    Tên ngân hàng: {{ $request->form_data['bank_name'] ?? '' }}
+                </span>
+            </div>
+            @endif
+
             @foreach($formConfig->form_fields as $field)
+                @if($field['name'] !== 'title' && $field['name'] !== 'description' && $field['name'] !== 'department' && $field['name'] !== 'amount' && $field['name'] !== 'payment_method' && $field['name'] !== 'bank_account' && $field['name'] !== 'bank_name' && $field['type'] !== 'approver_select')
                 @php
                     $fieldValue = $request->getFormFieldValue($field['name'], $field);
                     $hasValue = false;
@@ -153,7 +222,7 @@
                             }
                         }
                     } elseif ($field['type'] === 'table') {
-                        $hasValue = !empty($formData[$field['name']]);
+                        $hasValue = !empty($request->form_data[$field['name']]);
                     } else {
                         $hasValue = !empty($fieldValue) && $fieldValue !== '' && $fieldValue !== 'N/A' && $fieldValue !== null;
                     }
@@ -178,7 +247,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($formData[$field['name']] as $row)
+                                    @foreach($request->form_data[$field['name']] as $row)
                                         <tr>
                                             @foreach($field['columns'] as $column)
                                                 <td>{{ $row[$column['name']] ?? '' }}</td>
@@ -194,6 +263,7 @@
                             <span class="field-value">{{ $fieldValue }}</span>
                         </div>
                     @endif
+                @endif
                 @endif
             @endforeach
         </div>

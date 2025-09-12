@@ -377,17 +377,29 @@
                                     <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-warning" title="Chỉnh sửa">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" 
-                                          onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên này?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger" title="Xóa">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    @php
+                                        $canEdit = true;
+                                        $canDelete = true;
+                                        if (auth()->user()->isDirector() && ($user->isAdmin() || $user->isDirector())) {
+                                            $canEdit = false;
+                                            $canDelete = false;
+                                        }
+                                    @endphp
+                                    @if($canEdit)
+                                        <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-warning" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    @endif
+                                    @if($canDelete)
+                                        <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" 
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên này?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-sm btn-outline-danger" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

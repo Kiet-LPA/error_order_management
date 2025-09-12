@@ -44,13 +44,6 @@ class ApprovalFormSeeder extends Seeder
                         'step' => 1000000
                     ],
                     [
-                        'name' => 'reason',
-                        'label' => 'Mô tả',
-                        'type' => 'textarea',
-                        'required' => true,
-                        'validation' => 'max:500'
-                    ],
-                    [
                         'name' => 'department',
                         'label' => 'Phòng ban',
                         'type' => 'select',
@@ -69,6 +62,16 @@ class ApprovalFormSeeder extends Seeder
                         ]
                     ],
                     [
+                        'name' => 'bank_info',
+                        'label' => 'Thông tin ngân hàng',
+                        'type' => 'bank_info',
+                        'required' => false,
+                        'conditional' => [
+                            'field' => 'payment_method',
+                            'value' => 'bank_transfer'
+                        ]
+                    ],
+                    [
                         'name' => 'approver_select',
                         'label' => 'Người phê duyệt',
                         'type' => 'approver_select',
@@ -80,12 +83,12 @@ class ApprovalFormSeeder extends Seeder
                         'type' => 'dynamic_table',
                         'required' => false,
                         'columns' => [
-                            ['name' => 'stt', 'label' => 'STT', 'type' => 'text', 'width' => '10%'],
-                            ['name' => 'ten_hang', 'label' => 'Tên hàng hóa', 'type' => 'text', 'width' => '25%'],
+                            ['name' => 'stt', 'label' => 'STT', 'type' => 'text', 'width' => '8%'],
+                            ['name' => 'ma_hang', 'label' => 'Mã hàng', 'type' => 'text', 'width' => '18%'],
+                            ['name' => 'ten_hang', 'label' => 'Tên hàng hóa', 'type' => 'text', 'width' => '30%'],
                             ['name' => 'so_luong', 'label' => 'Số lượng', 'type' => 'text', 'width' => '15%'],
-                            ['name' => 'thanh_tien', 'label' => 'Thành tiền', 'type' => 'text', 'width' => '15%'],
-                            ['name' => 'noi_mua', 'label' => 'Nơi mua', 'type' => 'text', 'width' => '20%'],
-                            ['name' => 'ghi_chu', 'label' => 'Ghi chú', 'type' => 'text', 'width' => '15%']
+                            ['name' => 'thanh_tien', 'label' => 'Thành tiền', 'type' => 'text', 'width' => '18%'],
+                            ['name' => 'noi_mua', 'label' => 'Nơi mua', 'type' => 'text', 'width' => '30%']
                         ]
                     ]
                 ],

@@ -44,17 +44,37 @@ class ApprovalController extends Controller
         }
         
         if ($formType) {
-            $myRequestsQuery->whereHas('approvalForm', function($query) use ($formType) {
-                $query->where('form_name', 'like', '%' . $formType . '%')
-                      ->orWhere('form_type', 'like', '%' . $formType . '%');
+            $myRequestsQuery->where(function($query) use ($formType) {
+                $query->whereHas('approvalForm', function($subQuery) use ($formType) {
+                    $subQuery->where('form_name', 'like', '%' . $formType . '%')
+                              ->orWhere('form_type', 'like', '%' . $formType . '%');
+                })
+                ->orWhereHas('creator', function($subQuery) use ($formType) {
+                    $subQuery->where('name', 'like', '%' . $formType . '%');
+                })
+                ->orWhere('form_data->title', 'like', '%' . $formType . '%');
             });
-            $pendingApprovalsQuery->whereHas('approvalForm', function($query) use ($formType) {
-                $query->where('form_name', 'like', '%' . $formType . '%')
-                      ->orWhere('form_type', 'like', '%' . $formType . '%');
+            
+            $pendingApprovalsQuery->where(function($query) use ($formType) {
+                $query->whereHas('approvalForm', function($subQuery) use ($formType) {
+                    $subQuery->where('form_name', 'like', '%' . $formType . '%')
+                              ->orWhere('form_type', 'like', '%' . $formType . '%');
+                })
+                ->orWhereHas('creator', function($subQuery) use ($formType) {
+                    $subQuery->where('name', 'like', '%' . $formType . '%');
+                })
+                ->orWhere('form_data->title', 'like', '%' . $formType . '%');
             });
-            $allRequestsQuery->whereHas('approvalForm', function($query) use ($formType) {
-                $query->where('form_name', 'like', '%' . $formType . '%')
-                      ->orWhere('form_type', 'like', '%' . $formType . '%');
+            
+            $allRequestsQuery->where(function($query) use ($formType) {
+                $query->whereHas('approvalForm', function($subQuery) use ($formType) {
+                    $subQuery->where('form_name', 'like', '%' . $formType . '%')
+                              ->orWhere('form_type', 'like', '%' . $formType . '%');
+                })
+                ->orWhereHas('creator', function($subQuery) use ($formType) {
+                    $subQuery->where('name', 'like', '%' . $formType . '%');
+                })
+                ->orWhere('form_data->title', 'like', '%' . $formType . '%');
             });
         }
         
@@ -116,7 +136,7 @@ class ApprovalController extends Controller
             'form_data.title' => 'required|string|max:255',
             'form_data.description' => 'nullable|string|max:1000',
             'form_data.amount' => 'nullable|numeric|min:0',
-            'form_data.department' => 'required|exists:departments,id',
+            'form_data.department' => 'nullable|exists:departments,id',
             'form_data.manager' => 'nullable|exists:users,id'
         ]);
 
@@ -152,18 +172,24 @@ class ApprovalController extends Controller
         $currentUser = Auth::user();
         $userDepartments = $currentUser->departments()->pluck('departments.id')->toArray();
         
-        // Convert form_fields to array và cập nhật options phòng ban
-        $formFields = $formConfig->form_fields;
-        foreach ($formFields as $key => $field) {
-            if ($field['name'] === 'department' && isset($field['options'])) {
-                $formFields[$key]['options'] = array_filter($field['options'], function($option) use ($userDepartments) {
-                    return in_array($option['value'], $userDepartments);
-                });
+        // Kiểm tra nếu formConfig tồn tại
+        $formFields = [];
+        if ($formConfig && $formConfig->form_fields) {
+            // Convert form_fields to array và cập nhật options phòng ban
+            $formFields = $formConfig->form_fields;
+            foreach ($formFields as $key => $field) {
+                if ($field['name'] === 'department' && isset($field['options'])) {
+                    $formFields[$key]['options'] = array_filter($field['options'], function($option) use ($userDepartments) {
+                        return in_array($option['value'], $userDepartments);
+                    });
+                }
             }
         }
         
-        // Cập nhật lại form_fields
-        $formConfig->form_fields = $formFields;
+        // Cập nhật lại form_fields nếu formConfig tồn tại
+        if ($formConfig) {
+            $formConfig->form_fields = $formFields;
+        }
 
         // Get available users for forwarding - Chỉ manager/director mới được chuyển tiếp
         $availableUsers = User::where('id', '!=', auth()->id())
@@ -183,7 +209,11 @@ class ApprovalController extends Controller
 
         $formConfig = ApprovalForm::where('form_type', $approvalRequest->form_type)
             ->where('is_active', true)
-            ->firstOrFail();
+            ->first();
+            
+        if (!$formConfig) {
+            abort(404, 'Không tìm thấy form cấu hình cho loại đề xuất này');
+        }
         
         // Lọc phòng ban theo user hiện tại
         $currentUser = Auth::user();
@@ -218,7 +248,7 @@ class ApprovalController extends Controller
             'form_data.title' => 'required|string|max:255',
             'form_data.description' => 'nullable|string|max:1000',
             'form_data.amount' => 'nullable|numeric|min:0',
-            'form_data.department' => 'required|exists:departments,id',
+            'form_data.department' => 'nullable|exists:departments,id',
             'form_data.manager' => 'nullable|exists:users,id'
         ]);
 
@@ -241,18 +271,9 @@ class ApprovalController extends Controller
         }
         
         if ($user->role === 'employee') {
-            $userDepartments = $user->departments;
-            if ($userDepartments->count() > 0) {
-                $manager = User::where('role', 'manager')
-                    ->whereHas('departments', function($query) use ($userDepartments) {
-                        $query->whereIn('department_id', $userDepartments->pluck('id'));
-                    })
-                    ->first();
-                return $manager?->id;
-            } else {
-                $director = User::where('role', 'director')->first();
-                return $director?->id;
-            }
+            // Nếu không chọn phòng ban, gửi cho Director/Admin
+            $director = User::where('role', 'director')->first();
+            return $director?->id;
         }
         
         return null;
@@ -352,8 +373,17 @@ class ApprovalController extends Controller
         $approvalRequest = ApprovalRequest::findOrFail($id);
         
         // Check if user can approve this request
-        if ($approvalRequest->current_approver_id !== auth()->id()) {
+        $user = auth()->user();
+        if ($approvalRequest->current_approver_id !== auth()->id() && !$user->isAdmin() && !$user->isDirector()) {
             return response()->json(['error' => 'Bạn không có quyền phê duyệt đề xuất này'], 403);
+        }
+        
+        // Director không thể approve approval request của Admin
+        if ($user->isDirector()) {
+            $creator = $approvalRequest->creator;
+            if ($creator && $creator->isAdmin()) {
+                return response()->json(['error' => 'Director không thể phê duyệt đề xuất của Admin'], 403);
+            }
         }
 
         $approvalRequest->update([
@@ -386,8 +416,17 @@ class ApprovalController extends Controller
         $approvalRequest = ApprovalRequest::findOrFail($id);
         
         // Check if user can reject this request
-        if ($approvalRequest->current_approver_id !== auth()->id()) {
+        $user = auth()->user();
+        if ($approvalRequest->current_approver_id !== auth()->id() && !$user->isAdmin() && !$user->isDirector()) {
             return response()->json(['error' => 'Bạn không có quyền từ chối đề xuất này'], 403);
+        }
+        
+        // Director không thể reject approval request của Admin
+        if ($user->isDirector()) {
+            $creator = $approvalRequest->creator;
+            if ($creator && $creator->isAdmin()) {
+                return response()->json(['error' => 'Director không thể từ chối đề xuất của Admin'], 403);
+            }
         }
 
         $approvalRequest->update([

@@ -2,6 +2,103 @@
 
 @section('title', 'Tạo đề xuất mới - ' . $formConfig->form_name)
 
+@push('styles')
+<style>
+/* Bảng chi tiết rộng rãi hơn theo chiều ngang */
+.dynamic-table-container .table {
+    width: 100% !important;
+    table-layout: auto;
+    min-width: 1200px; /* Đảm bảo bảng có chiều rộng tối thiểu */
+}
+
+.dynamic-table-container .table th,
+.dynamic-table-container .table td {
+    padding: 15px 12px !important;
+    vertical-align: middle;
+    word-wrap: break-word;
+    white-space: nowrap; /* Ngăn text xuống dòng */
+}
+
+/* Làm các cột rộng hơn theo chiều ngang - Thứ tự mới: STT, Tên hàng hóa, Mã hàng, Số lượng, Thành tiền, Nơi mua */
+.dynamic-table-container .table th:nth-child(1), /* STT */
+.dynamic-table-container .table td:nth-child(1) {
+    width: 8%;
+    min-width: 60px;
+}
+
+.dynamic-table-container .table th:nth-child(2), /* Tên hàng hóa */
+.dynamic-table-container .table td:nth-child(2) {
+    width: 30%;
+    min-width: 250px;
+}
+
+.dynamic-table-container .table th:nth-child(3), /* Mã hàng */
+.dynamic-table-container .table td:nth-child(3) {
+    width: 18%;
+    min-width: 150px;
+}
+
+.dynamic-table-container .table th:nth-child(4), /* Số lượng */
+.dynamic-table-container .table td:nth-child(4) {
+    width: 15%;
+    min-width: 120px;
+}
+
+.dynamic-table-container .table th:nth-child(5), /* Thành tiền */
+.dynamic-table-container .table td:nth-child(5) {
+    width: 18%;
+    min-width: 150px;
+}
+
+.dynamic-table-container .table th:nth-child(6), /* Nơi mua */
+.dynamic-table-container .table td:nth-child(6) {
+    width: 30%;
+    min-width: 200px;
+}
+
+.dynamic-table-container .table th:nth-child(7), /* Thao tác */
+.dynamic-table-container .table td:nth-child(7) {
+    width: 10%;
+    min-width: 80px;
+}
+
+.dynamic-table-container .table input {
+    width: 100% !important;
+    min-width: 100px;
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.dynamic-table-container .table input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Làm bảng căng từ trái qua phải */
+.dynamic-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.dynamic-table-container .table-responsive {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+/* Cải thiện giao diện nút */
+.dynamic-table-container .btn-group-vertical .btn {
+    margin-bottom: 5px;
+}
+
+.dynamic-table-container .btn-group .btn {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="row">
@@ -45,9 +142,183 @@
                         @csrf
                         <input type="hidden" name="form_type" value="{{ $formConfig->form_type }}">
                         
+                        <!-- Hàng 1: Tiêu đề đề xuất và Phòng ban -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="title">
+                                        Tiêu đề đề xuất
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control @error('form_data.title') is-invalid @enderror" 
+                                           id="title" 
+                                           name="form_data[title]" 
+                                           value="{{ old('form_data.title') }}"
+                                           required>
+                                    @error('form_data.title')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="department">
+                                        Phòng ban
+                                    </label>
+                                    <select class="form-control @error('form_data.department') is-invalid @enderror" 
+                                            id="department" 
+                                            name="form_data[department]"
+                                            onchange="loadManagers(this.value)">
+                                        <option value="">Chọn Phòng ban (không bắt buộc)</option>
+                                        @if(auth()->user()->role === 'employee')
+                                            @php
+                                                $userDepartments = auth()->user()->departments;
+                                                $userDepartmentIds = $userDepartments->pluck('id')->toArray();
+                                            @endphp
+                                            @foreach($formConfig->form_fields as $field)
+                                                @if($field['name'] === 'department')
+                                                    @foreach($field['options'] as $option)
+                                                        @if(in_array($option['value'], $userDepartmentIds))
+                                                            <option value="{{ $option['value'] }}" 
+                                                                    {{ old('form_data.department') == $option['value'] ? 'selected' : '' }}>
+                                                                {{ $option['label'] }}
+                                                            </option>
+                                                        @endif
+                                                    @endforeach
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            @foreach($formConfig->form_fields as $field)
+                                                @if($field['name'] === 'department')
+                                                    @foreach($field['options'] as $option)
+                                                        <option value="{{ $option['value'] }}" 
+                                                                {{ old('form_data.department') == $option['value'] ? 'selected' : '' }}>
+                                                            {{ $option['label'] }}
+                                                        </option>
+                                                    @endforeach
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    @error('form_data.department')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hàng 2: Mô tả và Người phê duyệt -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="description">
+                                        Mô tả
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <textarea class="form-control @error('form_data.description') is-invalid @enderror" 
+                                              id="description" 
+                                              name="form_data[description]" 
+                                              rows="3"
+                                              required>{{ old('form_data.description') }}</textarea>
+                                    @error('form_data.description')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="manager">
+                                        Người phê duyệt
+                                    </label>
+                                    <select class="form-control @error('current_approver_id') is-invalid @enderror" 
+                                            id="manager" 
+                                            name="current_approver_id">
+                                        <option value="">Chọn Người phê duyệt</option>
+                                    </select>
+                                    @error('current_approver_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hàng 3: Phương thức thanh toán và Số tiền -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="payment_method">
+                                        Phương thức thanh toán
+                                    </label>
+                                    <select class="form-control @error('form_data.payment_method') is-invalid @enderror" 
+                                            id="payment_method" 
+                                            name="form_data[payment_method]">
+                                        <option value="">Chọn Phương thức thanh toán</option>
+                                        <option value="bank_transfer" {{ old('form_data.payment_method') == 'bank_transfer' ? 'selected' : '' }}>Chuyển khoản</option>
+                                        <option value="cash" {{ old('form_data.payment_method') == 'cash' ? 'selected' : '' }}>Tiền mặt</option>
+                                    </select>
+                                    @error('form_data.payment_method')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="amount">
+                                        Số tiền
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control @error('form_data.amount') is-invalid @enderror" 
+                                           id="amount" 
+                                           name="form_data[amount]" 
+                                           value="{{ old('form_data.amount') }}"
+                                           step="1000000"
+                                           min="0"
+                                           required>
+                                    @error('form_data.amount')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hàng 4: Thông tin ngân hàng - Luôn hiển thị, chỉ enable/disable -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div id="bank_info" class="mt-3">
+                                    <h6 class="text-muted mb-3">Thông tin ngân hàng</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="bank_account">Số tài khoản</label>
+                                            <input type="text" 
+                                                   class="form-control @error('form_data.bank_account') is-invalid @enderror" 
+                                                   id="bank_account" 
+                                                   name="form_data[bank_account]" 
+                                                   value="{{ old('form_data.bank_account') }}" 
+                                                   placeholder="Nhập số tài khoản"
+                                                   disabled>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="bank_name">Tên ngân hàng</label>
+                                            <input type="text" 
+                                                   class="form-control @error('form_data.bank_name') is-invalid @enderror" 
+                                                   id="bank_name" 
+                                                   name="form_data[bank_name]" 
+                                                   value="{{ old('form_data.bank_name') }}" 
+                                                   placeholder="Nhập tên ngân hàng"
+                                                   disabled>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Các trường khác -->
                         <div class="row">
                             @foreach($formConfig->form_fields as $field)
-                                <div class="col-md-6 mb-3">
+                                @if($field['name'] !== 'payment_method' && $field['name'] !== 'bank_info' && $field['type'] !== 'approver_select' && $field['name'] !== 'title' && $field['name'] !== 'description' && $field['name'] !== 'department' && $field['name'] !== 'amount')
+                                    <div class="col-md-6 mb-3" @if($field['type'] === 'dynamic_table') style="width: 100%;" @endif>
                                     <div class="form-group">
                                         <label for="{{ $field['name'] }}">
                                             {{ $field['label'] }}
@@ -62,7 +333,12 @@
                                                    id="{{ $field['name'] }}" 
                                                    name="form_data[{{ $field['name'] }}]" 
                                                    value="{{ old('form_data.' . $field['name']) }}"
-                                                   @if($field['required']) required @endif>
+                                                   @if($field['required']) required @endif
+                                                   @if(isset($field['conditional']))
+                                                       data-conditional-field="{{ $field['conditional']['field'] }}"
+                                                       data-conditional-value="{{ $field['conditional']['value'] }}"
+                                                       style="display: none;"
+                                                   @endif>
                                         @elseif($field['type'] === 'number')
                                             <input type="number" 
                                                    class="form-control @error('form_data.' . $field['name']) is-invalid @enderror" 
@@ -137,27 +413,56 @@
                                                    name="form_data[{{ $field['name'] }}]" 
                                                    value="{{ old('form_data.' . $field['name']) }}"
                                                    @if($field['required']) required @endif>
-        @elseif($field['type'] === 'approver_select')
-            <!-- Người phê duyệt -->
-            <div class="form-group">
-                <label for="manager" class="font-weight-bold">
-                <select class="form-control @error('current_approver_id') is-invalid @enderror" 
-                        id="manager" 
-                        name="current_approver_id"
-                        required>
-                    <option value="">Chọn Người phê duyệt</option>
-                </select>
-                @error('current_approver_id')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-        @elseif($field['type'] === 'dynamic_table')
+                                        @elseif($field['type'] === 'bank_info')
+                                            <!-- Thông tin ngân hàng - Luôn hiển thị, chỉ enable/disable -->
+                                            <div class="col-12 mb-3">
+                                                <div id="bank_info" class="mt-3">
+                                                    <h6 class="text-muted mb-3">Thông tin ngân hàng</h6>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <label for="bank_account">Số tài khoản</label>
+                                                            <input type="text" 
+                                                                   class="form-control @error('form_data.bank_account') is-invalid @enderror" 
+                                                                   id="bank_account" 
+                                                                   name="form_data[bank_account]" 
+                                                                   value="{{ old('form_data.bank_account') }}" 
+                                                                   placeholder="Nhập số tài khoản"
+                                                                   disabled>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="bank_name">Tên ngân hàng</label>
+                                                            <input type="text" 
+                                                                   class="form-control @error('form_data.bank_name') is-invalid @enderror" 
+                                                                   id="bank_name" 
+                                                                   name="form_data[bank_name]" 
+                                                                   value="{{ old('form_data.bank_name') }}" 
+                                                                   placeholder="Nhập tên ngân hàng"
+                                                                   disabled>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @elseif($field['type'] === 'approver_select')
+                                            <!-- Người phê duyệt -->
+                                            <div class="form-group">
+                                                <label for="manager" class="font-weight-bold">
+                                                <select class="form-control @error('current_approver_id') is-invalid @enderror" 
+                                                        id="manager" 
+                                                        name="current_approver_id"
+                                                        required>
+                                                    <option value="">Chọn Người phê duyệt</option>
+                                                </select>
+                                                @error('current_approver_id')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        @elseif($field['type'] === 'dynamic_table')
             <div class="dynamic-table-container">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6>{{ $field['label'] }}</h6>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="toggleDynamicTable('{{ $field['name'] }}')">
+                <div class="d-flex align-items-center mb-2">
+                    <button type="button" class="btn btn-sm btn-primary me-3" onclick="toggleDynamicTable('{{ $field['name'] }}')">
                         <i class="bi bi-table"></i> Tạo bảng
                     </button>
+                    <h6 class="mb-0">{{ $field['label'] }}</h6>
                 </div>
                 <div id="table-container-{{ $field['name'] }}" class="table-responsive" style="display: none;">
                     <table class="table table-bordered" id="table-{{ $field['name'] }}">
@@ -200,6 +505,7 @@
                                         @enderror
                                     </div>
                                 </div>
+                                @endif
                             @endforeach
                         </div>
 
@@ -333,8 +639,16 @@ function loadManagers(departmentId) {
     managerSelect.innerHTML = '<option value="">Chọn Người phê duyệt</option>';
     
     if (!departmentId) {
+        // Disable manager select when no department is selected
+        managerSelect.disabled = true;
+        managerSelect.style.opacity = '0.6';
+        managerSelect.innerHTML = '<option value="">Gửi cho Director/Admin</option>';
         return;
     }
+    
+    // Enable manager select
+    managerSelect.disabled = false;
+    managerSelect.style.opacity = '1';
     
     // Show loading
     managerSelect.innerHTML = '<option value="">Đang tải...</option>';
@@ -549,6 +863,45 @@ document.addEventListener('DOMContentLoaded', function() {
             this.appendChild(hiddenInput);
         });
     });
+});
+
+// Conditional fields handling
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle payment method change
+    const paymentMethodSelect = document.getElementById('payment_method');
+    if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener('change', function() {
+            const bankAccountField = document.getElementById('bank_account');
+            const bankNameField = document.getElementById('bank_name');
+            
+            if (this.value === 'bank_transfer') {
+                // Enable bank info fields
+                if (bankAccountField) {
+                    bankAccountField.disabled = false;
+                    bankAccountField.style.opacity = '1';
+                }
+                if (bankNameField) {
+                    bankNameField.disabled = false;
+                    bankNameField.style.opacity = '1';
+                }
+            } else {
+                // Disable bank info fields and clear values
+                if (bankAccountField) {
+                    bankAccountField.disabled = true;
+                    bankAccountField.style.opacity = '0.6';
+                    bankAccountField.value = '';
+                }
+                if (bankNameField) {
+                    bankNameField.disabled = true;
+                    bankNameField.style.opacity = '0.6';
+                    bankNameField.value = '';
+                }
+            }
+        });
+        
+        // Trigger change event on page load
+        paymentMethodSelect.dispatchEvent(new Event('change'));
+    }
 });
 </script>
 @endpush

@@ -178,7 +178,7 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-hover mb-0" id="approvalTable">
                             <thead class="table-light">
                                 <tr>
                                     <th width="5%">
@@ -203,21 +203,22 @@
                                             <span class="badge bg-secondary">#{{ $request->id }}</span>
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                                                    <i class="bi bi-file-text text-primary"></i>
-                                                </div>
-                                                <div>
-                                                    @if(isset($request->form_data['title']))
-                                                        <strong class="text-dark">{{ $request->form_data['title'] }}</strong>
-                                                    @elseif($request->approvalForm)
-                                                        <strong class="text-dark">{{ $request->approvalForm->form_name }}</strong>
+                                            <div>
+                                                @if(isset($request->form_data['title']))
+                                                    <strong class="text-dark">{{ $request->form_data['title'] }}</strong>
+                                                @elseif($request->approvalForm)
+                                                    <strong class="text-dark">{{ $request->approvalForm->form_name }}</strong>
+                                                @else
+                                                    <strong class="text-dark">{{ $request->form_type }}</strong>
+                                                @endif
+                                                <br>
+                                                <small class="text-muted">
+                                                    @if($request->approvalForm)
+                                                        {{ $request->approvalForm->form_name }}
                                                     @else
-                                                        <strong class="text-dark">{{ $request->form_type }}</strong>
+                                                        {{ $request->form_type }}
                                                     @endif
-                                                    <br>
-                                                    <small class="text-muted">{{ $request->form_type }}</small>
-                                                </div>
+                                                </small>
                                             </div>
                                         </td>
                                         <td>
@@ -242,7 +243,18 @@
                                                     <div>
                                                         <strong class="text-dark">{{ $request->creator->name }}</strong>
                                                         <br>
-                                                        <small class="text-muted">{{ ucfirst($request->creator->role) }}</small>
+                                                        <small class="text-muted">
+                                                            @php
+                                                                $roleText = match($request->creator->role) {
+                                                                    'admin' => 'Quản trị viên',
+                                                                    'director' => 'Giám đốc',
+                                                                    'manager' => 'Quản lý',
+                                                                    'employee' => 'Nhân viên',
+                                                                    default => ucfirst($request->creator->role)
+                                                                };
+                                                            @endphp
+                                                            {{ $roleText }}
+                                                        </small>
                                                     </div>
                                                 </div>
                                             @else
@@ -258,7 +270,18 @@
                                                     <div>
                                                         <strong class="text-dark">{{ $request->currentApprover->name }}</strong>
                                                         <br>
-                                                        <small class="text-muted">{{ ucfirst($request->currentApprover->role) }}</small>
+                                                        <small class="text-muted">
+                                                            @php
+                                                                $approverRoleText = match($request->currentApprover->role) {
+                                                                    'admin' => 'Quản trị viên',
+                                                                    'director' => 'Giám đốc',
+                                                                    'manager' => 'Quản lý',
+                                                                    'employee' => 'Nhân viên',
+                                                                    default => ucfirst($request->currentApprover->role)
+                                                                };
+                                                            @endphp
+                                                            {{ $approverRoleText }}
+                                                        </small>
                                                     </div>
                                                 </div>
                                             @else
@@ -279,16 +302,33 @@
                                                         <i class="bi bi-eye"></i>
                                                     </a>
                                                     @if($request->canEdit(auth()->id()))
-                                                        <a href="{{ route('approval.edit', $request->id) }}" class="btn btn-outline-warning btn-sm" title="Chỉnh sửa">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </a>
+                                                        @php
+                                                            $creator = $request->creator;
+                                                            $canShowEdit = true;
+                                                            if (auth()->user()->isDirector() && $creator && $creator->isAdmin()) {
+                                                                $canShowEdit = false;
+                                                            }
+                                                        @endphp
+                                                        @if($canShowEdit)
+                                                            <a href="{{ route('approval.edit', $request->id) }}" class="btn btn-outline-warning btn-sm" title="Chỉnh sửa">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </a>
+                                                        @endif
                                                     @endif
                                                 </div>
                                                 {{-- Chỉ hiển thị nút phê duyệt/từ chối cho manager/director được gửi yêu cầu --}}
-                                                @if($request->current_approver_id === auth()->id() && 
-                                                    in_array(auth()->user()->role, ['manager', 'director']) && 
+                                                @php
+                                                    $creator = $request->creator;
+                                                    $canShowActions = true;
+                                                    if (auth()->user()->isDirector() && $creator && $creator->isAdmin()) {
+                                                        $canShowActions = false;
+                                                    }
+                                                @endphp
+                                                @if(($request->current_approver_id === auth()->id() || auth()->user()->isAdmin() || auth()->user()->isDirector()) && 
+                                                    in_array(auth()->user()->role, ['manager', 'director', 'admin']) && 
                                                     $request->approval_status === 'pending' &&
-                                                    $request->created_by_id !== auth()->id())
+                                                    $request->created_by_id !== auth()->id() &&
+                                                    $canShowActions)
                                                     <div class="btn-group mt-1" role="group">
                                                         <button type="button" class="btn btn-outline-success btn-sm" onclick="approveRequest({{ $request->id }})" title="Phê duyệt">
                                                             <i class="bi bi-check"></i>
@@ -676,5 +716,185 @@ function cancelRequest(requestId) {
         form.submit();
     }
 }
+
+// Auto sticky column 3 when needed
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('approvalTable');
+    const container = document.querySelector('.table-responsive');
+    
+    if (table && container) {
+        function checkSticky() {
+            const tableWidth = table.scrollWidth;
+            const containerWidth = container.clientWidth;
+            
+            // If table is wider than container, enable sticky for column 3
+            if (tableWidth > containerWidth) {
+                table.classList.add('sticky-mode');
+            } else {
+                table.classList.remove('sticky-mode');
+            }
+        }
+        
+        // Check on load and resize
+        checkSticky();
+        window.addEventListener('resize', checkSticky);
+        
+        // Check on scroll - enable sticky when scrolled past column 3
+        container.addEventListener('scroll', function() {
+            const scrollLeft = container.scrollLeft;
+            
+            // Enable sticky when scrolled past column 3 (around 250px)
+            if (scrollLeft > 200) {
+                table.classList.add('sticky-mode');
+            } else if (scrollLeft === 0) {
+                checkSticky();
+            }
+        });
+    }
+});
 </script>
+
+<style>
+/* Table container - Force horizontal scroll */
+.table-responsive {
+    overflow-x: scroll !important;
+    overflow-y: visible;
+    max-width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Table styling - Responsive width */
+#approvalTable {
+    min-width: 100% !important;
+    width: 100% !important;
+    table-layout: auto;
+    margin-bottom: 0;
+}
+
+/* Column widths - Only column 3 sticky */
+#approvalTable th:nth-child(1),
+#approvalTable td:nth-child(1) {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    text-align: center;
+    padding: 0.5rem 0.25rem !important;
+}
+
+#approvalTable th:nth-child(2),
+#approvalTable td:nth-child(2) {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+    padding: 0.5rem 0.25rem !important;
+}
+
+#approvalTable th:nth-child(3),
+#approvalTable td:nth-child(3) {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+    padding: 0.5rem 0.25rem !important;
+}
+
+/* Other columns - More space for content */
+#approvalTable th:nth-child(n+4),
+#approvalTable td:nth-child(n+4) {
+    width: auto !important;
+    min-width: 150px !important;
+    max-width: none !important;
+    padding: 0.5rem 0.25rem !important;
+}
+
+/* Sticky columns - Only column 3 when scrolling */
+@media (max-width: 1200px) {
+    #approvalTable th:nth-child(3),
+    #approvalTable td:nth-child(3) {
+        position: sticky !important;
+        left: 0 !important;
+        background-color: white !important;
+        z-index: 15;
+        border-right: 3px solid #007bff !important;
+    }
+}
+
+/* Header background for sticky columns */
+#approvalTable thead th:nth-child(1),
+#approvalTable thead th:nth-child(2),
+#approvalTable thead th:nth-child(3) {
+    background-color: #f8f9fa !important;
+    z-index: 20 !important;
+}
+
+/* Dynamic sticky columns - Only column 3 */
+#approvalTable.sticky-mode th:nth-child(3),
+#approvalTable.sticky-mode td:nth-child(3) {
+    position: sticky !important;
+    left: 0 !important;
+    background-color: white !important;
+    z-index: 15;
+    border-right: 3px solid #007bff !important;
+}
+
+/* Table cells */
+#approvalTable td {
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 0.75rem 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#approvalTable th {
+    padding: 0.75rem 0.5rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Force scrollbar to be visible */
+.table-responsive::-webkit-scrollbar {
+    height: 12px !important;
+    display: block !important;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 6px;
+    border: 2px solid #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
+
+/* Hover effects for better UX */
+#approvalTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+#approvalTable tbody tr:hover td:nth-child(1),
+#approvalTable tbody tr:hover td:nth-child(2),
+#approvalTable tbody tr:hover td:nth-child(3) {
+    background-color: #e9ecef !important;
+}
+
+/* Ensure table can scroll */
+.table-responsive {
+    position: relative;
+}
+
+/* Debug: Make sure table is scrollable */
+#approvalTable {
+    display: table !important;
+}
+</style>
 @endpush

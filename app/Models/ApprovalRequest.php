@@ -87,6 +87,23 @@ class ApprovalRequest extends Model
 
     public function canEdit($userId)
     {
+        $user = User::find($userId);
+        
+        // Admin có thể edit tất cả
+        if ($user && $user->isAdmin()) {
+            return true;
+        }
+        
+        // Director có thể edit tất cả (trừ Admin)
+        if ($user && $user->isDirector()) {
+            $creator = $this->creator;
+            if ($creator && $creator->isAdmin()) {
+                return false; // Director không thể edit approval request của Admin
+            }
+            return true;
+        }
+        
+        // Người tạo có thể edit nếu edit_status là editable
         return $this->created_by_id === $userId && $this->edit_status === 'editable';
     }
 
