@@ -158,13 +158,10 @@
             <div class="form-field">
                 <span class="field-label">Người phê duyệt:</span>
                 <span class="field-value">
-                    @if(!empty($request->form_data['manager']))
-                        @php
-                            $manager = \App\Models\User::find($request->form_data['manager']);
-                        @endphp
-                        {{ $manager ? $manager->name : 'Không xác định' }}
+                    @if($request->approval_status === 'approved')
+                        {{ optional($request->approvedBy)->name ?? 'N/A' }}
                     @else
-                        Director/Admin
+                        Đang chờ phê duyệt
                     @endif
                 </span>
             </div>

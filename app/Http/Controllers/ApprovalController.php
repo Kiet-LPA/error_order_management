@@ -16,6 +16,7 @@ class ApprovalController extends Controller
     public function index(Request $request)
     {
         $userId = Auth::id();
+        $currentUser = Auth::user();
         
         // Get filter parameters
         $status = $request->get('status');
@@ -28,13 +29,58 @@ class ApprovalController extends Controller
             ->with(['creator', 'currentApprover', 'approvalForm']);
             
         // Base query for pending approvals
-        $pendingApprovalsQuery = ApprovalRequest::where('current_approver_id', $userId)
-            ->where('approval_status', 'pending')
-            ->with(['creator', 'approvalForm']);
+        if ($currentUser && ($currentUser->isAdmin() || $currentUser->isDirector())) {
+            // Admin/Director thấy TẤT CẢ pending
+            $pendingApprovalsQuery = ApprovalRequest::where('approval_status', 'pending')
+                ->with(['creator', 'approvalForm']);
+        } else {
+            $pendingApprovalsQuery = ApprovalRequest::where('approval_status', 'pending')
+                ->where(function($q) use ($userId) {
+                    $q->where('current_approver_id', $userId)
+                      ->orWhere(function($sub) use ($userId) {
+                          // Trường hợp không chỉ định cụ thể (current_approver_id null)
+                          $user = Auth::user();
+                          if ($user && $user->isManager()) {
+                              $departmentIds = $user->departments()->pluck('departments.id');
+                              $sub->whereNull('current_approver_id')
+                                  ->where(function($inner) use ($departmentIds) {
+                                      foreach ($departmentIds as $id) {
+                                          $inner->orWhere('form_data->department', (string) $id);
+                                      }
+                                  });
+                          }
+                      });
+                })
+                ->with(['creator', 'approvalForm']);
+        }
             
         // Base query for all requests
-        $allRequestsQuery = ApprovalRequest::byUser($userId)
-            ->with(['creator', 'currentApprover', 'approvalForm']);
+        if ($currentUser && ($currentUser->isAdmin() || $currentUser->isDirector())) {
+            // Admin/Director thấy TẤT CẢ
+            $allRequestsQuery = ApprovalRequest::query()
+                ->with(['creator', 'currentApprover', 'approvalForm']);
+        } else {
+            $allRequestsQuery = ApprovalRequest::query()
+                ->where(function($q) use ($userId) {
+                    $q->where('created_by_id', $userId)
+                      ->orWhere('current_approver_id', $userId);
+                    // Hiển thị thêm các request không chỉ định người phê duyệt nhưng thuộc phòng ban của manager
+                    $user = Auth::user();
+                    if ($user && $user->isManager()) {
+                        $departmentIds = $user->departments()->pluck('departments.id');
+                        $q->orWhere(function($sub) use ($departmentIds) {
+                            $sub->whereNull('current_approver_id')
+                                ->whereIn('approval_status', ['pending', null])
+                                ->where(function($inner) use ($departmentIds) {
+                                    foreach ($departmentIds as $id) {
+                                        $inner->orWhere('form_data->department', (string) $id);
+                                    }
+                                });
+                        });
+                    }
+                })
+                ->with(['creator', 'currentApprover', 'approvalForm']);
+        }
         
         // Apply filters
         if ($status) {
@@ -137,12 +183,30 @@ class ApprovalController extends Controller
             'form_data.description' => 'nullable|string|max:1000',
             'form_data.amount' => 'nullable|numeric|min:0',
             'form_data.department' => 'nullable|exists:departments,id',
-            'form_data.manager' => 'nullable|exists:users,id'
+            // Người phê duyệt được gửi trực tiếp qua field current_approver_id ở form
+            'current_approver_id' => 'nullable|exists:users,id'
         ]);
 
-        // Get the selected manager or determine next approver
-        $selectedManagerId = $request->input('form_data.manager');
-        $currentApproverId = $selectedManagerId ?: $this->getNextApprover(Auth::user());
+        // Xác định người phê duyệt hiện tại:
+        // - Nếu form đã chọn cụ thể (current_approver_id) thì dùng giá trị đó
+        // - Nếu KHÔNG chọn phòng ban và KHÔNG chọn người phê duyệt => mặc định gửi cho Director bất kỳ
+        // - Các trường hợp còn lại mà không chọn người phê duyệt, tiếp tục fallback theo role hiện tại
+        $selectedApproverId = $request->input('current_approver_id');
+        $selectedDepartmentId = data_get($request->input('form_data'), 'department');
+
+        if ($selectedApproverId) {
+            $currentApproverId = $selectedApproverId;
+        } else {
+            // Không chọn người phê duyệt cụ thể
+            if (empty($selectedDepartmentId)) {
+                // Không chọn phòng ban -> gửi cho tất cả Director
+                $currentApproverId = null;
+            } else {
+                // ĐÃ chọn phòng ban nhưng KHÔNG chọn người phê duyệt -> gửi cho TẤT CẢ managers của phòng ban đó
+                // (để null và dùng rule ở phần duyệt + danh sách chờ xử lý)
+                $currentApproverId = null;
+            }
+        }
 
         $approvalRequest = ApprovalRequest::create([
             'form_type' => $formType,
@@ -249,7 +313,7 @@ class ApprovalController extends Controller
             'form_data.description' => 'nullable|string|max:1000',
             'form_data.amount' => 'nullable|numeric|min:0',
             'form_data.department' => 'nullable|exists:departments,id',
-            'form_data.manager' => 'nullable|exists:users,id'
+            'current_approver_id' => 'nullable|exists:users,id'
         ]);
 
         $approvalRequest->update([
@@ -374,7 +438,7 @@ class ApprovalController extends Controller
         
         // Check if user can approve this request
         $user = auth()->user();
-        if ($approvalRequest->current_approver_id !== auth()->id() && !$user->isAdmin() && !$user->isDirector()) {
+        if (!$this->userCanApprove($approvalRequest, $user)) {
             return response()->json(['error' => 'Bạn không có quyền phê duyệt đề xuất này'], 403);
         }
         
@@ -405,6 +469,30 @@ class ApprovalController extends Controller
         NotificationService::approvalRequestApprovedNew($approvalRequest, auth()->user());
 
         return redirect()->route('approval.index')->with('success', 'Đề xuất đã được phê duyệt thành công');
+    }
+
+    /**
+     * Xác định user có quyền phê duyệt approval request không
+     */
+    private function userCanApprove(ApprovalRequest $approvalRequest, $user): bool
+    {
+        if (!$user) return false;
+        if ($user->isAdmin() || $user->isDirector()) return true;
+
+        if ($user->isManager()) {
+            // Nếu được chỉ định cụ thể
+            if ($approvalRequest->current_approver_id && $approvalRequest->current_approver_id === $user->id) {
+                return true;
+            }
+            // Nếu không chỉ định, nhưng có chọn phòng ban: cho phép các manager của phòng ban đó duyệt
+            $departmentId = data_get($approvalRequest->form_data, 'department');
+            if (!$approvalRequest->current_approver_id && $departmentId) {
+                $managerDepartmentIds = $user->departments()->pluck('departments.id')->toArray();
+                return in_array($departmentId, $managerDepartmentIds);
+            }
+        }
+
+        return false;
     }
 
     public function reject(Request $request, $id)
