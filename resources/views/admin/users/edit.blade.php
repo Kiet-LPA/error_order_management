@@ -75,34 +75,35 @@
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">Tên</label>
+                                    <label for="name" class="form-label">Tên <span class="text-danger">*</span></label>
                                     <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
                                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label for="email" class="form-label">Email <span class="text-muted">(tùy chọn nếu có số điện thoại)</span></label>
+                                    <label for="email" class="form-label">Email</label>
                                     <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}">
                                     @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label for="phone" class="form-label">Số điện thoại <span class="text-muted">(tùy chọn nếu có email)</span></label>
-                                    <input type="tel" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}" placeholder="0123456789">
+                                    <label for="phone" class="form-label">Số điện thoại</label>
+                                    <input type="tel" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}">
                                     @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label for="password" class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
+                                    <label for="password" class="form-label">Mật khẩu mới</label>
                                     <div class="input-group">
                                         <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror">
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
                                             <i class="bi bi-eye" id="passwordIcon"></i>
                                         </button>
                                     </div>
+                                    <div class="form-text">Bỏ trống nếu không muốn đổi mật khẩu</div>
                                     @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
                                     <div class="input-group">
@@ -112,27 +113,39 @@
                                         </button>
                                     </div>
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label for="role" class="form-label">Vai trò</label>
+                                    <label for="role" class="form-label">Vai trò <span class="text-danger">*</span></label>
                                     <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
-                                                                        <option value="admin" {{ old('role', $user->role)=='admin'?'selected':'' }}>Admin</option>
-                                <option value="director" {{ old('role', $user->role)=='director'?'selected':'' }}>Director</option>
-                                <option value="manager" {{ old('role', $user->role)=='manager'?'selected':'' }}>Manager</option>
-                                <option value="employee" {{ old('role', $user->role)=='employee'?'selected':'' }}>Employee</option>
+                                        <option value="admin" {{ old('role', $user->role)=='admin'?'selected':'' }}>Admin</option>
+                                        <option value="director" {{ old('role', $user->role)=='director'?'selected':'' }}>Director</option>
+                                        <option value="manager" {{ old('role', $user->role)=='manager'?'selected':'' }}>Manager</option>
+                                        <option value="employee" {{ old('role', $user->role)=='employee'?'selected':'' }}>Employee</option>
                                     </select>
                                     @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label for="account_status" class="form-label">Trạng thái tài khoản</label>
+                                    <label for="account_status" class="form-label">Trạng thái tài khoản <span class="text-danger">*</span></label>
                                     <select name="account_status" id="account_status" class="form-select @error('account_status') is-invalid @enderror" required>
                                         <option value="active" {{ old('account_status', $user->account_status)=='active'?'selected':'' }}>Hoạt động</option>
                                         <option value="inactive" {{ old('account_status', $user->account_status)=='inactive'?'selected':'' }}>Không hoạt động</option>
                                     </select>
                                     @error('account_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thông tin bổ sung -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>Thông tin bổ sung
+                                </h5>
+                            </div>
+                            <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Phòng ban</label>
                                     <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
@@ -143,7 +156,7 @@
                                             <div class="form-check mb-2">
                                                 <input class="form-check-input" type="checkbox" name="department_ids[]" value="{{ $department->id }}" 
                                                        id="department_{{ $department->id }}" 
-                                                       {{ $isChecked ? 'checked' : '' }}
+                                                       {{ $isChecked ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="department_{{ $department->id }}">
                                                     {{ $department->name }}
                                                 </label>
@@ -155,46 +168,31 @@
                                         <strong>Director/Admin:</strong> Nếu không chọn phòng ban nào, sẽ mặc định quản lý tất cả phòng ban.
                                     </div>
                                     @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    
-                                    
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Thông tin bổ sung -->
-                    <div class="col-md-6">
-                        <div class="card shadow-sm">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-file-earmark-text me-2"></i>Thông tin bổ sung
-                                </h5>
-                            </div>
-                            <div class="card-body">
                                 <div class="mb-3">
                                     <label for="position" class="form-label">Chức vụ</label>
                                     <select name="position" id="position" class="form-select @error('position') is-invalid @enderror">
-                                        <option value="">Chọn chức vụ</option>
-                                        <option value="Nhân Viên Chính Thức" {{ old('position', $user->position) == 'Nhân Viên Chính Thức' ? 'selected' : '' }}>Nhân Viên Chính Thức</option>
-                                        <option value="Nhân Viên Thử Việc" {{ old('position', $user->position) == 'Nhân Viên Thử Việc' ? 'selected' : '' }}>Nhân Viên Thử Việc</option>
-                                        <option value="Nhân Viên Remote" {{ old('position', $user->position) == 'Nhân Viên Remote' ? 'selected' : '' }}>Nhân Viên Remote</option>
+                                        <option value="">-- Chọn chức vụ --</option>
+                                        <option value="Nhân Viên Chính Thức" {{ old('position', $user->position)=='Nhân Viên Chính Thức'?'selected':'' }}>Nhân Viên Chính Thức</option>
+                                        <option value="Nhân Viên Thử Việc" {{ old('position', $user->position)=='Nhân Viên Thử Việc'?'selected':'' }}>Nhân Viên Thử Việc</option>
+                                        <option value="Nhân Viên Remote" {{ old('position', $user->position)=='Nhân Viên Remote'?'selected':'' }}>Nhân Viên Remote</option>
                                     </select>
                                     @error('position')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label for="social_insurance_number" class="form-label">Mã số BHXH</label>
                                     <input type="text" name="social_insurance_number" id="social_insurance_number" class="form-control @error('social_insurance_number') is-invalid @enderror" value="{{ old('social_insurance_number', $user->social_insurance_number) }}">
                                     @error('social_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label for="health_insurance_number" class="form-label">Mã số BHYT</label>
                                     <input type="text" name="health_insurance_number" id="health_insurance_number" class="form-control @error('health_insurance_number') is-invalid @enderror" value="{{ old('health_insurance_number', $user->health_insurance_number) }}">
                                     @error('health_insurance_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label for="personal_identification_number" class="form-label">Mã số định danh cá nhân</label>
                                     <input type="text" name="personal_identification_number" id="personal_identification_number" class="form-control @error('personal_identification_number') is-invalid @enderror" value="{{ old('personal_identification_number', $user->personal_identification_number) }}">
@@ -205,79 +203,61 @@
                     </div>
                 </div>
 
-                <!-- Thông tin hợp đồng chính thức -->
+                <!-- Thông tin hợp đồng -->
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="card shadow-sm">
                             <div class="card-header">
                                 <h5 class="mb-0">
-                                    <i class="bi bi-file-earmark-text me-2"></i>Thông tin hợp đồng chính thức
+                                    <i class="bi bi-file-earmark-text me-2"></i>Thông tin hợp đồng
                                 </h5>
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="contract_salary" class="form-label">Lương chính thức (VNĐ)</label>
-                                            <input type="number" name="contract_salary" id="contract_salary" class="form-control @error('contract_salary') is-invalid @enderror" value="{{ old('contract_salary', $user->activeContract ? $user->activeContract->probation_salary : '') }}" placeholder="VD: 40000000">
+                                            <label for="contract_salary" class="form-label">Lương hợp đồng</label>
+                                            <input type="number" name="contract_salary" id="contract_salary" class="form-control @error('contract_salary') is-invalid @enderror" value="{{ old('contract_salary', $user->activeContract?->salary) }}" min="0">
                                             @error('contract_salary')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
-                                        
+                                    </div>
+                                    <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="contract_start_date" class="form-label">Ngày bắt đầu hợp đồng</label>
-                                            <input type="date" name="contract_start_date" id="contract_start_date" class="form-control @error('contract_start_date') is-invalid @enderror" value="{{ old('contract_start_date', $user->activeContract ? $user->activeContract->start_date->format('Y-m-d') : '') }}">
+                                            <label for="contract_start_date" class="form-label">Ngày bắt đầu</label>
+                                            <input type="date" name="contract_start_date" id="contract_start_date" class="form-control @error('contract_start_date') is-invalid @enderror" value="{{ old('contract_start_date', $user->activeContract?->start_date?->format('Y-m-d')) }}">
                                             @error('contract_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
                                     </div>
-                                    
+                                </div>
+
+                                <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="contract_period" class="form-label">Thời gian hợp đồng (tháng)</label>
                                             <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror">
-                                                <option value="">Chọn thời gian</option>
+                                                <option value="">-- Chọn thời gian --</option>
                                                 @for($i = 1; $i <= 60; $i++)
-                                                    <option value="{{ $i }}" {{ old('contract_period', $user->activeContract ? $user->activeContract->probation_period : '') == $i ? 'selected' : '' }}>{{ $i }} tháng</option>
+                                                    <option value="{{ $i }}" {{ old('contract_period', $user->activeContract?->period) == $i ? 'selected' : '' }}>{{ $i }} tháng</option>
                                                 @endfor
                                             </select>
                                             @error('contract_period')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
-                                        
+                                    </div>
+                                    <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="contract_status" class="form-label">Trạng thái hợp đồng</label>
                                             <select name="contract_status" id="contract_status" class="form-select @error('contract_status') is-invalid @enderror">
-                                                <option value="active" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'active' ? 'selected' : '' }}>Đang hoạt động</option>
-                                                <option value="completed" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'completed' ? 'selected' : '' }}>Đã hoàn thành</option>
-                                                <option value="terminated" {{ old('contract_status', $user->activeContract ? $user->activeContract->status : '') == 'terminated' ? 'selected' : '' }}>Đã chấm dứt</option>
+                                                <option value="">-- Chọn trạng thái --</option>
+                                                <option value="active" {{ old('contract_status', $user->activeContract?->status)=='active'?'selected':'' }}>Đang hoạt động</option>
+                                                <option value="completed" {{ old('contract_status', $user->activeContract?->status)=='completed'?'selected':'' }}>Hoàn thành</option>
+                                                <option value="terminated" {{ old('contract_status', $user->activeContract?->status)=='terminated'?'selected':'' }}>Chấm dứt</option>
                                             </select>
                                             @error('contract_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Bổ sung hợp đồng cho nhân viên chưa có -->
-                                @if(!$user->activeContract)
-                                <div class="mt-4">
-                                    <div class="alert alert-warning">
-                                        <i class="bi bi-exclamation-triangle me-2"></i>
-                                        <strong>Lưu ý:</strong> Nhân viên này chưa có hợp đồng. Vui lòng điền đầy đủ thông tin hợp đồng bên trên và tải lên hình ảnh hợp đồng để tạo hợp đồng mới.
-                                    </div>
-                                    
-                                    <div class="d-flex justify-content-center">
-                                        <button type="button" class="btn btn-primary" onclick="createNewContract()">
-                                            <i class="bi bi-plus-circle me-2"></i>Tạo hợp đồng mới
-                                        </button>
-                                    </div>
-                                </div>
-                                @else
-                                <div class="mt-4">
-                                    <div class="alert alert-success">
-                                        <i class="bi bi-check-circle me-2"></i>
-                                        <strong>Thông báo:</strong> Nhân viên này đã có hợp đồng. Bạn có thể cập nhật thông tin hợp đồng bên trên.
-                                    </div>
-                                </div>
-                                @endif
-                                
-                                <!-- Hình ảnh hợp đồng (cho tất cả nhân viên) -->
+
+                                <!-- Hình ảnh hợp đồng -->
                                 <div class="mt-4">
                                     <h6 class="text-info mb-3">
                                         <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
@@ -313,6 +293,18 @@
                                             @endforeach
                                         </div>
                                     </div>
+                                    @else
+                                    <!-- Cảnh báo nếu chưa có hợp đồng -->
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <strong>Lưu ý:</strong> Nhân viên này chưa có hợp đồng. Vui lòng điền đầy đủ thông tin hợp đồng bên trên và tải lên hình ảnh hợp đồng để tạo hợp đồng mới.
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" class="btn btn-primary" onclick="createNewContract()">
+                                            <i class="bi bi-plus-circle me-2"></i>Tạo hợp đồng mới
+                                        </button>
+                                    </div>
                                     @endif
                                 </div>
                             </div>
@@ -337,9 +329,11 @@
         </div>
     </div>
 </div>
+@endsection
 
 @push('scripts')
 <script>
+// Preview ảnh hợp đồng
 document.getElementById('contract_images').addEventListener('change', function(e) {
     const preview = document.getElementById('imagePreview');
     preview.innerHTML = '';
@@ -388,15 +382,11 @@ function createNewContract() {
     
     // Nếu đã đủ thông tin, submit form
     if (confirm('Bạn có chắc chắn muốn tạo hợp đồng mới cho nhân viên này?')) {
-        document.querySelector('form').submit();
+        document.getElementById('edit-user-form').requestSubmit();
     }
 }
 
-</script>
-@endpush
-@endsection
-
-<script>
+// Toggle password visibility
 function togglePasswordVisibility(inputId, buttonId, iconId) {
     const input = document.getElementById(inputId);
     const button = document.getElementById(buttonId);
@@ -404,35 +394,17 @@ function togglePasswordVisibility(inputId, buttonId, iconId) {
     
     if (input.type === 'password') {
         input.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
         button.classList.remove('btn-outline-secondary');
         button.classList.add('btn-secondary');
     } else {
         input.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
         button.classList.remove('btn-secondary');
         button.classList.add('btn-outline-secondary');
     }
 }
-
-// Debug form submission
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('edit-user-form');
-    const submitBtn = form.querySelector('button[type="submit"]');
-    
-    console.log('Form found:', form);
-    console.log('Submit button found:', submitBtn);
-    
-    // Debug form submission - chỉ log, không can thiệp
-    form.addEventListener('submit', function(e) {
-        console.log('Form submit event triggered');
-    });
-    
-    // Debug button click
-    submitBtn.addEventListener('click', function(e) {
-        console.log('Submit button clicked');
-    });
-});
 </script>
+@endpush

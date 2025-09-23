@@ -328,7 +328,12 @@ class UserController extends Controller
             }
         }
         
+        // Debug department_ids
+        \Log::info('Department IDs received:', ['department_ids' => $data['department_ids'] ?? 'null']);
+        \Log::info('User role:', ['role' => $data['role']]);
+        
         if (in_array($data['role'], ['manager','employee']) && empty($data['department_ids'])) {
+            \Log::warning('Validation failed: No departments selected for manager/employee');
             return back()->withErrors(['department_ids'=>'Bắt buộc chọn ít nhất một phòng ban.'])->withInput();
         }
         
