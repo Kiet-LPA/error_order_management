@@ -12,9 +12,7 @@ class ApprovalComment extends Model
     protected $fillable = [
         'approval_request_id',
         'user_id',
-        'created_by_id',
-        'comment',
-        'action'
+        'comment'
     ];
 
     public function approvalRequest()
@@ -29,6 +27,6 @@ class ApprovalComment extends Model
 
     public function creator()
     {
-        return $this->belongsTo(User::class, 'created_by_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

@@ -236,6 +236,9 @@ class TaskController extends Controller
             'priority'    => 'nullable|in:low,medium,high',
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
             'is_recurring' => 'nullable|boolean',
+            'enable_followers' => 'nullable|boolean',
+            'followers' => 'nullable|array',
+            'followers.*' => 'exists:users,id',
         ]);
 
         // Debug: Log raw request data
@@ -385,8 +388,8 @@ class TaskController extends Controller
             $task->updateDepartmentsFromAssignees();
         }
 
-        // Xử lý followers khi tạo task
-        if ($r->has('followers') && is_array($r->followers)) {
+        // Xử lý followers khi tạo task (chỉ khi enable_followers được check)
+        if ($r->boolean('enable_followers') && $r->has('followers') && is_array($r->followers)) {
             $validFollowers = [];
             foreach ($r->followers as $followerId) {
                 // Kiểm tra user không phải là người tham gia task

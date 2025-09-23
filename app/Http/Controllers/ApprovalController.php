@@ -460,15 +460,14 @@ class ApprovalController extends Controller
         if ($request->comment) {
             $approvalRequest->comments()->create([
                 'comment' => $request->comment,
-                'created_by_id' => auth()->id(),
-                'action' => 'approved'
+                'user_id' => auth()->id()
             ]);
         }
 
         // Gửi thông báo cho người tạo và admin/director
         NotificationService::approvalRequestApprovedNew($approvalRequest, auth()->user());
 
-        return redirect()->route('approval.index')->with('success', 'Đề xuất đã được phê duyệt thành công');
+        return response()->json(['success' => 'Đề xuất đã được phê duyệt thành công']);
     }
 
     /**
@@ -526,14 +525,13 @@ class ApprovalController extends Controller
         // Add rejection comment
         $approvalRequest->comments()->create([
             'comment' => $request->comment,
-            'created_by_id' => auth()->id(),
-            'action' => 'rejected'
+            'user_id' => auth()->id()
         ]);
 
         // Gửi thông báo cho người tạo và admin/director
         NotificationService::approvalRequestRejectedNew($approvalRequest, auth()->user());
 
-        return redirect()->route('approval.index')->with('success', 'Đề xuất đã bị từ chối');
+        return response()->json(['success' => 'Đề xuất đã bị từ chối']);
     }
 
     public function bulkApprove(Request $request)
@@ -561,8 +559,7 @@ class ApprovalController extends Controller
                 if ($comment) {
                     $approvalRequest->comments()->create([
                         'comment' => $comment,
-                        'created_by_id' => auth()->id(),
-                        'action' => 'approved'
+                        'user_id' => auth()->id()
                     ]);
                 }
 
@@ -600,8 +597,7 @@ class ApprovalController extends Controller
 
                 $approvalRequest->comments()->create([
                     'comment' => $comment,
-                    'created_by_id' => auth()->id(),
-                    'action' => 'rejected'
+                    'user_id' => auth()->id()
                 ]);
 
                 $rejectedCount++;

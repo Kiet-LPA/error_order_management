@@ -430,9 +430,17 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
             </h6>
           </div>
           <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label">Chọn người theo dõi công việc này:</label>
-              <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="enable_followers" name="enable_followers" value="1" {{ old('enable_followers') ? 'checked' : '' }}>
+              <label class="form-check-label fw-bold text-dark" for="enable_followers">
+                <i class="bi bi-eye me-2"></i>Thêm người theo dõi công việc
+              </label>
+            </div>
+            
+            <div id="followers_section" style="display: none;">
+              <div class="mb-3">
+                <label class="form-label">Chọn người theo dõi công việc này:</label>
+                <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                 @foreach($departments as $department)
                   @php
                     // Lấy users thuộc phòng ban này (hỗ trợ multi-department)
@@ -463,14 +471,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                     @endif
                   </div>
                 @endforeach
+                </div>
+                <small class="form-text text-muted">
+                  @if(auth()->user()->isManager())
+                    Quản lý chỉ có thể thêm Nhân viên làm Người theo dõi. Người tham gia công việc sẽ không thể làm Người theo dõi.
+                  @else
+                    Những người này sẽ nhận thông báo khi công việc có thay đổi. Người tham gia công việc sẽ không thể làm Người theo dõi.
+                  @endif
+                </small>
               </div>
-              <small class="form-text text-muted">
-                @if(auth()->user()->isManager())
-                  Quản lý chỉ có thể thêm Nhân viên làm Người theo dõi. Người tham gia công việc sẽ không thể làm Người theo dõi.
-                @else
-                  Những người này sẽ nhận thông báo khi công việc có thay đổi. Người tham gia công việc sẽ không thể làm Người theo dõi.
-                @endif
-              </small>
             </div>
           </div>
         </div>
@@ -494,6 +503,32 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Followers toggle
+    const enableFollowersCheckbox = document.getElementById('enable_followers');
+    const followersSection = document.getElementById('followers_section');
+    
+    if (enableFollowersCheckbox && followersSection) {
+        enableFollowersCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                followersSection.style.display = 'block';
+            } else {
+                followersSection.style.display = 'none';
+                // Uncheck all follower checkboxes when hiding
+                const followerCheckboxes = followersSection.querySelectorAll('input[type="checkbox"]');
+                followerCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+        });
+        
+        // Set initial state
+        if (enableFollowersCheckbox.checked) {
+            followersSection.style.display = 'block';
+        } else {
+            followersSection.style.display = 'none';
+        }
+    }
+
     // Multi-department toggle (chỉ cho Admin/Director)
     const multiDeptCheckbox = document.getElementById('is_multi_department');
     const multiDeptSection = document.getElementById('multi_department_section');

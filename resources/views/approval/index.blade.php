@@ -541,7 +541,7 @@ function approveRequest(requestId) {
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
-            showAlert('success', data.message);
+            showAlert('success', data.success);
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
@@ -590,7 +590,7 @@ function rejectRequest(requestId) {
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
-            showAlert('success', data.message);
+            showAlert('success', data.success);
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
