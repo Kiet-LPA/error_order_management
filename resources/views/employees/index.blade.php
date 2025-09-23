@@ -507,7 +507,12 @@
               <td class="px-4 py-3">
                 <div class="d-flex align-items-center">
                   <div class="avatar-sm me-3">
-                    <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    <img src="{{ $user->avatar_url }}" 
+                         alt="{{ $user->name }}" 
+                         class="rounded-circle border border-2 border-primary" 
+                         style="width: 40px; height: 40px; object-fit: cover;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <i class="bi bi-person-circle fs-2 text-primary" style="display: none;"></i>
                   </div>
                   <div>
                     <div class="fw-medium text-dark employee-name">{{ $user->name }}</div>

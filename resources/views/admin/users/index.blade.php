@@ -304,7 +304,15 @@
                         <tr>
                             <td>{{ $user->id }}</td>
                             <td>
-                                <div class="fw-semibold">{{ $user->name }}</div>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ $user->avatar_url }}" 
+                                         alt="{{ $user->name }}" 
+                                         class="rounded-circle border border-2 border-primary me-2" 
+                                         style="width: 32px; height: 32px; object-fit: cover;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <i class="bi bi-person-circle text-primary me-2" style="display: none;"></i>
+                                    <div class="fw-semibold">{{ $user->name }}</div>
+                                </div>
                             </td>
                             <td>
                                 @if($user->email)

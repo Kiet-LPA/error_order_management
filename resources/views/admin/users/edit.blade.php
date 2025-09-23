@@ -43,10 +43,27 @@
                 </div>
             </div>
 
-            <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data" id="edit-user-form">
                 @csrf
                 @method('PUT')
                 
+                <!-- Avatar Section - Centered -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-image me-2"></i>Ảnh đại diện
+                                </h5>
+                            </div>
+                            <div class="card-body text-center">
+                                @include('profile.partials.avatar-form')
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Sections -->
                 <div class="row">
                     <!-- Thông tin cơ bản -->
                     <div class="col-md-6">
@@ -399,4 +416,23 @@ function togglePasswordVisibility(inputId, buttonId, iconId) {
         button.classList.add('btn-outline-secondary');
     }
 }
+
+// Debug form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('edit-user-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    console.log('Form found:', form);
+    console.log('Submit button found:', submitBtn);
+    
+    // Debug form submission - chỉ log, không can thiệp
+    form.addEventListener('submit', function(e) {
+        console.log('Form submit event triggered');
+    });
+    
+    // Debug button click
+    submitBtn.addEventListener('click', function(e) {
+        console.log('Submit button clicked');
+    });
+});
 </script>

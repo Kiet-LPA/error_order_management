@@ -51,9 +51,25 @@
                 </div>
             @endif
 
-            <form action="{{ route('employees.new.update', $user) }}" method="POST">
+            <form action="{{ route('employees.new.update', $user) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
+                
+                <!-- Avatar Section - Centered -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-image me-2"></i>Ảnh đại diện
+                                </h5>
+                            </div>
+                            <div class="card-body text-center">
+                                @include('profile.partials.avatar-form')
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="row">
                     <!-- Thông tin cơ bản -->

@@ -74,9 +74,16 @@ class EmployeeController extends Controller
             'department_ids.*' => 'exists:departments,id',
             'probation_salary' => 'required|numeric|min:0',
             'probation_period' => 'required|integer|min:1|max:12', // tháng
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         try {
+            // Xử lý upload avatar
+            $avatarPath = null;
+            if ($request->hasFile('avatar')) {
+                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            }
+            
             // Tạo user mới
             $user = User::create([
                 'name' => $request->name,
@@ -86,6 +93,7 @@ class EmployeeController extends Controller
                 'department_id' => $request->department_ids[0], // Phòng ban đầu tiên
                 'employee_type' => 'new',
                 'password' => bcrypt('password123'), // mật khẩu mặc định
+                'avatar' => $avatarPath,
             ]);
 
             // Xử lý multiple departments
@@ -281,6 +289,7 @@ class EmployeeController extends Controller
             'probation_period'=>'nullable|integer|min:1|max:12',
             'start_date'=>'nullable|date',
             'contract_status'=>'nullable|in:active,completed,terminated',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
         
         // Kiểm tra quyền
@@ -324,6 +333,17 @@ class EmployeeController extends Controller
         // Admin và Director luôn luôn active
         if ($user->isAdmin() || $user->isDirector()) {
             $data['account_status'] = 'active';
+        }
+        
+        // Xử lý upload avatar
+        if ($request->hasFile('avatar')) {
+            // Xóa avatar cũ nếu có
+            if ($user->avatar) {
+                \Storage::disk('public')->delete($user->avatar);
+            }
+            
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $data['avatar'] = $avatarPath;
         }
         
         $user->update($data);

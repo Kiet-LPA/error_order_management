@@ -47,6 +47,17 @@ Route::get('/admin/update-overdue', function () {
     ]);
 })->name('admin.update-overdue');
 
+// Route để serve avatar files
+Route::get('/storage/avatars/{filename}', function ($filename) {
+    $path = storage_path('app/public/avatars/' . $filename);
+    
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    return response()->file($path);
+})->name('avatar.serve');
+
 // Các route yêu cầu đăng nhập (KHÔNG dùng verified)
 Route::middleware(['auth', 'employee.type'])->group(function () {
 
@@ -272,6 +283,11 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     
+    // Avatar routes
+    Route::post('/avatar/upload', [App\Http\Controllers\AvatarController::class, 'upload'])->name('avatar.upload');
+    Route::delete('/avatar/remove', [App\Http\Controllers\AvatarController::class, 'remove'])->name('avatar.remove');
+    Route::post('/avatar/upload/{userId}', [App\Http\Controllers\AvatarController::class, 'uploadForUser'])->name('avatar.upload.user');
+    Route::delete('/avatar/remove/{userId}', [App\Http\Controllers\AvatarController::class, 'remove'])->name('avatar.remove.user');
 });
 
 // Chỉ require auth.php nếu đã cài Breeze/Jetstream (tránh lỗi file không tồn tại)

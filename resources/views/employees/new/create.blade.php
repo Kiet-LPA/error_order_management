@@ -21,8 +21,24 @@
                     <h5 class="mb-0">Thông tin nhân viên mới</h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('employees.new.store') }}" method="POST">
+                    <form action="{{ route('employees.new.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
+                        
+                        <!-- Avatar Section - Centered -->
+                        <div class="row justify-content-center mb-4">
+                            <div class="col-md-6">
+                                <div class="card shadow-sm">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-image me-2"></i>Ảnh đại diện
+                                        </h5>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        @include('profile.partials.avatar-form')
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <!-- Thông tin cơ bản -->
                         <div class="row">

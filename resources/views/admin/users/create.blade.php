@@ -32,8 +32,26 @@
         <h5 class="mb-0">Thêm nhân viên mới</h5>
     </div>
     <div class="card-body">
-        <form action="{{ route('users.store') }}" method="POST">
+        <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
+            
+            <!-- Avatar Section - Centered -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-image me-2"></i>Ảnh đại diện
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            @include('profile.partials.avatar-form')
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Fields -->
             <div class="mb-3">
                 <label for="name" class="form-label">Tên</label>
                 <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
