@@ -299,7 +299,20 @@ if (file_exists(__DIR__ . '/auth.php')) {
 Route::middleware(['auth'])->group(function () {
     // Approval Requests
     Route::get('/approval', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approval.index');
-    Route::get('/approval/create/{formType}', [App\Http\Controllers\ApprovalController::class, 'create'])->name('approval.create');
+    Route::get('/approval/create', [App\Http\Controllers\ApprovalController::class, 'create'])->name('approval.create');
+    Route::get('/approval/create/{formType}', [App\Http\Controllers\ApprovalController::class, 'create'])->name('approval.create.type');
+    
+    // API routes for approval system
+    Route::get('/api/users/approval-eligible', function() {
+        $users = \App\Models\User::where('role', 'manager')
+            ->select('id', 'name', 'role')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $users
+        ]);
+    });
     Route::post('/approval', [App\Http\Controllers\ApprovalController::class, 'store'])->name('approval.store');
     Route::get('/approval/{id}', [App\Http\Controllers\ApprovalController::class, 'show'])->name('approval.show');
     Route::get('/approval/{id}/edit', [App\Http\Controllers\ApprovalController::class, 'edit'])->name('approval.edit');

@@ -144,30 +144,41 @@ class ApprovalController extends Controller
         return view('approval.index', compact('myRequests', 'pendingApprovals', 'allRequests'));
     }
 
-    public function create($formType)
+    public function create($formType = null)
     {
-        $formConfig = ApprovalForm::where('form_type', $formType)
-            ->where('is_active', true)
-            ->firstOrFail();
+        // Lấy tất cả approval forms để hiển thị trong dropdown
+        $approvalForms = ApprovalForm::where('is_active', true)->get();
         
-        // Lọc phòng ban theo user hiện tại
-        $currentUser = Auth::user();
-        $userDepartments = $currentUser->departments()->pluck('departments.id')->toArray();
-        
-        // Convert form_fields to array và cập nhật options phòng ban
-        $formFields = $formConfig->form_fields;
-        foreach ($formFields as $key => $field) {
-            if ($field['name'] === 'department' && isset($field['options'])) {
-                $formFields[$key]['options'] = array_filter($field['options'], function($option) use ($userDepartments) {
-                    return in_array($option['value'], $userDepartments);
-                });
-            }
+        // Lấy form config - nếu có formType cụ thể thì dùng nó, không thì dùng form đầu tiên
+        if ($formType) {
+            $formConfig = ApprovalForm::where('form_type', $formType)
+                ->where('is_active', true)
+                ->firstOrFail();
+        } else {
+            // Lấy form đầu tiên làm mặc định
+            $formConfig = ApprovalForm::where('is_active', true)->first();
         }
         
-        // Cập nhật lại form_fields
-        $formConfig->form_fields = $formFields;
+        if ($formConfig) {
+            // Lọc phòng ban theo user hiện tại
+            $currentUser = Auth::user();
+            $userDepartments = $currentUser->departments()->pluck('departments.id')->toArray();
             
-        return view('approval.create', compact('formConfig'));
+            // Convert form_fields to array và cập nhật options phòng ban
+            $formFields = $formConfig->form_fields;
+            foreach ($formFields as $key => $field) {
+                if ($field['name'] === 'department' && isset($field['options'])) {
+                    $formFields[$key]['options'] = array_filter($field['options'], function($option) use ($userDepartments) {
+                        return in_array($option['value'], $userDepartments);
+                    });
+                }
+            }
+            
+            // Cập nhật lại form_fields
+            $formConfig->form_fields = $formFields;
+        }
+            
+        return view('approval.create', compact('approvalForms', 'formConfig'));
     }
 
     public function store(Request $request)
