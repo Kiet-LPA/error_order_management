@@ -45,6 +45,22 @@
       color: #e0e0e0;
     }
     
+    /* Ensure navbar always stays on top */
+    .navbar {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 1070 !important;
+      background-color: white !important;
+      width: 100% !important;
+    }
+    
+    /* Fix any potential navbar hiding issues */
+    body {
+      padding-top: 56px !important; /* Height of navbar */
+    }
+    
     /* Container fluid adjustments */
     .container-fluid {
       padding-left: 0 !important;
@@ -84,7 +100,7 @@
     .sidebar {
       transition: all 0.3s ease;
       position: fixed;
-      top: 56px;
+      top: 56px; /* Same as navbar height */
       left: 0;
       width: 16.666% !important;
       height: calc(100vh - 56px);

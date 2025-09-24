@@ -1,5 +1,5 @@
 <!-- Navbar -->
-<nav class="navbar navbar-light bg-white shadow-sm sticky-top" style="z-index: 1030;">
+<nav class="navbar navbar-light bg-white shadow-sm" style="position: fixed; top: 0; left: 0; right: 0; z-index: 1070; width: 100%;">
   <div class="container-fluid">
     <a class="navbar-brand fw-bold text-primary" href="{{ route('dashboard') }}">
       <i class="bi bi-clipboard-data me-2"></i>📋 Quản lý công việc
@@ -106,6 +106,24 @@
 .btn-outline-secondary:hover {
     transform: translateY(-1px);
     box-shadow: 0 0.25rem 0.5rem rgba(108, 117, 125, 0.25);
+}
+
+/* Ensure navbar stays on top */
+.navbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1070 !important;
+    background-color: white !important;
+    border-bottom: 1px solid #dee2e6;
+    width: 100% !important;
+}
+
+/* Fix any potential overflow issues */
+.navbar .container-fluid {
+    max-width: 100%;
+    overflow: visible;
 }
 
 </style>
