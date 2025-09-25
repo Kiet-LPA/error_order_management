@@ -226,6 +226,11 @@ class TaskController extends Controller
             'description' => 'nullable|string',
             'assignee_id' => 'nullable|exists:users,id',
             'assignee_ids' => 'nullable|array',
+            'subtasks' => 'nullable|array',
+            'subtasks.*.title' => 'required|string|max:255',
+            'subtasks.*.description' => 'nullable|string',
+            'subtasks.*.assignee_id' => 'required|exists:users,id',
+            'subtasks.*.order' => 'required|integer|min:0',
             'assignee_ids.*' => 'exists:users,id',
             'department_id' => 'nullable|exists:departments,id',
             'department_ids' => 'nullable|array',
@@ -404,6 +409,11 @@ class TaskController extends Controller
             }
         }
 
+        // Xử lý subtasks
+        if ($r->has('subtasks') && is_array($r->subtasks)) {
+            $this->createSubtasks($task, $r->subtasks);
+        }
+
         // Xử lý approval system cho multi-department tasks
         if ($task->is_multi_department && ($user->isManager() || $user->isDirector())) {
             // Tạo approval requests
@@ -424,7 +434,7 @@ class TaskController extends Controller
         }
         
         // Load relationships
-        $task->load(['creator','assignee','assignees','departments','followers.department','approvals.department','approvals.manager','forwardedTo','forwardedBy']);
+        $task->load(['creator','assignee','assignees','departments','followers.department','approvals.department','approvals.manager','forwardedTo','forwardedBy','subtasks.assignedUser']);
         $task->load(['activities' => function($query) {
             $query->orderBy('created_at', 'desc');
         }, 'activities.user']);
@@ -452,7 +462,7 @@ class TaskController extends Controller
         }
         
         // Load relationships
-        $task->load(['assignees', 'departments', 'followers.department']);
+        $task->load(['assignees', 'departments', 'followers.department', 'subtasks.assignedUser']);
         
         // Lấy danh sách users và departments có thể assign
         $users = $user->getAssignableUsers();
@@ -489,11 +499,31 @@ class TaskController extends Controller
             'files.*'     => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm|max:51200',
             'followers'   => 'nullable|array',
             'followers.*' => 'exists:users,id',
+            
+            // Subtasks validation
+            'subtasks' => 'nullable|array',
+            'subtasks.*.title' => 'required|string|max:255',
+            'subtasks.*.description' => 'nullable|string',
+            'subtasks.*.assignee_id' => 'required|exists:users,id',
+            'subtasks.*.order' => 'required|integer|min:1',
         ]);
 
         // Kiểm tra lý do từ chối khi trạng thái là rejected
         if ($data['status'] === 'rejected' && empty($data['rejection_reason'])) {
             return back()->withErrors(['rejection_reason' => 'Phải nhập lý do từ chối khi trạng thái là "Từ chối".'])->withInput();
+        }
+
+        // Kiểm tra subtasks assignees
+        if ($request->has('subtasks') && is_array($request->subtasks)) {
+            $availableUserIds = $task->getAvailableUsersForSubtasks()->pluck('id')->toArray();
+            
+            foreach ($request->subtasks as $index => $subtask) {
+                if (!in_array($subtask['assignee_id'], $availableUserIds)) {
+                    return back()->withErrors([
+                        "subtasks.{$index}.assignee_id" => 'Người được giao subtask phải là người tham gia task chính'
+                    ])->withInput();
+                }
+            }
         }
 
         // Xóa lý do từ chối nếu trạng thái không phải là rejected
@@ -696,6 +726,26 @@ class TaskController extends Controller
         // Gửi thông báo cho assignees và followers
         NotificationService::taskUpdated($task, $user);
 
+        // Cập nhật subtasks
+        if ($request->has('subtasks')) {
+            \Log::debug('UPDATING SUBTASKS', [
+                'task_id' => $task->id,
+                'subtasks_count' => is_array($request->subtasks) ? count($request->subtasks) : 0,
+                'subtasks_data' => $request->subtasks
+            ]);
+            
+            try {
+                $this->updateSubtasks($task, $request->subtasks);
+            } catch (\Exception $e) {
+                \Log::error('ERROR UPDATING SUBTASKS', [
+                    'task_id' => $task->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return back()->withErrors(['subtasks' => 'Lỗi khi cập nhật subtasks: ' . $e->getMessage()])->withInput();
+            }
+        }
+
         // Ghi log hoạt động
         $task->activities()->create([
             'user_id' => $user->id,
@@ -725,67 +775,54 @@ class TaskController extends Controller
 
     public function updateStatus(Task $task, Request $r)
     {
-        $user = $r->user();
-        
-        // Kiểm tra quyền cập nhật trạng thái task
-        if (!$user->canApproveTask($task)) {
-            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
-        }
-        
-        // Load assignees trước khi kiểm tra quyền
-        $task->load('assignees');
-        
-        $status = $r->get('status');
-        $rejectionReason = $r->get('rejection_reason');
-        $finishNote = $r->get('finish_note');
-        
-        // Kiểm tra workflow hợp lệ
-        $validTransitions = $this->getValidStatusTransitions($task, $user);
-        
-        if (!in_array($status, $validTransitions)) {
-            return back()->withErrors(['status' => 'Không thể chuyển sang trạng thái này']);
-        }
-        
-        // Kiểm tra đặc biệt cho trường hợp chuyển từ overdue về in_progress
-        if ($task->status === 'overdue' && $status === 'in_progress') {
-            // Bắt buộc phải cập nhật deadline thành ngày trong tương lai
-            if (!$task->deadline || $task->deadline->isPast()) {
-                return back()->withErrors(['status' => 'Không thể chuyển về "Đang làm" khi deadline vẫn trong quá khứ. Vui lòng cập nhật deadline trước.']);
-            }
-        }
-        
-        // Cập nhật trạng thái
-        $updateData = ['status' => $status];
-        if ($status === 'rejected' && $rejectionReason) {
-            $updateData['rejection_reason'] = $rejectionReason;
-        }
-        if ($status === 'finished' && $finishNote) {
-            $updateData['finish_note'] = $finishNote;
-        }
-        
-        // Set completed_at khi status = 'pending_approval' (khi employee hoàn thành task)
-        if ($status === 'pending_approval') {
-            $updateData['completed_at'] = now();
-        }
-        
-        $task->update($updateData);
-        
-        // Tạo activity log với thông tin chi tiết
-        $statusMessages = [
-            'in_progress' => 'Đã giao việc',
-            'pending_approval' => 'Đã hoàn thành và gửi duyệt',
-            'rejected' => 'Đã từ chối' . ($rejectionReason ? ': ' . $rejectionReason : ''),
-            'overdue' => 'Đã trễ hạn',
-            'finished' => 'Đã kết thúc' . ($finishNote ? ': ' . $finishNote : '')
-        ];
-        
-        $task->activities()->create([
-            'user_id' => $user->id,
-            'action'  => 'updated_status',
-            'meta'    => $statusMessages[$status] ?? "Cập nhật trạng thái: $status",
+        \Log::debug('UPDATE STATUS REQUEST', [
+            'method' => $r->method(),
+            'is_ajax' => $r->ajax(),
+            'wants_json' => $r->wantsJson(),
+            'input' => $r->all(),
+            'json' => $r->json()->all()
         ]);
         
-        return back()->with('ok', 'Đã cập nhật trạng thái công việc');
+        $user = $r->user();
+        $status = $r->input('status') ?? $r->json('status');
+        $task->load('assignees');
+
+        // ✅ Cho phép employee resubmit khi task bị rejected
+        $isEmployeeResubmitting = $user->role === 'employee' &&
+            $task->status === 'rejected' &&
+            $status === 'pending_approval' &&
+            ($task->assignee_id === $user->id || $task->assignees->contains('id', $user->id));
+
+        if (!$isEmployeeResubmitting && !$user->canApproveTask($task)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+        }
+
+        // ✅ Kiểm tra transition hợp lệ
+        $validTransitions = $this->getValidStatusTransitions($task, $user);
+        if (!in_array($status, $validTransitions)) {
+            if ($r->ajax() || $r->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Không thể chuyển sang trạng thái này'], 400);
+            }
+            return back()->withErrors(['status' => 'Không thể chuyển sang trạng thái này']);
+        }
+
+        // ✅ Subtask validation
+        if (in_array($status, ['pending_approval', 'finished']) && $task->hasSubtasks()) {
+            if (!$task->allSubtasksCompleted()) {
+                if ($r->ajax() || $r->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Cần hoàn thành tất cả subtask trước khi gửi duyệt/hoàn thành'], 400);
+                }
+                return back()->withErrors(['status' => 'Cần hoàn thành tất cả subtask trước khi gửi duyệt/hoàn thành']);
+            }
+        }
+
+        $task->status = $status;
+        $task->save();
+
+        if ($r->ajax() || $r->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Cập nhật trạng thái thành công']);
+        }
+        return back()->with('success', 'Cập nhật trạng thái thành công');
     }
     
     private function getValidStatusTransitions(Task $task, $user)
@@ -802,8 +839,12 @@ class TaskController extends Controller
                 
             case 'in_progress':
                 // Role thấp có thể hoàn thành và gửi duyệt
-                if ($userRole === 'employee' && $task->assignee_id === $user->id) {
-                    return ['pending_approval'];
+                if ($userRole === 'employee') {
+                    // Kiểm tra cả assignee_id và assignees (multi-user)
+                    $isAssigned = $task->assignee_id === $user->id || $task->assignees->contains('id', $user->id);
+                    if ($isAssigned) {
+                        return ['pending_approval'];
+                    }
                 }
                 // Role cao có thể thay đổi trạng thái
                 if (in_array($userRole, ['admin', 'director', 'manager'])) {
@@ -820,8 +861,12 @@ class TaskController extends Controller
                 
             case 'rejected':
                 // Role thấp có thể làm lại và gửi duyệt
-                if ($userRole === 'employee' && $task->assignee_id === $user->id) {
-                    return ['pending_approval'];
+                if ($userRole === 'employee') {
+                    // Kiểm tra cả assignee_id và assignees (multi-user)
+                    $isAssigned = $task->assignee_id === $user->id || $task->assignees->contains('id', $user->id);
+                    if ($isAssigned) {
+                        return ['pending_approval'];
+                    }
                 }
                 break;
                 
@@ -1275,8 +1320,31 @@ class TaskController extends Controller
     {
         $user = $request->user();
         
+        // Load assignees trước khi kiểm tra quyền
+        $task->load('assignees');
+        
+        // Get status from request (support both form data and JSON)
+        $newStatus = $request->input('status') ?? $request->json('status');
+        
+        // Debug logging
+        \Log::debug('UPDATE STATUS AJAX DEBUG', [
+            'task_id' => $task->id,
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'current_status' => $task->status,
+            'requested_status' => $newStatus,
+            'assignee_id' => $task->assignee_id,
+            'assignees' => $task->assignees->pluck('id')->toArray(),
+            'canApproveTask' => $user->canApproveTask($task)
+        ]);
+        
         // Kiểm tra quyền cập nhật task
-        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+        $isEmployeeResubmitting = $user->role === 'employee' && 
+                                 $task->status === 'rejected' && 
+                                 $newStatus === 'pending_approval' &&
+                                 ($task->assignee_id === $user->id || $task->assignees->contains('id', $user->id));
+        
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager() && !$isEmployeeResubmitting) {
             return response()->json(['success' => false, 'message' => 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện'], 403);
         }
         
@@ -1289,8 +1357,6 @@ class TaskController extends Controller
             }
         }
         
-        $newStatus = $request->input('status');
-        
         // Validate status
         $validStatuses = ['in_progress', 'rejected', 'overdue', 'finished', 'pending_approval'];
         if (!in_array($newStatus, $validStatuses)) {
@@ -1299,8 +1365,30 @@ class TaskController extends Controller
         
         // Kiểm tra workflow hợp lệ
         $validTransitions = $this->getValidStatusTransitions($task, $user);
+        
+        \Log::debug('VALID TRANSITIONS AJAX', [
+            'validTransitions' => $validTransitions,
+            'isStatusValid' => in_array($newStatus, $validTransitions)
+        ]);
+        
         if (!in_array($newStatus, $validTransitions)) {
             return response()->json(['success' => false, 'message' => 'Không thể chuyển sang trạng thái này.'], 400);
+        }
+        
+        // Kiểm tra subtasks khi hoàn thành task
+        if (in_array($newStatus, ['pending_approval', 'finished']) && $task->hasSubtasks()) {
+            if (!$task->allSubtasksCompleted()) {
+                // Lấy danh sách subtasks chưa hoàn thành
+                $incompleteSubtasks = $task->subtasks()->where('status', '!=', 'completed')->get();
+                $incompleteTitles = $incompleteSubtasks->pluck('title')->toArray();
+                
+                $message = 'Không thể hoàn thành công việc. Còn các bước thực hiện chưa hoàn thành: "' . implode('", "', $incompleteTitles) . '"';
+                
+                return response()->json([
+                    'success' => false, 
+                    'message' => $message
+                ], 400);
+            }
         }
         
         // Cập nhật trạng thái với logic đầy đủ
@@ -1314,6 +1402,14 @@ class TaskController extends Controller
         // Clear completed_at khi chuyển từ pending_approval sang status khác
         if ($task->status === 'pending_approval' && $newStatus !== 'pending_approval') {
             $updateData['completed_at'] = null;
+        }
+        
+        // Reset subtasks khi task bị reject
+        if ($newStatus === 'rejected' && $task->hasSubtasks()) {
+            $task->subtasks()->update([
+                'status' => 'todo',
+                'completed_at' => null
+            ]);
         }
         
         // Xử lý trạng thái overdue
@@ -1348,4 +1444,207 @@ class TaskController extends Controller
             'task' => $task->load(['assignee', 'creator', 'assignees'])
         ]);
     }
+
+    /**
+     * Tạo subtasks cho task
+     */
+    private function createSubtasks(Task $task, array $subtasksData)
+    {
+        $availableUsers = $task->getAvailableUsersForSubtasks();
+        $availableUserIds = $availableUsers->pluck('id')->toArray();
+
+        foreach ($subtasksData as $subtaskData) {
+            // Validate assigned user is in available users
+            if (!in_array($subtaskData['assignee_id'], $availableUserIds)) {
+                throw new \InvalidArgumentException('Người được giao subtask phải là người tham gia task chính');
+            }
+
+            $task->subtasks()->create([
+                'title' => $subtaskData['title'],
+                'description' => $subtaskData['description'] ?? null,
+                'assignee_id' => $subtaskData['assignee_id'],
+                'order' => $subtaskData['order'],
+                'status' => 'todo'
+            ]);
+        }
+    }
+
+    /**
+     * Cập nhật subtasks cho task
+     */
+    private function updateSubtasks(Task $task, array $subtasksData)
+    {
+        \Log::debug('updateSubtasks called', [
+            'task_id' => $task->id,
+            'subtasks_data_count' => count($subtasksData)
+        ]);
+        
+        // Lưu trạng thái hiện tại của subtasks (để giữ lại completed status)
+        $existingSubtasks = $task->subtasks()->get()->keyBy('title');
+        \Log::debug('existing subtasks', [
+            'count' => $existingSubtasks->count(),
+            'titles' => $existingSubtasks->keys()->toArray()
+        ]);
+        
+        // Xóa tất cả subtasks cũ (chỉ khi có subtasks mới)
+        if (!empty($subtasksData)) {
+            $task->subtasks()->delete();
+        } else {
+            // Nếu không có subtasks mới, xóa tất cả
+            $task->subtasks()->delete();
+            return;
+        }
+        
+        // Tạo subtasks mới
+        if (!empty($subtasksData)) {
+            $availableUsers = $task->getAvailableUsersForSubtasks();
+            $availableUserIds = $availableUsers->pluck('id')->toArray();
+            
+            \Log::debug('available users for subtasks', [
+                'user_ids' => $availableUserIds,
+                'users_count' => $availableUsers->count()
+            ]);
+
+            foreach ($subtasksData as $index => $subtaskData) {
+                \Log::debug('processing subtask', [
+                    'index' => $index,
+                    'title' => $subtaskData['title'] ?? 'no title',
+                    'assignee_id' => $subtaskData['assignee_id'] ?? 'no assignee'
+                ]);
+                
+                // Validate assigned user is in available users
+                if (!in_array($subtaskData['assignee_id'], $availableUserIds)) {
+                    \Log::error('Invalid assignee for subtask', [
+                        'assignee_id' => $subtaskData['assignee_id'],
+                        'available_user_ids' => $availableUserIds
+                    ]);
+                    throw new \InvalidArgumentException('Người được giao subtask phải là người tham gia task chính');
+                }
+
+                // Giữ nguyên status nếu subtask đã được hoàn thành trước đó
+                $status = 'todo';
+                $completedAt = null;
+                
+                if ($existingSubtasks->has($subtaskData['title'])) {
+                    $existingSubtask = $existingSubtasks->get($subtaskData['title']);
+                    \Log::debug('Found existing subtask', [
+                        'title' => $subtaskData['title'],
+                        'existing_status' => $existingSubtask->status,
+                        'existing_completed_at' => $existingSubtask->completed_at
+                    ]);
+                    
+                    if ($existingSubtask->status === 'completed') {
+                        $status = 'completed';
+                        $completedAt = $existingSubtask->completed_at;
+                    }
+                }
+                
+                \Log::debug('Creating subtask with status', [
+                    'title' => $subtaskData['title'],
+                    'status' => $status,
+                    'completed_at' => $completedAt
+                ]);
+
+                $task->subtasks()->create([
+                    'title' => $subtaskData['title'],
+                    'description' => $subtaskData['description'] ?? null,
+                    'assignee_id' => $subtaskData['assignee_id'],
+                    'order' => $subtaskData['order'],
+                    'status' => $status,
+                    'completed_at' => $completedAt
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Hoàn thành subtask
+     */
+    public function completeSubtask(Request $request, Task $task, $subtaskId)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền xem task
+        if (!$user->canViewTask($task)) {
+            abort(403, 'Không đủ quyền thao tác');
+        }
+
+        $subtask = $task->subtasks()->findOrFail($subtaskId);
+        
+        // Kiểm tra user có quyền hoàn thành subtask này không
+        if (!$subtask->canBeCompletedBy($user)) {
+            abort(403, 'Bạn không có quyền hoàn thành subtask này');
+        }
+
+        $subtask->markAsCompleted();
+
+        // Ghi log hoạt động
+        $task->activities()->create([
+            'user_id' => $user->id,
+            'action' => 'subtask_completed',
+            'description' => "Đã hoàn thành bước thực hiện: {$subtask->title}",
+            'metadata' => [
+                'subtask_id' => $subtask->id,
+                'subtask_title' => $subtask->title
+            ]
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã hoàn thành bước thực hiện',
+            'subtask' => $subtask,
+            'task_progress' => $task->getSubtasksProgressPercentage()
+        ]);
+    }
+
+    /**
+     * Cập nhật trạng thái subtask
+     */
+    public function updateSubtaskStatus(Request $request, Task $task, $subtaskId)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền xem task
+        if (!$user->canViewTask($task)) {
+            abort(403, 'Không đủ quyền thao tác');
+        }
+
+        $subtask = $task->subtasks()->findOrFail($subtaskId);
+        $status = $request->validate(['status' => 'required|in:todo,in_progress,completed'])['status'];
+
+        // Kiểm tra quyền thay đổi trạng thái
+        if ($status === 'completed' && !$subtask->canBeCompletedBy($user)) {
+            abort(403, 'Bạn không có quyền hoàn thành subtask này');
+        }
+
+        $oldStatus = $subtask->status;
+        $subtask->update(['status' => $status]);
+
+        // Ghi log hoạt động
+        $statusMessages = [
+            'todo' => 'Chờ thực hiện',
+            'in_progress' => 'Đang thực hiện',
+            'completed' => 'Đã hoàn thành'
+        ];
+
+        $task->activities()->create([
+            'user_id' => $user->id,
+            'action' => 'subtask_status_updated',
+            'description' => "Cập nhật trạng thái bước thực hiện '{$subtask->title}': {$statusMessages[$oldStatus]} → {$statusMessages[$status]}",
+            'metadata' => [
+                'subtask_id' => $subtask->id,
+                'subtask_title' => $subtask->title,
+                'old_status' => $oldStatus,
+                'new_status' => $status
+            ]
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã cập nhật trạng thái bước thực hiện',
+            'subtask' => $subtask,
+            'task_progress' => $task->getSubtasksProgressPercentage()
+        ]);
+    }
 }
+

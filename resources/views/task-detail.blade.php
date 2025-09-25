@@ -49,6 +49,125 @@
   </div>
 </div>
 
+<!-- Debug Subtasks -->
+<div class="card mb-3">
+  <div class="card-header bg-warning text-dark">
+    <h6 class="mb-0">🔍 Debug Subtasks</h6>
+  </div>
+  <div class="card-body">
+    <p><strong>hasSubtasks():</strong> {{ $task->hasSubtasks() ? 'true' : 'false' }}</p>
+    <p><strong>Subtasks count:</strong> {{ $task->subtasks()->count() }}</p>
+    <p><strong>Subtasks loaded:</strong> {{ $task->subtasks->count() }}</p>
+    @if($task->subtasks->count() > 0)
+      <p><strong>Subtasks:</strong></p>
+      <ul>
+        @foreach($task->subtasks as $subtask)
+          <li>{{ $subtask->title }} (Status: {{ $subtask->status }})</li>
+        @endforeach
+      </ul>
+    @endif
+  </div>
+</div>
+
+<!-- Subtasks Section -->
+@if($task->hasSubtasks())
+<div class="card mb-3">
+  <div class="card-header bg-success text-white">
+    <div class="d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">
+        <i class="bi bi-list-task me-2"></i>Các bước thực hiện
+      </h6>
+      <div class="d-flex align-items-center">
+        <span class="badge bg-light text-dark me-2">
+          {{ $task->getCompletedSubtasksCount() }}/{{ $task->getTotalSubtasksCount() }} hoàn thành
+        </span>
+        <div class="progress" style="width: 100px; height: 20px;">
+          <div class="progress-bar bg-light" role="progressbar" 
+               style="width: {{ $task->getSubtasksProgressPercentage() }}%"
+               aria-valuenow="{{ $task->getSubtasksProgressPercentage() }}" 
+               aria-valuemin="0" aria-valuemax="100">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="subtasks-list">
+      @foreach($task->subtasks as $subtask)
+        <div class="subtask-item border rounded p-3 mb-3" data-subtask-id="{{ $subtask->id }}">
+          <div class="row align-items-center">
+            <div class="col-md-1 text-center">
+              @if($subtask->isCompleted())
+                <i class="bi bi-check-circle-fill text-success fs-4"></i>
+              @elseif($subtask->isInProgress())
+                <i class="bi bi-clock-fill text-warning fs-4"></i>
+              @else
+                <i class="bi bi-circle text-muted fs-4"></i>
+              @endif
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-1">{{ $subtask->title }}</h6>
+              @if($subtask->description)
+                <p class="text-muted small mb-0">{{ $subtask->description }}</p>
+              @endif
+              <small class="text-muted">
+                <i class="bi bi-person me-1"></i>
+                {{ $subtask->assignedUser->name ?? 'Chưa phân công' }}
+              </small>
+            </div>
+            <div class="col-md-3">
+              <span class="badge bg-{{ $subtask->isCompleted() ? 'success' : ($subtask->isInProgress() ? 'warning' : 'secondary') }}">
+                {{ $subtask->isCompleted() ? 'Đã hoàn thành' : ($subtask->isInProgress() ? 'Đang thực hiện' : 'Chờ thực hiện') }}
+              </span>
+              @if($subtask->completed_at)
+                <br><small class="text-muted">Hoàn thành: {{ $subtask->completed_at->format('d/m/Y H:i') }}</small>
+              @endif
+            </div>
+            <div class="col-md-2 text-end">
+              @if($subtask->canBeCompletedBy(auth()->user()))
+                @if($subtask->isCompleted())
+                  <button class="btn btn-outline-secondary btn-sm" 
+                          onclick="updateSubtaskStatus({{ $subtask->id }}, 'todo')"
+                          title="Đánh dấu chưa hoàn thành">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                @else
+                  <button class="btn btn-success btn-sm" 
+                          onclick="completeSubtask({{ $subtask->id }})"
+                          title="Đánh dấu hoàn thành">
+                    <i class="bi bi-check"></i> Hoàn thành
+                  </button>
+                @endif
+              @else
+                <small class="text-muted">
+                  @if($subtask->assignedUser)
+                    {{ $subtask->assignedUser->name }} thực hiện
+                  @else
+                    Chưa phân công
+                  @endif
+                </small>
+              @endif
+            </div>
+          </div>
+        </div>
+      @endforeach
+    </div>
+    
+    @if(!$task->allSubtasksCompleted())
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Lưu ý:</strong> Công việc chính chỉ có thể hoàn thành khi tất cả các bước thực hiện đã được hoàn thành.
+      </div>
+    @else
+      <div class="alert alert-success">
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Tuyệt vời!</strong> Tất cả các bước thực hiện đã hoàn thành. Bạn có thể hoàn thành công việc chính.
+      </div>
+    @endif
+  </div>
+</div>
+@endif
+
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="progress-section">
@@ -1481,6 +1600,83 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
+
+    // Subtasks functions
+    function completeSubtask(subtaskId) {
+        if (!confirm('Bạn có chắc muốn đánh dấu bước thực hiện này là hoàn thành?')) {
+            return;
+        }
+        
+        fetch(`{{ route('tasks.subtasks.complete', $task) }}`.replace('{subtask}', subtaskId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload(); // Reload để cập nhật UI
+            } else {
+                showAlert('error', data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', 'Có lỗi xảy ra khi hoàn thành bước thực hiện');
+        });
+    }
+
+    function updateSubtaskStatus(subtaskId, status) {
+        if (!confirm(`Bạn có chắc muốn thay đổi trạng thái bước thực hiện này?`)) {
+            return;
+        }
+        
+        fetch(`{{ route('tasks.subtasks.update-status', $task) }}`.replace('{subtask}', subtaskId), {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload(); // Reload để cập nhật UI
+            } else {
+                showAlert('error', data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', 'Có lỗi xảy ra khi cập nhật trạng thái');
+        });
+    }
+
+    function showAlert(type, message) {
+        // Tạo alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Thêm vào body
+        document.body.appendChild(alertDiv);
+        
+        // Tự động ẩn sau 5 giây
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
 
     // Load followers khi trang load
     document.addEventListener('DOMContentLoaded', function() {

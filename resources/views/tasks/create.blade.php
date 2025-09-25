@@ -485,6 +485,38 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         </div>
         @endif
 
+        {{-- Subtasks Section --}}
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light border-0">
+                <h5 class="mb-0 text-dark">
+                  <i class="bi bi-list-task me-2"></i>
+                  Chia nhỏ công việc (Subtasks)
+                </h5>
+                <small class="text-muted">Tạo các bước thực hiện cụ thể cho công việc này</small>
+              </div>
+              <div class="card-body">
+                <div id="subtasks-container">
+                  {{-- Subtask items sẽ được thêm động --}}
+                </div>
+                
+                <div class="text-center mt-3">
+                  <button type="button" class="btn btn-outline-primary" id="add-subtask-btn">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Thêm bước thực hiện
+                  </button>
+                </div>
+                
+                <div class="alert alert-info mt-3 mb-0">
+                  <i class="bi bi-info-circle me-2"></i>
+                  <strong>Lưu ý:</strong> Công việc chính chỉ có thể hoàn thành khi tất cả các bước thực hiện đã được hoàn thành.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {{-- Nút giao việc --}}
         <div class="row mt-5">
           <div class="col-12 text-center">
@@ -1119,6 +1151,135 @@ document.addEventListener('DOMContentLoaded', function() {
             recurringDaysSection.classList.remove('d-none');
         }
     }
+
+    // Subtasks functionality
+    let subtaskCounter = 0;
+    const subtasksContainer = document.getElementById('subtasks-container');
+    const addSubtaskBtn = document.getElementById('add-subtask-btn');
+
+    // Function to get available users for subtasks
+    function getAvailableUsers() {
+        const availableUsers = [];
+        
+        // Single assignee
+        const singleAssignee = document.getElementById('assignee_select');
+        if (singleAssignee && singleAssignee.value) {
+            const option = singleAssignee.options[singleAssignee.selectedIndex];
+            availableUsers.push({
+                id: option.value,
+                name: option.textContent.trim()
+            });
+        }
+        
+        // Multi assignees
+        const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+        multiUserCheckboxes.forEach(checkbox => {
+            const label = checkbox.nextElementSibling;
+            availableUsers.push({
+                id: checkbox.value,
+                name: label.textContent.trim()
+            });
+        });
+        
+        return availableUsers;
+    }
+
+    // Function to create subtask HTML
+    function createSubtaskHTML(index) {
+        const availableUsers = getAvailableUsers();
+        const usersOptions = availableUsers.map(user => 
+            `<option value="${user.id}">${user.name}</option>`
+        ).join('');
+        
+        return `
+            <div class="subtask-item border rounded p-3 mb-3" data-index="${index}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tên bước thực hiện <span class="text-danger">*</span></label>
+                        <input type="text" name="subtasks[${index}][title]" class="form-control" placeholder="Nhập tên bước thực hiện" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Người thực hiện <span class="text-danger">*</span></label>
+                        <select name="subtasks[${index}][assignee_id]" class="form-select" required>
+                            <option value="">Chọn người thực hiện</option>
+                            ${usersOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-subtask-btn">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Mô tả chi tiết</label>
+                        <textarea name="subtasks[${index}][description]" class="form-control" rows="2" placeholder="Mô tả chi tiết bước thực hiện này..."></textarea>
+                    </div>
+                </div>
+                <input type="hidden" name="subtasks[${index}][order]" value="${index}">
+            </div>
+        `;
+    }
+
+    // Add subtask
+    addSubtaskBtn.addEventListener('click', function() {
+        const availableUsers = getAvailableUsers();
+        
+        if (availableUsers.length === 0) {
+            alert('Vui lòng chọn ít nhất một người tham gia công việc trước khi tạo bước thực hiện.');
+            return;
+        }
+        
+        const subtaskHTML = createSubtaskHTML(subtaskCounter);
+        subtasksContainer.insertAdjacentHTML('beforeend', subtaskHTML);
+        subtaskCounter++;
+        
+        // Update remove button functionality
+        updateRemoveButtons();
+    });
+
+    // Update remove button functionality
+    function updateRemoveButtons() {
+        const removeButtons = document.querySelectorAll('.remove-subtask-btn');
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.subtask-item').remove();
+            });
+        });
+    }
+
+    // Update available users when assignees change
+    function updateSubtaskUserOptions() {
+        const subtaskItems = document.querySelectorAll('.subtask-item');
+        const availableUsers = getAvailableUsers();
+        
+        subtaskItems.forEach(item => {
+            const select = item.querySelector('select[name*="[assignee_id]"]');
+            if (select) {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Chọn người thực hiện</option>' +
+                    availableUsers.map(user => `<option value="${user.id}">${user.name}</option>`).join('');
+                
+                // Restore selected value if still available
+                if (currentValue && availableUsers.find(u => u.id === currentValue)) {
+                    select.value = currentValue;
+                }
+            }
+        });
+    }
+
+    // Listen for changes in assignee selection
+    const assigneeSelect = document.getElementById('assignee_select');
+    const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]');
+    
+    if (assigneeSelect) {
+        assigneeSelect.addEventListener('change', updateSubtaskUserOptions);
+    }
+    
+    multiUserCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSubtaskUserOptions);
+    });
 });
 </script>
 @endpush

@@ -802,6 +802,82 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                 </div>
                 @endif
 
+                {{-- Subtasks Section --}}
+                <div class="form-group mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="form-label mb-0">
+                            <i class="bi bi-list-task me-2"></i>Các bước thực hiện (Subtasks)
+                        </label>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSubtaskRow()">
+                            <i class="bi bi-plus-circle me-1"></i>Thêm bước thực hiện
+                        </button>
+                    </div>
+                    
+                    <div id="subtasks-container">
+                        @if($task->subtasks && $task->subtasks->count() > 0)
+                            @foreach($task->subtasks as $index => $subtask)
+                                <div class="subtask-row border rounded p-3 mb-3" data-index="{{ $index }}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tên bước thực hiện</label>
+                                            <input type="text" name="subtasks[{{ $index }}][title]" 
+                                                   class="form-control" 
+                                                   value="{{ old('subtasks.'.$index.'.title', $subtask->title) }}"
+                                                   placeholder="Nhập tên bước thực hiện..." required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Người thực hiện</label>
+                                            <select name="subtasks[{{ $index }}][assignee_id]" class="form-select subtask-assignee" required>
+                                                <option value="">Chọn người thực hiện</option>
+                                                @foreach($task->getAvailableUsersForSubtasks() as $user)
+                                                    <option value="{{ $user->id }}" 
+                                                            {{ old('subtasks.'.$index.'.assignee_id', $subtask->assignee_id) == $user->id ? 'selected' : '' }}>
+                                                        {{ $user->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Thứ tự</label>
+                                            <input type="number" name="subtasks[{{ $index }}][order]" 
+                                                   class="form-control" 
+                                                   value="{{ old('subtasks.'.$index.'.order', $subtask->order && $subtask->order > 0 ? $subtask->order : ($index + 1)) }}"
+                                                   min="1" required>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <label class="form-label">Mô tả (tùy chọn)</label>
+                                            <textarea name="subtasks[{{ $index }}][description]" 
+                                                      class="form-control" 
+                                                      rows="2" 
+                                                      placeholder="Mô tả chi tiết bước thực hiện...">{{ old('subtasks.'.$index.'.description', $subtask->description) }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12 text-end">
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSubtaskRow(this)">
+                                                <i class="bi bi-trash me-1"></i>Xóa
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="text-muted text-center py-4">
+                                <i class="bi bi-list-task fs-1 mb-2 d-block"></i>
+                                <p>Chưa có bước thực hiện nào. Click "Thêm bước thực hiện" để bắt đầu.</p>
+                            </div>
+                        @endif
+                    </div>
+                    
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Người thực hiện subtask phải là người tham gia task chính. 
+                        Công việc chỉ có thể hoàn thành khi tất cả các bước thực hiện đã xong.
+                    </small>
+                </div>
+
                 {{-- Submit Button --}}
                 <div class="text-center mt-4">
                     <button type="submit" class="btn btn-submit">
@@ -1120,6 +1196,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize dropdowns
     initDropdowns();
+    
+    // Add event listeners for assignee changes to update subtask options
+    const singleAssigneeSelect = document.getElementById('assignee_id');
+    if (singleAssigneeSelect) {
+        singleAssigneeSelect.addEventListener('change', updateSubtaskAssigneeOptions);
+    }
+    
+    // Add event listeners for multi-user checkbox changes
+    const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]');
+    multiUserCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSubtaskAssigneeOptions);
+    });
 });
 
 // Function to validate textarea and prevent long words
@@ -1276,6 +1364,215 @@ document.addEventListener('DOMContentLoaded', function() {
             recurringDaysSection.classList.remove('d-none');
         }
     }
+
 });
+
+// Subtasks management functions (Global scope)
+let subtaskIndex = {{ $task->subtasks ? $task->subtasks->count() : 0 }};
+
+function addSubtaskRow() {
+        const container = document.getElementById('subtasks-container');
+        
+        // Remove empty state if exists
+        const emptyState = container.querySelector('.text-muted.text-center');
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        const subtaskRow = document.createElement('div');
+        subtaskRow.className = 'subtask-row border rounded p-3 mb-3';
+        subtaskRow.setAttribute('data-index', subtaskIndex);
+        
+        // Get available users for subtasks (from main task assignee selects)
+        const availableUsers = [];
+        
+        // Get from single assignee select
+        const singleAssigneeSelect = document.getElementById('assignee_id');
+        if (singleAssigneeSelect && singleAssigneeSelect.value) {
+            const selectedOption = singleAssigneeSelect.options[singleAssigneeSelect.selectedIndex];
+            availableUsers.push({
+                id: singleAssigneeSelect.value,
+                name: selectedOption.textContent
+            });
+        }
+        
+        // Get from multi-user checkboxes
+        const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+        multiUserCheckboxes.forEach(checkbox => {
+            const label = checkbox.closest('label');
+            if (label) {
+                availableUsers.push({
+                    id: checkbox.value,
+                    name: label.textContent.trim()
+                });
+            }
+        });
+        
+        // If no users from above, try to get from existing subtask selects
+        if (availableUsers.length === 0) {
+            const existingSelects = container.querySelectorAll('.subtask-assignee');
+            if (existingSelects.length > 0) {
+                const firstSelect = existingSelects[0];
+                const options = firstSelect.querySelectorAll('option');
+                options.forEach(option => {
+                    if (option.value) {
+                        availableUsers.push({
+                            id: option.value,
+                            name: option.textContent
+                        });
+                    }
+                });
+            }
+        }
+        
+        let usersOptions = '<option value="">Chọn người thực hiện</option>';
+        availableUsers.forEach(user => {
+            usersOptions += `<option value="${user.id}">${user.name}</option>`;
+        });
+        
+        subtaskRow.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Tên bước thực hiện</label>
+                    <input type="text" name="subtasks[${subtaskIndex}][title]" 
+                           class="form-control" 
+                           placeholder="Nhập tên bước thực hiện..." required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Người thực hiện</label>
+                    <select name="subtasks[${subtaskIndex}][assignee_id]" class="form-select subtask-assignee" required>
+                        ${usersOptions}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Thứ tự</label>
+                    <input type="number" name="subtasks[${subtaskIndex}][order]" 
+                           class="form-control" 
+                           value="${subtaskIndex + 1}"
+                           min="1" required>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12">
+                    <label class="form-label">Mô tả (tùy chọn)</label>
+                    <textarea name="subtasks[${subtaskIndex}][description]" 
+                              class="form-control" 
+                              rows="2" 
+                              placeholder="Mô tả chi tiết bước thực hiện..."></textarea>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12 text-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSubtaskRow(this)">
+                        <i class="bi bi-trash me-1"></i>Xóa
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(subtaskRow);
+        subtaskIndex++;
+    }
+    
+    
+function removeSubtaskRow(button) {
+    if (confirm('Bạn có chắc muốn xóa bước thực hiện này?')) {
+        const row = button.closest('.subtask-row');
+        row.remove();
+    
+        // Reindex remaining subtasks
+        reindexSubtasks();
+        
+        // Show empty state if no subtasks left
+        const container = document.getElementById('subtasks-container');
+        const subtaskRows = container.querySelectorAll('.subtask-row');
+        
+        if (subtaskRows.length === 0) {
+            container.innerHTML = `
+                <div class="text-muted text-center py-4">
+                    <i class="bi bi-list-task fs-1 mb-2 d-block"></i>
+                    <p>Chưa có bước thực hiện nào. Click "Thêm bước thực hiện" để bắt đầu.</p>
+                </div>
+            `;
+            subtaskIndex = 0;
+        }
+    }
+}
+
+function reindexSubtasks() {
+    const container = document.getElementById('subtasks-container');
+    const subtaskRows = container.querySelectorAll('.subtask-row');
+    
+    subtaskRows.forEach((row, index) => {
+        row.setAttribute('data-index', index);
+        
+        // Update input names and order values
+        const inputs = row.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            const name = input.getAttribute('name');
+            if (name) {
+                const newName = name.replace(/subtasks\[\d+\]/, `subtasks[${index}]`);
+                input.setAttribute('name', newName);
+            }
+        });
+        
+        // Update order input value
+        const orderInput = row.querySelector('input[name*="[order]"]');
+        if (orderInput) {
+            orderInput.value = index + 1;
+        }
+    });
+    
+    subtaskIndex = subtaskRows.length;
+}
+
+// Update subtask assignee options when main task assignees change
+function updateSubtaskAssigneeOptions() {
+    const availableUsers = [];
+    
+    // Get from single assignee select
+    const singleAssigneeSelect = document.getElementById('assignee_id');
+    if (singleAssigneeSelect && singleAssigneeSelect.value) {
+        const selectedOption = singleAssigneeSelect.options[singleAssigneeSelect.selectedIndex];
+        availableUsers.push({
+            id: singleAssigneeSelect.value,
+            name: selectedOption.textContent
+        });
+    }
+    
+    // Get from multi-user checkboxes
+    const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+    multiUserCheckboxes.forEach(checkbox => {
+        const label = checkbox.closest('label');
+        if (label) {
+            availableUsers.push({
+                id: checkbox.value,
+                name: label.textContent.trim()
+            });
+        }
+    });
+    
+    // Update all existing subtask assignee selects
+    const container = document.getElementById('subtasks-container');
+    const subtaskAssigneeSelects = container.querySelectorAll('.subtask-assignee');
+    
+    subtaskAssigneeSelects.forEach(select => {
+        const currentValue = select.value;
+        
+        // Clear existing options except the first one
+        select.innerHTML = '<option value="">Chọn người thực hiện</option>';
+        
+        // Add new options
+        availableUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name;
+            if (user.id === currentValue) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    });
+}
 </script>
 @endsection

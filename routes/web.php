@@ -104,6 +104,13 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         ->name('tasks.store');
     Route::get('/tasks/create', [TaskController::class, 'create'])->name('tasks.create');
     
+    // Task detail route - tất cả role có thể xem task detail
+    Route::get('/tasks/{task}', [TaskController::class, 'show'])->name('task-detail');
+    
+    // Subtasks routes - tất cả role có thể hoàn thành subtasks của mình
+    Route::post('/tasks/{task}/subtasks/{subtask}/complete', [TaskController::class, 'completeSubtask'])->name('tasks.subtasks.complete');
+    Route::patch('/tasks/{task}/subtasks/{subtask}/status', [TaskController::class, 'updateSubtaskStatus'])->name('tasks.subtasks.update-status');
+    
     // Manager & Admin: Các route khác của Task
     Route::middleware(['role:admin,director,manager'])->group(function () {
         // Các route khác của resource
@@ -186,6 +193,7 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         ->name('create-task');
     // Cập nhật trạng thái & xem lịch sử: cho tất cả role đã đăng nhập, quyền kiểm tra trong controller
     Route::get('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+    Route::post('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.update-status');
     Route::get('/tasks/{task}/history', [TaskController::class, 'history'])->name('tasks.history');
     Route::post('/tasks/{task}/remove-file', [TaskController::class, 'removeFile'])->name('tasks.removeFile');
     Route::post('/tasks/{task}/undo-completion', [TaskController::class, 'undoCompletion'])->name('tasks.undo-completion');

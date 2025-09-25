@@ -403,6 +403,105 @@
     </div>
 </div>
 
+<!-- Subtasks Section -->
+@if($task->hasSubtasks())
+<div class="card card-custom p-4 mb-4">
+    <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-list-task me-2"></i>Các bước thực hiện
+            </h5>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-light text-dark me-2">
+                    {{ $task->getCompletedSubtasksCount() }}/{{ $task->getTotalSubtasksCount() }} hoàn thành
+                </span>
+                <div class="progress" style="width: 100px; height: 20px;">
+                    <div class="progress-bar bg-light" role="progressbar" 
+                         style="width: {{ $task->getSubtasksProgressPercentage() }}%"
+                         aria-valuenow="{{ $task->getSubtasksProgressPercentage() }}" 
+                         aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="subtasks-list">
+            @foreach($task->subtasks as $subtask)
+                <div class="subtask-item border rounded p-3 mb-3" data-subtask-id="{{ $subtask->id }}">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center">
+                            @if($subtask->isCompleted())
+                                <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                            @elseif($subtask->isInProgress())
+                                <i class="bi bi-clock-fill text-warning fs-4"></i>
+                            @else
+                                <i class="bi bi-circle text-muted fs-4"></i>
+                            @endif
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-1">{{ $subtask->title }}</h6>
+                            @if($subtask->description)
+                                <p class="text-muted small mb-0">{{ $subtask->description }}</p>
+                            @endif
+                            <small class="text-muted">
+                                <i class="bi bi-person me-1"></i>
+                                {{ $subtask->assignedUser->name ?? 'Chưa phân công' }}
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-{{ $subtask->isCompleted() ? 'success' : ($subtask->isInProgress() ? 'warning' : 'secondary') }}">
+                                {{ $subtask->isCompleted() ? 'Đã hoàn thành' : ($subtask->isInProgress() ? 'Đang thực hiện' : 'Chờ thực hiện') }}
+                            </span>
+                            @if($subtask->completed_at)
+                                <br><small class="text-muted">Hoàn thành: {{ $subtask->completed_at->format('d/m/Y H:i') }}</small>
+                            @endif
+                        </div>
+                        <div class="col-md-2 text-end">
+                            @if($subtask->canBeCompletedBy(auth()->user()))
+                                @if($subtask->isCompleted())
+                                    <button class="btn btn-outline-secondary btn-sm" 
+                                            onclick="updateSubtaskStatus({{ $subtask->id }}, 'todo')"
+                                            title="Đánh dấu chưa hoàn thành">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                @else
+                                    <button class="btn btn-success btn-sm" 
+                                            onclick="completeSubtask({{ $subtask->id }})"
+                                            title="Đánh dấu hoàn thành">
+                                        <i class="bi bi-check"></i> Hoàn thành
+                                    </button>
+                                @endif
+                            @else
+                                <small class="text-muted">
+                                    @if($subtask->assignedUser)
+                                        {{ $subtask->assignedUser->name }} thực hiện
+                                    @else
+                                        Chưa phân công
+                                    @endif
+                                </small>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        
+        @if(!$task->allSubtasksCompleted())
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Lưu ý:</strong> Công việc chính chỉ có thể hoàn thành khi tất cả các bước thực hiện đã được hoàn thành.
+            </div>
+        @else
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <strong>Tuyệt vời!</strong> Tất cả các bước thực hiện đã hoàn thành. Bạn có thể hoàn thành công việc chính.
+            </div>
+        @endif
+    </div>
+</div>
+@endif
+
 <script>
 function editComment(commentId) {
     const contentDiv = document.getElementById(`comment-content-${commentId}`);
@@ -822,10 +921,10 @@ function deleteAttachment(attachmentId, fileName) {
             {{-- Hiển thị nút theo trạng thái và role --}}
             @if($task->status == 'in_progress')
                 @if($task->assignee_id == auth()->id())
-                    <a href="{{ route('tasks.updateStatus',[$task,'status'=>'completed']) }}" class="btn action-btn action-btn-green w-100 mb-2">✅ Hoàn thành & gửi duyệt</a>
+                    <button onclick="handleTaskStatusUpdate('pending_approval')" class="btn action-btn action-btn-green w-100 mb-2">✅ Hoàn thành & gửi duyệt</button>
                 @endif
                 @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
-                    <a href="{{ route('tasks.updateStatus',[$task,'status'=>'completed']) }}" class="btn action-btn action-btn-green w-100 mb-2">✅ Chuyển sang chờ duyệt</a>
+                    <button onclick="handleTaskStatusUpdate('pending_approval')" class="btn action-btn action-btn-green w-100 mb-2">✅ Chuyển sang chờ duyệt</button>
                 @endif
             @endif
             
@@ -836,9 +935,19 @@ function deleteAttachment(attachmentId, fileName) {
                 @endif
             @endif
             
-            @if($task->status == 'rejected')
-                @if($task->assignee_id == auth()->id())
-                    <a href="{{ route('tasks.updateStatus',[$task,'status'=>'completed']) }}" class="btn action-btn action-btn-green w-100 mb-2">🔄 Đã làm lại & gửi duyệt</a>
+            @if($task->status === 'rejected' && auth()->user()->role === 'employee')
+                @php
+                    $isAssignedToUser = $task->assignee_id == auth()->id() || 
+                                       $task->assignees->contains('id', auth()->id());
+                @endphp
+                @if($isAssignedToUser)
+                    <form action="{{ route('tasks.update-status', $task->id) }}" method="POST" style="display:inline;">
+                        @csrf
+                        <input type="hidden" name="status" value="pending_approval">
+                        <button type="submit" class="btn action-btn action-btn-green w-100 mb-2">
+                            🔄 Đã làm lại & gửi duyệt
+                        </button>
+                    </form>
                 @endif
             @endif
             
@@ -1762,9 +1871,130 @@ document.addEventListener('DOMContentLoaded', function() {
         bootstrapModal.show();
     }
     
+    // Handle task status update with better error display
+    function handleTaskStatusUpdate(status) {
+        const url = `/tasks/{{ $task->id }}/update-status`;
+        console.log('Sending request to:', url, 'with status:', status);
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showAlert('success', data.message);
+                // Reload after a short delay to show success message
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlert('error', data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', 'Có lỗi xảy ra khi cập nhật trạng thái');
+        });
+    }
+
+    // Subtasks functions
+    function completeSubtask(subtaskId) {
+        if (!confirm('Bạn có chắc muốn đánh dấu bước thực hiện này là hoàn thành?')) {
+            return;
+        }
+        
+        fetch(`/tasks/{{ $task->id }}/subtasks/${subtaskId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload(); // Reload để cập nhật UI
+            } else {
+                showAlert('error', data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', 'Có lỗi xảy ra khi hoàn thành bước thực hiện');
+        });
+    }
+
+    function updateSubtaskStatus(subtaskId, status) {
+        if (!confirm(`Bạn có chắc muốn thay đổi trạng thái bước thực hiện này?`)) {
+            return;
+        }
+        
+        fetch(`/tasks/{{ $task->id }}/subtasks/${subtaskId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload(); // Reload để cập nhật UI
+            } else {
+                showAlert('error', data.message || 'Có lỗi xảy ra');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', 'Có lỗi xảy ra khi cập nhật trạng thái');
+        });
+    }
+
+    function showAlert(type, message) {
+        // Tạo alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; word-wrap: break-word;';
+        
+        // Thêm icon cho alert
+        const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
+        alertDiv.innerHTML = `
+            <i class="bi ${icon} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Thêm vào body
+        document.body.appendChild(alertDiv);
+        
+        // Tự động ẩn sau 7 giây (tăng thời gian để đọc thông báo dài)
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 7000);
+    }
+
     // Make functions global
     window.openImageModal = openImageModal;
     window.removeFile = removeFile;
+    window.handleTaskStatusUpdate = handleTaskStatusUpdate;
+    window.completeSubtask = completeSubtask;
+    window.updateSubtaskStatus = updateSubtaskStatus;
 });
 </script>
 @endsection

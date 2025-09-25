@@ -200,6 +200,20 @@ class TaskPermissionService
      */
     public static function canApproveTask(User $user, Task $task): bool
     {
+        // Employee có thể resubmit task bị reject nếu là assignee
+        if ($user->role === 'employee' && $task->status === 'rejected') {
+            // Load assignees nếu chưa có
+            if (!$task->relationLoaded('assignees')) {
+                $task->load('assignees');
+            }
+            
+            // Kiểm tra user là assignee (assignee_id hoặc trong danh sách assignees)
+            $isAssigned = $task->assignee_id === $user->id || $task->assignees->contains('id', $user->id);
+            if ($isAssigned) {
+                return true;
+            }
+        }
+        
         // Admin và Director có thể approve tất cả
         if ($user->isAdmin() || $user->isDirector()) {
             return true;

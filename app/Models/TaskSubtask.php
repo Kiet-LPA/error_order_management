@@ -13,20 +13,19 @@ class TaskSubtask extends Model
         'task_id',
         'title',
         'description',
-        'status',
-        'priority',
         'assignee_id',
-        'deadline',
+        'status',
         'completed_at',
+        'order',
+        'deadline',
         'completion_note',
         'completed_by',
-        'order'
+        'priority'
     ];
 
     protected $casts = [
-        'deadline' => 'datetime',
         'completed_at' => 'datetime',
-        'is_required' => 'boolean',
+        'deadline' => 'datetime',
     ];
 
     // Relationships
@@ -35,25 +34,25 @@ class TaskSubtask extends Model
         return $this->belongsTo(Task::class);
     }
 
-    public function assignee()
+    public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assignee_id');
     }
 
-    public function completedBy()
-    {
-        return $this->belongsTo(User::class, 'completed_by');
-    }
-
     // Scopes
-    public function scopeByStatus($query, $status)
+    public function scopePending($query)
     {
-        return $query->where('status', $status);
+        return $query->where('status', 'todo');
     }
 
-    public function scopeByAssignee($query, $userId)
+    public function scopeInProgress($query)
     {
-        return $query->where('assignee_id', $userId);
+        return $query->where('status', 'in_progress');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
     }
 
     public function scopeOrdered($query)
@@ -67,74 +66,61 @@ class TaskSubtask extends Model
         return $this->status === 'completed';
     }
 
-    public function isOverdue(): bool
+    public function isPending(): bool
     {
-        return $this->deadline && $this->deadline->isPast() && !$this->isCompleted();
+        return $this->status === 'todo';
     }
 
-    public function canBeAssignedTo(User $user): bool
+    public function isInProgress(): bool
     {
-        // Chỉ được assign cho user trong danh sách assignees của task chính
-        $taskAssignees = collect([
-            $this->task->assignee_id,
-            $this->task->creator_id
-        ])->filter();
-
-        $taskAssignees = $taskAssignees->merge($this->task->assignees()->pluck('users.id'));
-        $taskAssignees = $taskAssignees->merge($this->task->followers()->pluck('id'));
-
-        return $taskAssignees->contains($user->id);
+        return $this->status === 'in_progress';
     }
 
-    public function getAvailableAssignees()
+    public function markAsCompleted(): void
     {
-        // Lấy danh sách user có thể assign (từ task chính)
-        $taskAssignees = collect([
-            $this->task->assignee_id,
-            $this->task->creator_id
-        ])->filter();
-
-        $taskAssignees = $taskAssignees->merge($this->task->assignees()->pluck('users.id'));
-        $taskAssignees = $taskAssignees->merge($this->task->followers()->pluck('id'));
-
-        return User::whereIn('id', $taskAssignees->unique())
-                  ->with('department')
-                  ->orderBy('name')
-                  ->get();
+        $this->update([
+            'status' => 'completed',
+            'completed_at' => now()
+        ]);
     }
 
-    public function markAsCompleted(User $user, string $note = null): bool
+    public function markAsPending(): void
     {
-        $this->status = 'completed';
-        $this->completed_at = now();
-        $this->completed_by = $user->id;
-        $this->completion_note = $note;
-
-        return $this->save();
+        $this->update([
+            'status' => 'todo',
+            'completed_at' => null
+        ]);
     }
 
-    public function markAsInProgress(): bool
+    public function markAsInProgress(): void
     {
-        $this->status = 'in_progress';
-        $this->completed_at = null;
-        $this->completed_by = null;
-        $this->completion_note = null;
-
-        return $this->save();
+        $this->update([
+            'status' => 'in_progress'
+        ]);
     }
 
-    public function markAsTodo(): bool
+    // Check if user can be assigned to this subtask
+    public function canAssignUser(User $user): bool
     {
-        $this->status = 'todo';
-        $this->completed_at = null;
-        $this->completed_by = null;
-        $this->completion_note = null;
-
-        return $this->save();
+        // User must be assigned to the parent task
+        $task = $this->task;
+        
+        // Check if user is assignee of parent task
+        if ($task->assignee_id === $user->id) {
+            return true;
+        }
+        
+        // Check if user is in multi-assignees of parent task
+        if ($task->assignees->contains('id', $user->id)) {
+            return true;
+        }
+        
+        return false;
     }
 
-    public function markAsIncomplete(): bool
+    // Check if user can complete this subtask
+    public function canBeCompletedBy(User $user): bool
     {
-        return $this->markAsTodo();
+        return $this->assignee_id === $user->id;
     }
 }

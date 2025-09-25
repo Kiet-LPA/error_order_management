@@ -86,6 +86,12 @@ class Task extends Model
         return $this->hasMany(TaskFile::class);
     }
 
+    // Subtasks relationship
+    public function subtasks()
+    {
+        return $this->hasMany(TaskSubtask::class)->ordered();
+    }
+
     // Multi-user assignments
     public function assignees()
     {
@@ -536,6 +542,106 @@ class Task extends Model
         }
         
         return $departments->pluck('name')->join(', ');
+    }
+
+    // Subtasks helper methods
+    /**
+     * Kiểm tra xem tất cả subtasks đã hoàn thành chưa
+     */
+    public function allSubtasksCompleted(): bool
+    {
+        if ($this->subtasks()->count() === 0) {
+            return true; // Nếu không có subtask thì coi như hoàn thành
+        }
+        
+        return $this->subtasks()->where('status', '!=', 'completed')->count() === 0;
+    }
+
+    /**
+     * Kiểm tra xem có subtask nào chưa hoàn thành không
+     */
+    public function hasIncompleteSubtasks(): bool
+    {
+        return !$this->allSubtasksCompleted();
+    }
+
+    /**
+     * Lấy số lượng subtasks đã hoàn thành
+     */
+    public function getCompletedSubtasksCount(): int
+    {
+        return $this->subtasks()->where('status', 'completed')->count();
+    }
+
+    /**
+     * Lấy tổng số subtasks
+     */
+    public function getTotalSubtasksCount(): int
+    {
+        return $this->subtasks()->count();
+    }
+
+    /**
+     * Lấy tiến độ hoàn thành subtasks (phần trăm)
+     */
+    public function getSubtasksProgressPercentage(): float
+    {
+        $total = $this->getTotalSubtasksCount();
+        if ($total === 0) {
+            return 100.0; // Nếu không có subtask thì 100%
+        }
+        
+        $completed = $this->getCompletedSubtasksCount();
+        return round(($completed / $total) * 100, 2);
+    }
+
+    /**
+     * Lấy danh sách users có thể được assign vào subtasks
+     */
+    public function getAvailableUsersForSubtasks(): \Illuminate\Database\Eloquent\Collection
+    {
+        $userIds = [];
+        
+        // Thêm assignee chính
+        if ($this->assignee_id) {
+            $userIds[] = $this->assignee_id;
+        }
+        
+        // Thêm multi-assignees
+        $assigneeIds = $this->assignees()->pluck('users.id')->toArray();
+        $userIds = array_merge($userIds, $assigneeIds);
+        
+        // Loại bỏ duplicate và trả về Eloquent Collection
+        $uniqueUserIds = array_unique($userIds);
+        
+        return User::whereIn('id', $uniqueUserIds)->get();
+    }
+
+    /**
+     * Reset tất cả subtasks về trạng thái pending (khi task bị reject)
+     */
+    public function resetSubtasksToPending(): void
+    {
+        $this->subtasks()->update([
+            'status' => 'pending',
+            'completed_at' => null
+        ]);
+    }
+
+    /**
+     * Kiểm tra xem task có subtasks không
+     */
+    public function hasSubtasks(): bool
+    {
+        return $this->subtasks()->count() > 0;
+    }
+
+    /**
+     * Kiểm tra xem task có thể được hoàn thành không (tất cả subtasks đã xong)
+     */
+    public function canBeCompleted(): bool
+    {
+        return $this->allSubtasksCompleted();
     }
 }
 
