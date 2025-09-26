@@ -813,6 +813,9 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                         </button>
                     </div>
                     
+                    {{-- Hidden input with available users for subtasks --}}
+                    <input type="hidden" id="available-users-data" value="{{ json_encode($task->getAvailableUsersForSubtasks()->map(function($user) { return ['id' => $user->id, 'name' => $user->name]; })) }}">
+                    
                     <div id="subtasks-container">
                         @if($task->subtasks && $task->subtasks->count() > 0)
                             @foreach($task->subtasks as $index => $subtask)
@@ -1370,6 +1373,126 @@ document.addEventListener('DOMContentLoaded', function() {
 // Subtasks management functions (Global scope)
 let subtaskIndex = {{ $task->subtasks ? $task->subtasks->count() : 0 }};
 
+// Helper function to get available users for subtasks
+function getAvailableUsersForSubtasks() {
+    const availableUsers = [];
+    
+    console.log('=== DEBUGGING AVAILABLE USERS ===');
+    
+    // Get from single assignee select
+    const singleAssigneeSelect = document.getElementById('assignee_id');
+    console.log('1. Single assignee select:', singleAssigneeSelect);
+    if (singleAssigneeSelect) {
+        console.log('   - Value:', singleAssigneeSelect.value);
+        console.log('   - Options count:', singleAssigneeSelect.options.length);
+        if (singleAssigneeSelect.value) {
+            const selectedOption = singleAssigneeSelect.options[singleAssigneeSelect.selectedIndex];
+            availableUsers.push({
+                id: singleAssigneeSelect.value,
+                name: selectedOption.textContent
+            });
+            console.log('   - Added user:', selectedOption.textContent);
+        }
+    }
+    
+    // Get from multi-user checkboxes
+    const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
+    console.log('2. Multi-user checkboxes found:', multiUserCheckboxes.length);
+    multiUserCheckboxes.forEach((checkbox, index) => {
+        console.log(`   - Checkbox ${index}:`, checkbox.value, checkbox.checked);
+        const label = checkbox.closest('label');
+        if (label) {
+            const userName = label.textContent.trim();
+            availableUsers.push({
+                id: checkbox.value,
+                name: userName
+            });
+            console.log(`   - Added user from checkbox: ${userName}`);
+        }
+    });
+    
+    // Try alternative selectors for multi-user
+    const alternativeCheckboxes = document.querySelectorAll('input[name="assignee_ids[]"]:checked');
+    console.log('3. Alternative checkboxes found:', alternativeCheckboxes.length);
+    alternativeCheckboxes.forEach((checkbox, index) => {
+        console.log(`   - Alt checkbox ${index}:`, checkbox.value, checkbox.checked);
+        const label = checkbox.closest('label');
+        if (label && !availableUsers.find(u => u.id === checkbox.value)) {
+            const userName = label.textContent.trim();
+            availableUsers.push({
+                id: checkbox.value,
+                name: userName
+            });
+            console.log(`   - Added user from alt checkbox: ${userName}`);
+        }
+    });
+    
+    // Try to find all checked checkboxes regardless of container
+    const allCheckedCheckboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    console.log('4. All checked checkboxes found:', allCheckedCheckboxes.length);
+    allCheckedCheckboxes.forEach((checkbox, index) => {
+        console.log(`   - All checkbox ${index}:`, checkbox.name, checkbox.value, checkbox.checked);
+        if (checkbox.name === 'assignee_ids[]' && !availableUsers.find(u => u.id === checkbox.value)) {
+            const label = checkbox.closest('label');
+            if (label) {
+                const userName = label.textContent.trim();
+                availableUsers.push({
+                    id: checkbox.value,
+                    name: userName
+                });
+                console.log(`   - Added user from all checkbox: ${userName}`);
+            }
+        }
+    });
+    
+    // If no users from above, try to get from existing subtask selects
+    if (availableUsers.length === 0) {
+        console.log('5. No users found, trying existing subtask selects...');
+        const existingSelects = document.querySelectorAll('.subtask-assignee');
+        console.log('   - Existing subtask selects:', existingSelects.length);
+        if (existingSelects.length > 0) {
+            const firstSelect = existingSelects[0];
+            const options = firstSelect.querySelectorAll('option');
+            console.log('   - Options in first select:', options.length);
+            options.forEach(option => {
+                if (option.value) {
+                    availableUsers.push({
+                        id: option.value,
+                        name: option.textContent
+                    });
+                    console.log('   - Added user from existing select:', option.textContent);
+                }
+            });
+        }
+    }
+    
+    // If still no users, try to get from server data
+    if (availableUsers.length === 0) {
+        console.log('6. Still no users, trying server data...');
+        const serverDataInput = document.getElementById('available-users-data');
+        if (serverDataInput) {
+            try {
+                const serverUsers = JSON.parse(serverDataInput.value);
+                console.log('   - Server users:', serverUsers);
+                serverUsers.forEach(user => {
+                    availableUsers.push({
+                        id: user.id,
+                        name: user.name
+                    });
+                    console.log('   - Added user from server:', user.name);
+                });
+            } catch (e) {
+                console.log('   - Error parsing server data:', e);
+            }
+        }
+    }
+    
+    console.log('=== FINAL RESULT ===');
+    console.log('Total available users:', availableUsers.length, availableUsers);
+    
+    return availableUsers;
+}
+
 function addSubtaskRow() {
         const container = document.getElementById('subtasks-container');
         
@@ -1383,47 +1506,9 @@ function addSubtaskRow() {
         subtaskRow.className = 'subtask-row border rounded p-3 mb-3';
         subtaskRow.setAttribute('data-index', subtaskIndex);
         
-        // Get available users for subtasks (from main task assignee selects)
-        const availableUsers = [];
-        
-        // Get from single assignee select
-        const singleAssigneeSelect = document.getElementById('assignee_id');
-        if (singleAssigneeSelect && singleAssigneeSelect.value) {
-            const selectedOption = singleAssigneeSelect.options[singleAssigneeSelect.selectedIndex];
-            availableUsers.push({
-                id: singleAssigneeSelect.value,
-                name: selectedOption.textContent
-            });
-        }
-        
-        // Get from multi-user checkboxes
-        const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
-        multiUserCheckboxes.forEach(checkbox => {
-            const label = checkbox.closest('label');
-            if (label) {
-                availableUsers.push({
-                    id: checkbox.value,
-                    name: label.textContent.trim()
-                });
-            }
-        });
-        
-        // If no users from above, try to get from existing subtask selects
-        if (availableUsers.length === 0) {
-            const existingSelects = container.querySelectorAll('.subtask-assignee');
-            if (existingSelects.length > 0) {
-                const firstSelect = existingSelects[0];
-                const options = firstSelect.querySelectorAll('option');
-                options.forEach(option => {
-                    if (option.value) {
-                        availableUsers.push({
-                            id: option.value,
-                            name: option.textContent
-                        });
-                    }
-                });
-            }
-        }
+        // Get available users for subtasks using helper function
+        const availableUsers = getAvailableUsersForSubtasks();
+        console.log('Available users for new subtask:', availableUsers);
         
         let usersOptions = '<option value="">Chọn người thực hiện</option>';
         availableUsers.forEach(user => {
@@ -1528,29 +1613,7 @@ function reindexSubtasks() {
 
 // Update subtask assignee options when main task assignees change
 function updateSubtaskAssigneeOptions() {
-    const availableUsers = [];
-    
-    // Get from single assignee select
-    const singleAssigneeSelect = document.getElementById('assignee_id');
-    if (singleAssigneeSelect && singleAssigneeSelect.value) {
-        const selectedOption = singleAssigneeSelect.options[singleAssigneeSelect.selectedIndex];
-        availableUsers.push({
-            id: singleAssigneeSelect.value,
-            name: selectedOption.textContent
-        });
-    }
-    
-    // Get from multi-user checkboxes
-    const multiUserCheckboxes = document.querySelectorAll('#user_selection_enabled input[name="assignee_ids[]"]:checked');
-    multiUserCheckboxes.forEach(checkbox => {
-        const label = checkbox.closest('label');
-        if (label) {
-            availableUsers.push({
-                id: checkbox.value,
-                name: label.textContent.trim()
-            });
-        }
-    });
+    const availableUsers = getAvailableUsersForSubtasks();
     
     // Update all existing subtask assignee selects
     const container = document.getElementById('subtasks-container');

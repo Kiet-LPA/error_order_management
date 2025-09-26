@@ -517,8 +517,19 @@ class TaskController extends Controller
         if ($request->has('subtasks') && is_array($request->subtasks)) {
             $availableUserIds = $task->getAvailableUsersForSubtasks()->pluck('id')->toArray();
             
+            \Log::debug('SUBTASK VALIDATION', [
+                'subtasks_count' => count($request->subtasks),
+                'available_user_ids' => $availableUserIds,
+                'subtasks_data' => $request->subtasks
+            ]);
+            
             foreach ($request->subtasks as $index => $subtask) {
                 if (!in_array($subtask['assignee_id'], $availableUserIds)) {
+                    \Log::error('SUBTASK VALIDATION FAILED', [
+                        'index' => $index,
+                        'assignee_id' => $subtask['assignee_id'],
+                        'available_user_ids' => $availableUserIds
+                    ]);
                     return back()->withErrors([
                         "subtasks.{$index}.assignee_id" => 'Người được giao subtask phải là người tham gia task chính'
                     ])->withInput();
@@ -731,11 +742,49 @@ class TaskController extends Controller
             \Log::debug('UPDATING SUBTASKS', [
                 'task_id' => $task->id,
                 'subtasks_count' => is_array($request->subtasks) ? count($request->subtasks) : 0,
-                'subtasks_data' => $request->subtasks
+                'subtasks_data' => $request->subtasks,
+                'available_users' => $task->getAvailableUsersForSubtasks()->pluck('id')->toArray()
             ]);
             
             try {
                 $this->updateSubtasks($task, $request->subtasks);
+                
+                // Tự động chuyển task về "in_progress" khi edit subtasks
+                \Log::debug('CHECKING AUTO STATUS CHANGE', [
+                    'task_id' => $task->id,
+                    'current_status' => $task->status,
+                    'should_change' => in_array($task->status, ['pending_approval', 'completed', 'rejected'])
+                ]);
+                
+                // Kiểm tra xem có subtasks chưa hoàn thành không
+                $hasIncompleteSubtasks = !$task->allSubtasksCompleted();
+                \Log::debug('SUBTASK COMPLETION CHECK', [
+                    'task_id' => $task->id,
+                    'has_incomplete_subtasks' => $hasIncompleteSubtasks,
+                    'all_subtasks_completed' => $task->allSubtasksCompleted()
+                ]);
+                
+                if (in_array($task->status, ['pending_approval', 'completed', 'rejected']) || 
+                    (in_array($task->status, ['in_progress']) && $hasIncompleteSubtasks)) {
+                    $oldStatus = $task->status;
+                    $task->status = 'in_progress';
+                    $task->save();
+                    
+                    \Log::debug('AUTO STATUS CHANGE', [
+                        'task_id' => $task->id,
+                        'old_status' => $oldStatus,
+                        'new_status' => 'in_progress',
+                        'reason' => 'subtasks_edited_with_incomplete_subtasks',
+                        'has_incomplete_subtasks' => $hasIncompleteSubtasks
+                    ]);
+                } else {
+                    \Log::debug('NO AUTO STATUS CHANGE', [
+                        'task_id' => $task->id,
+                        'current_status' => $task->status,
+                        'has_incomplete_subtasks' => $hasIncompleteSubtasks,
+                        'reason' => 'status_not_in_changeable_list_or_all_subtasks_completed'
+                    ]);
+                }
             } catch (\Exception $e) {
                 \Log::error('ERROR UPDATING SUBTASKS', [
                     'task_id' => $task->id,
@@ -808,16 +857,40 @@ class TaskController extends Controller
 
         // ✅ Subtask validation
         if (in_array($status, ['pending_approval', 'finished']) && $task->hasSubtasks()) {
+            \Log::debug('SUBTASK VALIDATION CHECK', [
+                'task_id' => $task->id,
+                'status' => $status,
+                'has_subtasks' => $task->hasSubtasks(),
+                'all_subtasks_completed' => $task->allSubtasksCompleted(),
+                'subtasks_count' => $task->subtasks()->count(),
+                'completed_subtasks_count' => $task->subtasks()->where('status', 'completed')->count()
+            ]);
+            
             if (!$task->allSubtasksCompleted()) {
+                $errorMessage = 'Cần hoàn thành tất cả subtask trước khi gửi duyệt/hoàn thành';
+                \Log::debug('SUBTASK VALIDATION FAILED', [
+                    'error_message' => $errorMessage,
+                    'task_id' => $task->id
+                ]);
+                
                 if ($r->ajax() || $r->wantsJson()) {
-                    return response()->json(['success' => false, 'message' => 'Cần hoàn thành tất cả subtask trước khi gửi duyệt/hoàn thành'], 400);
+                    return response()->json(['success' => false, 'message' => $errorMessage], 400);
                 }
-                return back()->withErrors(['status' => 'Cần hoàn thành tất cả subtask trước khi gửi duyệt/hoàn thành']);
+                return back()->withErrors(['status' => $errorMessage]);
             }
         }
 
         $task->status = $status;
         $task->save();
+        
+        // Tự động reset subtasks khi task bị reject
+        if ($status === 'rejected' && $task->hasSubtasks()) {
+            $task->resetSubtasksToPending();
+            \Log::debug('RESET SUBTASKS ON REJECT', [
+                'task_id' => $task->id,
+                'subtasks_count' => $task->subtasks()->count()
+            ]);
+        }
 
         if ($r->ajax() || $r->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Cập nhật trạng thái thành công']);
@@ -1486,14 +1559,8 @@ class TaskController extends Controller
             'titles' => $existingSubtasks->keys()->toArray()
         ]);
         
-        // Xóa tất cả subtasks cũ (chỉ khi có subtasks mới)
-        if (!empty($subtasksData)) {
-            $task->subtasks()->delete();
-        } else {
-            // Nếu không có subtasks mới, xóa tất cả
-            $task->subtasks()->delete();
-            return;
-        }
+        // Chỉ xóa subtasks cũ sau khi tạo mới thành công
+        $oldSubtasks = $task->subtasks()->get();
         
         // Tạo subtasks mới
         if (!empty($subtasksData)) {
@@ -1505,6 +1572,7 @@ class TaskController extends Controller
                 'users_count' => $availableUsers->count()
             ]);
 
+            $newSubtasks = [];
             foreach ($subtasksData as $index => $subtaskData) {
                 \Log::debug('processing subtask', [
                     'index' => $index,
@@ -1545,15 +1613,31 @@ class TaskController extends Controller
                     'completed_at' => $completedAt
                 ]);
 
-                $task->subtasks()->create([
+                $newSubtasks[] = [
                     'title' => $subtaskData['title'],
                     'description' => $subtaskData['description'] ?? null,
                     'assignee_id' => $subtaskData['assignee_id'],
                     'order' => $subtaskData['order'],
                     'status' => $status,
                     'completed_at' => $completedAt
-                ]);
+                ];
             }
+            
+            // Xóa subtasks cũ
+            $task->subtasks()->delete();
+            
+            // Tạo subtasks mới
+            foreach ($newSubtasks as $subtaskData) {
+                $task->subtasks()->create($subtaskData);
+            }
+            
+            \Log::debug('Successfully updated subtasks', [
+                'deleted_count' => $oldSubtasks->count(),
+                'created_count' => count($newSubtasks)
+            ]);
+        } else {
+            // Nếu không có subtasks mới, xóa tất cả
+            $task->subtasks()->delete();
         }
     }
 

@@ -51,12 +51,29 @@
       top: 0 !important;
       left: 0 !important;
       right: 0 !important;
-      z-index: 1070 !important;
+      z-index: 99999 !important;
       background-color: white !important;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
       width: 100% !important;
     }
     
     /* Fix any potential navbar hiding issues */
+    body {
+      /* Ensure body doesn't interfere with navbar */
+      position: relative !important;
+    }
+    
+    /* Prevent any element from going above navbar */
+    * {
+      max-z-index: 99998 !important;
+    }
+    
+    /* Ensure navbar is always visible */
+    .navbar * {
+      z-index: 99999 !important;
+    }
+    
+    /* Add padding to body to account for fixed navbar */
     body {
       padding-top: 56px !important; /* Height of navbar */
     }

@@ -119,8 +119,7 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
         Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
         
-        // Kanban Board - chỉ Admin/Director/Manager có thể cập nhật status
-        Route::post('/tasks/{task}/update-status', [TaskController::class, 'updateStatusAjax'])->name('tasks.update-status-ajax');
+        // Kanban Board - chỉ Admin/Director/Manager có thể cập nhật status (đã chuyển xuống dưới)
     });
     
     // Kanban Board - tất cả role có thể xem (nhưng chỉ Admin/Director/Manager có thể drag & drop)

@@ -3,6 +3,15 @@
 
 @section('content')
 <style>
+/* Fix modal z-index issues */
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+
+.modal {
+    z-index: 9999 !important;
+}
+
 .task-header-gradient {
     background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
     color: #fff;
@@ -972,10 +981,18 @@ function deleteAttachment(attachmentId, fileName) {
                 @if($task->deadline && $task->deadline->isFuture())
                     {{-- Chỉ hiển thị nút khi deadline đã được cập nhật thành tương lai --}}
                     @if($task->assignee_id == auth()->id())
-                        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn action-btn action-btn-blue w-100 mb-2">🚀 Bắt đầu làm</a>
+                        <form action="{{ route('tasks.update-status', $task) }}" method="POST" style="display:inline;">
+                            @csrf
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn action-btn action-btn-blue w-100 mb-2">🚀 Bắt đầu làm</button>
+                        </form>
                     @endif
                     @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
-                        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn action-btn action-btn-blue w-100 mb-2">🔄 Chuyển sang đang làm</a>
+                        <form action="{{ route('tasks.update-status', $task) }}" method="POST" style="display:inline;">
+                            @csrf
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn action-btn action-btn-blue w-100 mb-2">🔄 Chuyển sang đang làm</button>
+                        </form>
                     @endif
                 @else
                     {{-- Hiển thị thông báo khi deadline vẫn trong quá khứ --}}
@@ -1005,15 +1022,17 @@ function deleteAttachment(attachmentId, fileName) {
         </div>
         
         {{-- Modal kết thúc --}}
-        <div class="modal fade" id="finishModal" tabindex="-1">
+        <div class="modal fade" id="finishModal" tabindex="-1" style="z-index: 9999;">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Hoàn thành công việc</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <form action="{{ route('tasks.updateStatus', $task) }}" method="GET">
+                    <form action="{{ route('tasks.update-status', $task) }}" method="POST">
+                        @csrf
                         <input type="hidden" name="status" value="finished">
+                        <input type="hidden" name="form_type" value="finish_modal">
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Ghi chú kết thúc <span class="text-muted">(tùy chọn)</span></label>
@@ -1038,15 +1057,17 @@ function deleteAttachment(attachmentId, fileName) {
         </div>
         
         {{-- Modal từ chối --}}
-        <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal fade" id="rejectModal" tabindex="-1" style="z-index: 9999;">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Từ chối công việc</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <form action="{{ route('tasks.updateStatus', $task) }}" method="GET">
+                    <form action="{{ route('tasks.update-status', $task) }}" method="POST">
+                        @csrf
                         <input type="hidden" name="status" value="rejected">
+                        <input type="hidden" name="form_type" value="reject_modal">
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Lý do từ chối <span class="text-danger">*</span></label>
@@ -1881,6 +1902,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({ status: status })

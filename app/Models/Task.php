@@ -623,7 +623,7 @@ class Task extends Model
     public function resetSubtasksToPending(): void
     {
         $this->subtasks()->update([
-            'status' => 'pending',
+            'status' => 'todo',
             'completed_at' => null
         ]);
     }
