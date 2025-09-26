@@ -8,8 +8,8 @@
     <div class="d-flex align-items-center">
       <!-- Navigation Links -->
       <div class="navbar-nav me-3">
-        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active fw-bold' : '' }}" href="{{ route('dashboard') }}">
-          <i class="bi bi-speedometer2 me-1"></i>Bảng điều khiển
+        <a class="nav-link" href="https://checkin.hpfoods.com.vn/" target="_blank">
+          <i class="bi bi-geo-alt me-1"></i>Điểm danh
         </a>
       </div>
       
@@ -85,10 +85,33 @@
 .nav-link {
     position: relative;
     transition: all 0.2s ease;
+    margin-right: 0.5rem;
 }
 
 .nav-link:hover {
     transform: translateY(-1px);
+}
+
+/* Điểm danh button special style */
+.nav-link[href*="checkin"] {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white !important;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem !important;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.nav-link[href*="checkin"]:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    color: white !important;
+}
+
+.nav-link[href*="checkin"]:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
 }
 
 .nav-link.active::after {
