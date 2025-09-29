@@ -11,6 +11,7 @@ use App\Http\Controllers\TaskFollowerController;
 use App\Http\Controllers\TaskApprovalController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SupportRequestController;
+use App\Http\Controllers\CheckinController;
 
 /*
 |--------------------------------------------------------------------------
@@ -354,6 +355,27 @@ Route::post('/approval/{id}/approve', [App\Http\Controllers\ApprovalController::
 Route::post('/approval/{id}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('approval.reject');
 Route::post('/approval/bulk-approve', [App\Http\Controllers\ApprovalController::class, 'bulkApprove'])->name('approval.bulk-approve');
 Route::post('/approval/bulk-reject', [App\Http\Controllers\ApprovalController::class, 'bulkReject'])->name('approval.bulk-reject');
+});
+
+// Checkin routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/checkin', [CheckinController::class, 'index'])->name('checkin.index');
+    Route::post('/checkin', [CheckinController::class, 'checkin'])->name('checkin.checkin');
+    Route::get('/checkin/history', [CheckinController::class, 'history'])->name('checkin.history');
+    Route::get('/checkin/gps-help', function() {
+        return view('checkin.gps-help');
+    })->name('checkin.gps-help');
+});
+
+// Admin/Director/Manager Checkin Management routes
+Route::middleware(['auth', 'role:admin,director,manager'])->prefix('admin/checkin')->name('admin.checkin.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AdminCheckinController::class, 'index'])->name('index');
+    Route::get('/manage', [\App\Http\Controllers\AdminCheckinController::class, 'manage'])->name('manage');
+    Route::get('/gps-requests', [\App\Http\Controllers\AdminCheckinController::class, 'gpsRequests'])->name('gps-requests');
+    Route::post('/gps-requests/{gpsRequest}/approve', [\App\Http\Controllers\AdminCheckinController::class, 'approveGpsRequest'])->name('approve-gps');
+    Route::post('/fix-attendance', [\App\Http\Controllers\AdminCheckinController::class, 'fixAttendance'])->name('fix-attendance');
+    Route::delete('/{checkin}', [\App\Http\Controllers\AdminCheckinController::class, 'deleteCheckin'])->name('delete');
+    Route::get('/reports', [\App\Http\Controllers\AdminCheckinController::class, 'reports'])->name('reports');
 });
 
 

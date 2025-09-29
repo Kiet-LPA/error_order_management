@@ -12,6 +12,9 @@
                 <tr>
                     <th>#</th>
                     <th>Tên phòng ban</th>
+                    <th>Địa chỉ</th>
+                    <th>GPS Config</th>
+                    <th>Nhân viên</th>
                     <th>Hành động</th>
                 </tr>
             </thead>
@@ -19,17 +22,51 @@
                 @forelse($departments as $dept)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td>{{ $dept->name }}</td>
                         <td>
-                            <a href="{{ route('departments.edit', $dept) }}" class="btn btn-sm btn-warning">Sửa</a>
+                            <strong>{{ $dept->name }}</strong>
+                            @if($dept->hasGpsConfig())
+                                <br><small class="text-success"><i class="fas fa-map-marker-alt"></i> Có GPS</small>
+                            @else
+                                <br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Chưa có GPS</small>
+                            @endif
+                        </td>
+                        <td>
+                            @if($dept->address)
+                                <small>{{ Str::limit($dept->address, 50) }}</small>
+                            @else
+                                <small class="text-muted">Chưa có địa chỉ</small>
+                            @endif
+                        </td>
+                        <td>
+                            @if($dept->hasGpsConfig())
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check"></i> Đã cấu hình
+                                </span>
+                                <br><small class="text-muted">{{ $dept->latitude }}, {{ $dept->longitude }}</small>
+                                <br><small class="text-muted">Bán kính: {{ $dept->radius_meters }}m</small>
+                            @else
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-times"></i> Chưa cấu hình
+                                </span>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="badge badge-info">{{ $dept->users->count() }} nhân viên</span>
+                        </td>
+                        <td>
+                            <a href="{{ route('departments.edit', $dept) }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Sửa
+                            </a>
                             <form action="{{ route('departments.destroy', $dept) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa phòng ban này?');">
                                 @csrf @method('DELETE')
-                                <button class="btn btn-sm btn-danger">Xóa</button>
+                                <button class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </button>
                             </form>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="3" class="text-center">Chưa có phòng ban nào.</td></tr>
+                    <tr><td colspan="6" class="text-center">Chưa có phòng ban nào.</td></tr>
                 @endforelse
             </tbody>
         </table>

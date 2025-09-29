@@ -24,6 +24,8 @@ class User extends Authenticatable
         'health_insurance_number',
         'personal_identification_number',
         'avatar',
+        'checkin_region_id',
+        'is_active',
     ];
     
     protected $hidden = ['password','remember_token'];
@@ -356,5 +358,24 @@ class User extends Authenticatable
         
         // Return a simple placeholder avatar
         return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNjAiIGN5PSI2MCIgcj0iNjAiIGZpbGw9IiNmOGY5ZmEiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjQ1IiByPSIxOCIgZmlsbD0iIzZkNzM4MCIvPjxwYXRoIGQ9Ik0zMCA5MEMzMCA3NS42NDEgNDIuNjQxIDYzIDU3IDYzSDYzQzc3LjM1OSA2MyA5MCA3NS42NDEgOTAgOTBWMTAySDMwVjkwWiIgZmlsbD0iIzZkNzM4MCIvPjwvc3ZnPg==';
+    }
+
+    // Checkin relationships
+    public function checkins()
+    {
+        return $this->hasMany(Checkin::class);
+    }
+
+    public function gpsRequests()
+    {
+        return $this->hasMany(GpsRequest::class);
+    }
+
+    /**
+     * Lấy department để checkin (department chính của user)
+     */
+    public function getCheckinDepartment()
+    {
+        return $this->department;
     }
 }

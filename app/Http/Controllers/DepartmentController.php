@@ -46,7 +46,13 @@ class DepartmentController extends Controller
             abort(403, 'Bạn không có quyền thực hiện thao tác này.');
         }
         
-        $data = $request->validate(['name' => 'required|string|max:255|unique:departments,name']);
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:departments,name',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'radius_meters' => 'nullable|integer|min:1|max:10000',
+            'address' => 'nullable|string|max:500'
+        ]);
         Department::create($data);
         return redirect()->route('departments.index')->with('success', 'Đã thêm phòng ban.');
     }
@@ -72,7 +78,13 @@ class DepartmentController extends Controller
             abort(403, 'Bạn không có quyền thực hiện thao tác này.');
         }
         
-        $data = $request->validate(['name' => 'required|string|max:255|unique:departments,name,' . $department->id]);
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:departments,name,' . $department->id,
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'radius_meters' => 'nullable|integer|min:1|max:10000',
+            'address' => 'nullable|string|max:500'
+        ]);
         $department->update($data);
         return redirect()->route('departments.index')->with('success', 'Đã cập nhật phòng ban.');
     }

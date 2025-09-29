@@ -7,7 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Department extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'latitude',
+        'longitude',
+        'radius_meters',
+        'address'
+    ];
+
+    protected $casts = [
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
+        'radius_meters' => 'integer',
+    ];
 
     // Relationships
     public function users()
@@ -69,6 +81,25 @@ class Department extends Model
                       $q->where('department_id', $this->id);
                   });
         });
+    }
+
+    // Checkin relationships
+    public function checkins()
+    {
+        return $this->hasMany(Checkin::class);
+    }
+
+    public function gpsRequests()
+    {
+        return $this->hasMany(GpsRequest::class);
+    }
+
+    /**
+     * Kiểm tra xem department có cấu hình GPS không
+     */
+    public function hasGpsConfig()
+    {
+        return !is_null($this->latitude) && !is_null($this->longitude);
     }
 }
 

@@ -6,11 +6,78 @@
     </a>
     
     <div class="d-flex align-items-center">
-      <!-- Navigation Links -->
+      <!-- Shortcuts -->
       <div class="navbar-nav me-3">
-        <a class="nav-link" href="https://checkin.hpfoods.com.vn/" target="_blank">
-          <i class="bi bi-geo-alt me-1"></i>Điểm danh
-        </a>
+        <div class="dropdown">
+          <button class="btn btn-outline-primary dropdown-toggle" type="button" id="shortcutsDropdown" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
+            <i class="bi bi-grid me-1"></i>Shortcuts
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shortcutsDropdown" style="min-width: 250px;">
+            <li class="dropdown-header">Chọn hệ thống</li>
+            <li>
+              <a class="dropdown-item" href="{{ route('kanban') }}">
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="bi bi-kanban"></i>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-bold">Workflow</div>
+                    <small class="text-muted">Quản lý công việc</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{{ route('checkin.index') }}">
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="bi bi-geo-alt"></i>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-bold">Checkin</div>
+                    <small class="text-muted">Điểm danh</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+            @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+            <li>
+              <a class="dropdown-item" href="{{ route('admin.checkin.index') }}">
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="bi bi-gear"></i>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-bold">Quản lý Checkin</div>
+                    <small class="text-muted">{{ auth()->user()->isManager() ? 'Phòng ban' : 'Toàn công ty' }}</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+            @endif
+            <li>
+              <a class="dropdown-item disabled" href="#">
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="bi bi-car-front"></i>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-bold text-muted">Cho thuê xe</div>
+                    <small class="text-muted">Đang phát triển</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
       
       <!-- Notification Dropdown -->
