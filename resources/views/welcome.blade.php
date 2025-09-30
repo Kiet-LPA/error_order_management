@@ -665,17 +665,53 @@
   </div>
 </div>
 
+<style>
+.filter-section .btn-group .btn {
+  margin-right: 0;
+  border-radius: 0.25rem;
+}
+
+.filter-section .btn-group .btn:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.filter-section .btn-group .btn:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.filter-section .form-control-sm {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Status buttons spacing */
+.filter-section .btn-check + .btn {
+  margin-right: 0.25rem;
+}
+
+.filter-section .btn-check + .btn:last-of-type {
+  margin-right: 0;
+}
+</style>
+
 <div class="mb-3 filter-section">
-  {{-- Filter theo trạng thái --}}
-  <div class="d-flex flex-wrap align-items-center gap-2">
-    <small class="text-muted mb-0 me-2 flex-shrink-0"><i class="bi bi-funnel me-1"></i>Lọc theo trạng thái:</small>
+  <div class="bg-light p-2 rounded-3">
+    {{-- Filter theo trạng thái --}}
+    <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+      <small class="text-muted mb-0 me-1 flex-shrink-0">
+        <i class="bi bi-funnel me-1"></i>Lọc theo trạng thái:
+      </small>
     
     <form method="GET" action="{{ route('dashboard') }}" class="d-inline flex-shrink-0">
       <input type="hidden" name="sort" value="{{ request('sort') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
       <input type="hidden" name="date_to" value="{{ request('date_to') }}">
       <input type="hidden" name="department_filter" value="{{ request('department_filter') }}">
-      <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('status') && !request('statuses') ? ' active' : '' }}">Tất cả</button>
+      <button type="submit" class="btn btn-sm btn-secondary{{ !request('status') && !request('statuses') ? ' active' : '' }}">
+        Tất cả
+      </button>
     </form>
 
     {{-- Multi-select statuses --}}
@@ -690,14 +726,12 @@
           $selected = collect(request('statuses', []));
         @endphp
         
-        <div class="btn-group" role="group" aria-label="Statuses">
+        <div class="d-flex flex-wrap align-items-center gap-1">
           <input type="checkbox" class="btn-check" id="st_doing" autocomplete="off" name="statuses[]" value="in_progress" {{ $selected->contains('in_progress') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-primary" for="st_doing" style="border-color: #558EC1; color: #558EC1;">Đang làm</label>
+          <label class="btn btn-sm btn-outline-primary" for="st_doing">Đang làm</label>
 
-          <!-- <input type="checkbox" class="btn-check" id="st_completed" autocomplete="off" name="statuses[]" value="completed" {{ $selected->contains('completed') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-warning" for="st_completed">Chờ duyệt</label> -->
           <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval" style="border-color: #8b5cf6; color: #8b5cf6;">Chờ phê duyệt</label>
+          <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval">Chờ phê duyệt</label>
 
           <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
           <label class="btn btn-sm btn-outline-success" for="st_finished">Hoàn thành</label>
@@ -707,21 +741,19 @@
 
           <input type="checkbox" class="btn-check" id="st_overdue" autocomplete="off" name="statuses[]" value="overdue" {{ $selected->contains('overdue') ? 'checked' : '' }}>
           <label class="btn btn-sm btn-outline-danger" for="st_overdue">Trễ hạn</label>
-
-
-
-          
         </div>
         
-        <button type="submit" class="btn btn-sm btn-primary" style="background-color: #558EC1; border-color: #558EC1;">Áp dụng</button>
+        <button type="submit" class="btn btn-sm btn-primary">Áp dụng</button>
       </div>
     </form>
   </div>
 
   {{-- Filter theo thời gian và phòng ban --}}
-  <div class="row g-3">
+  <div class="row g-2">
     <div class="col-md-4">
-      <small class="text-muted mb-2 d-block"><i class="bi bi-sort-numeric-down me-1"></i>Sắp xếp theo thời gian:</small>
+      <small class="text-muted mb-1 d-block">
+        <i class="bi bi-sort-numeric-down me-1"></i>Sắp xếp theo thời gian:
+      </small>
       <div class="btn-group" role="group">
         <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
           <input type="hidden" name="status" value="{{ request('status') }}">
@@ -734,7 +766,7 @@
               <input type="hidden" name="statuses[]" value="{{ $status }}">
             @endforeach
           @endif
-          <button type="submit" class="btn btn-sm btn-outline-info{{ request('sort')=='newest' ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
+          <button type="submit" class="btn btn-sm btn-outline-primary{{ request('sort')=='newest' ? ' active' : '' }}">
             <i class="bi bi-sort-down me-1"></i>Mới nhất
           </button>
         </form>
@@ -749,7 +781,7 @@
               <input type="hidden" name="statuses[]" value="{{ $status }}">
             @endforeach
           @endif
-          <button type="submit" class="btn btn-sm btn-outline-info{{ request('sort')=='oldest' ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
+          <button type="submit" class="btn btn-sm btn-outline-primary{{ request('sort')=='oldest' ? ' active' : '' }}">
             <i class="bi bi-sort-up me-1"></i>Cũ nhất
           </button>
         </form>
@@ -757,7 +789,9 @@
     </div>
     
     <div class="col-md-4">
-      <small class="text-muted mb-2 d-block"><i class="bi bi-calendar-range me-1"></i>Chọn khoảng thời gian:</small>
+      <small class="text-muted mb-1 d-block">
+        <i class="bi bi-calendar-range me-1"></i>Chọn khoảng thời gian:
+      </small>
       <form method="GET" action="{{ route('dashboard') }}" class="row g-2">
         <input type="hidden" name="status" value="{{ request('status') }}">
         <input type="hidden" name="sort" value="{{ request('sort') }}">
@@ -776,7 +810,7 @@
                  class="form-control form-control-sm" placeholder="dd/mm/yyyy">
         </div>
         <div class="col-2">
-          <button type="submit" class="btn btn-sm btn-primary w-100" style="background-color: #558EC1; border-color: #558EC1;">
+          <button type="submit" class="btn btn-sm btn-primary w-100">
             <i class="bi bi-search"></i>
           </button>
         </div>
@@ -784,7 +818,9 @@
     </div>
 
     <div class="col-md-4">
-      <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Lọc theo phòng ban:</small>
+      <small class="text-muted mb-1 d-block">
+        <i class="bi bi-building me-1"></i>Lọc theo phòng ban:
+      </small>
       <div class="dropdown">
         <button class="btn btn-sm btn-secondary dropdown-toggle w-100" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
           @if(request('department_filter'))
@@ -846,6 +882,7 @@
       </a>
     </div>
   @endif
+  </div>
 </div>
 
 {{-- Tasks đang theo dõi --}}
