@@ -378,4 +378,32 @@ Route::middleware(['auth', 'role:admin,director,manager'])->prefix('admin/checki
     Route::get('/reports', [\App\Http\Controllers\AdminCheckinController::class, 'reports'])->name('reports');
 });
 
+// Rental Car routes
+Route::middleware(['auth'])->prefix('rental')->name('rental.')->group(function () {
+    // Public routes (all users can rent cars)
+    Route::get('/', [\App\Http\Controllers\RentalCarController::class, 'index'])->name('index');
+    Route::post('/rent', [\App\Http\Controllers\RentalCarController::class, 'rentCar'])->name('rent');
+    Route::get('/my-rentals', [\App\Http\Controllers\RentalCarController::class, 'myRentals'])->name('my-rentals');
+    Route::get('/rentals/{rental}', [\App\Http\Controllers\RentalCarController::class, 'showRental'])->name('show');
+    Route::post('/rentals/{rental}/request-extension', [\App\Http\Controllers\RentalCarController::class, 'requestExtension'])->name('request-extension');
+    Route::post('/rentals/{rental}/return-car', [\App\Http\Controllers\RentalCarController::class, 'returnCar'])->name('return-car');
+    
+    // Admin/Manager routes (users with can_manage_cars = true)
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/admin', [\App\Http\Controllers\RentalCarController::class, 'admin'])->name('admin');
+        
+        // Car management
+        Route::resource('cars', \App\Http\Controllers\CarController::class);
+        
+        // Extension management
+        Route::get('/extensions', [\App\Http\Controllers\RentalExtensionController::class, 'index'])->name('extensions.index');
+        Route::post('/extensions/{extension}/approve', [\App\Http\Controllers\RentalExtensionController::class, 'approve'])->name('extensions.approve');
+        Route::post('/extensions/{extension}/reject', [\App\Http\Controllers\RentalExtensionController::class, 'reject'])->name('extensions.reject');
+        
+        // Rental management
+        Route::post('/rentals/{rental}/cancel', [\App\Http\Controllers\RentalCarController::class, 'cancelRental'])->name('rentals.cancel');
+        Route::post('/rentals/{rental}/complete-early', [\App\Http\Controllers\RentalCarController::class, 'completeRentalEarly'])->name('rentals.complete-early');
+    });
+});
+
 

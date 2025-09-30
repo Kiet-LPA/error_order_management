@@ -4,7 +4,7 @@
 @section('content')
 <style>
 .card-header {
-    background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
+    background: #198754;
     color: #fff;
     border-bottom: none;
 }
@@ -20,7 +20,7 @@
 }
 
 .stats-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #007bff;
     color: white;
     border-radius: 10px;
     padding: 1.5rem;
@@ -107,13 +107,13 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stats-card" style="background: #ffc107; color: #000;">
                     <h3>{{ $reports['summary']['success_rate'] }}%</h3>
                     <p><i class="bi bi-graph-up me-2"></i>Tỷ lệ thành công</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="stats-card" style="background: #198754;">
                     <h3>{{ $reports['summary']['total_users'] }}</h3>
                     <p><i class="bi bi-people me-2"></i>Số nhân viên tham gia</p>
                 </div>

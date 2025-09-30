@@ -13,7 +13,7 @@
             line-height: 1.6;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #198754;
             color: white;
             padding: 1rem 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -50,7 +50,7 @@
             overflow: hidden;
         }
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #198754;
             color: white;
             padding: 1rem 1.5rem;
             font-weight: 600;
@@ -95,7 +95,7 @@
             color: #0c5460;
         }
         .test-btn {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: #198754;
             color: white;
             border: none;
             padding: 1rem 2rem;

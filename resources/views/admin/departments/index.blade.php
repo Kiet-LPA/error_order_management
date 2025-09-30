@@ -1,6 +1,56 @@
 @extends('layouts.master')
 @section('title', 'Quản lý phòng ban')
 @section('content')
+
+<style>
+/* Department status styling */
+.text-success {
+    color: #198754 !important;
+    font-weight: 600;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+.text-dark {
+    color: #212529 !important;
+}
+
+/* Badge styling improvements */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.bg-success {
+    background-color: #198754 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+/* Table improvements */
+.table td {
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Icon spacing */
+.bi {
+    font-size: 0.875rem;
+}
+</style>
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Danh sách phòng ban</h5>
@@ -25,9 +75,9 @@
                         <td>
                             <strong>{{ $dept->name }}</strong>
                             @if($dept->hasGpsConfig())
-                                <br><small class="text-success"><i class="fas fa-map-marker-alt"></i> Có GPS</small>
+                                <br><small class="text-success fw-bold"><i class="bi bi-geo-alt-fill me-1"></i>Có GPS</small>
                             @else
-                                <br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Chưa có GPS</small>
+                                <br><small class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Chưa có GPS</small>
                             @endif
                         </td>
                         <td>
@@ -39,28 +89,30 @@
                         </td>
                         <td>
                             @if($dept->hasGpsConfig())
-                                <span class="badge badge-success">
-                                    <i class="fas fa-check"></i> Đã cấu hình
+                                <span class="badge bg-success text-white">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Đã cấu hình
                                 </span>
-                                <br><small class="text-muted">{{ $dept->latitude }}, {{ $dept->longitude }}</small>
-                                <br><small class="text-muted">Bán kính: {{ $dept->radius_meters }}m</small>
+                                <br><small class="text-dark fw-semibold">{{ $dept->latitude }}, {{ $dept->longitude }}</small>
+                                <br><small class="text-dark fw-semibold">Bán kính: {{ $dept->radius_meters }}m</small>
                             @else
-                                <span class="badge badge-warning">
-                                    <i class="fas fa-times"></i> Chưa cấu hình
+                                <span class="badge bg-danger text-white">
+                                    <i class="bi bi-x-circle-fill me-1"></i>Chưa cấu hình
                                 </span>
                             @endif
                         </td>
                         <td>
-                            <span class="badge badge-info">{{ $dept->users->count() }} nhân viên</span>
+                            <span class="badge bg-primary text-white fw-semibold">
+                                <i class="bi bi-people-fill me-1"></i>{{ $dept->users->count() }} nhân viên
+                            </span>
                         </td>
                         <td>
                             <a href="{{ route('departments.edit', $dept) }}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-edit"></i> Sửa
+                                <i class="bi bi-pencil-fill me-1"></i>Sửa
                             </a>
                             <form action="{{ route('departments.destroy', $dept) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa phòng ban này?');">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-danger">
-                                    <i class="fas fa-trash"></i> Xóa
+                                    <i class="bi bi-trash-fill me-1"></i>Xóa
                                 </button>
                             </form>
                         </td>

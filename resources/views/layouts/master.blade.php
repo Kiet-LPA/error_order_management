@@ -55,6 +55,7 @@
       background-color: white !important;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
       width: 100% !important;
+      min-height: 56px !important;
     }
     
     /* Fix any potential navbar hiding issues */
@@ -76,17 +77,149 @@
     /* Add padding to body to account for fixed navbar */
     body {
       padding-top: 56px !important; /* Height of navbar */
+      padding-bottom: 80px !important; /* Height of bottom nav */
+      margin: 0 !important;
     }
     
-    /* Container fluid adjustments */
+    /* Ensure html is full width */
+    html {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* Ensure navbar is always visible and on top */
+    .navbar * {
+      z-index: 99999 !important;
+    }
+    
+    /* Ensure dropdowns are above everything */
+    .dropdown-menu {
+      z-index: 1050 !important;
+    }
+    
+    /* Modal backdrop should be below navbar */
+    .modal-backdrop {
+      z-index: 1040 !important;
+    }
+    
+    /* Modals should be above navbar */
+    .modal {
+      z-index: 1055 !important;
+    }
+    
+    
+    /* Ensure no element covers bottom nav */
+    .bottom-nav {
+      z-index: 10000 !important;
+    }
+    
+    
+    /* Remove all container limitations */
+    .container,
     .container-fluid {
+      max-width: none !important;
+      width: 100% !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    
+    /* Main content responsive to sidebar - Full width */
+    .main-content {
+      width: 100% !important;
+      max-width: none !important;
+      margin-right: 0 !important;
+      padding-right: 0 !important;
+      padding-left: 0 !important;
+      transition: margin-left 0.3s ease;
+    }
+    
+    /* When sidebar is expanded */
+    .main-content {
+      margin-left: 280px; /* Width of expanded sidebar */
+      width: calc(100% - 280px) !important; /* Full width minus sidebar */
+    }
+    
+    /* When sidebar is collapsed */
+    .sidebar-collapsed .main-content {
+      margin-left: 80px; /* Width of collapsed sidebar */
+      width: calc(100% - 80px) !important; /* Full width minus collapsed sidebar */
+    }
+    
+    /* Remove all row margins */
+    .container-fluid .row,
+    .row {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      width: 100% !important;
+    }
+    
+    /* Remove all col padding */
+    .container-fluid [class*="col-"],
+    [class*="col-"] {
       padding-left: 0 !important;
       padding-right: 0 !important;
     }
     
-    .container-fluid .row {
-      margin-left: 0 !important;
-      margin-right: 0 !important;
+    /* Force all forms and content to be full width */
+    .form-control,
+    .form-select,
+    .form-check-label,
+    .input-group,
+    .card,
+    .table,
+    .list-group,
+    .btn-group,
+    .modal-dialog {
+      max-width: none !important;
+      width: 100% !important;
+    }
+    
+    /* Keep checkboxes and radios normal size */
+    .form-check-input {
+      width: 1rem !important;
+      height: 1rem !important;
+      max-width: 1rem !important;
+    }
+    
+    /* Exception: Car management checkbox should stay square */
+    #can_manage_cars {
+      width: 20px !important;
+      height: 20px !important;
+      max-width: 20px !important;
+    }
+    
+    /* Fix all checkboxes in tables and forms */
+    .table .form-check-input,
+    .form-check-input {
+      width: 1rem !important;
+      height: 1rem !important;
+      max-width: 1rem !important;
+      min-width: 1rem !important;
+      flex-shrink: 0 !important;
+    }
+    
+    /* Kanban board full width */
+    .kanban-board,
+    .task-column,
+    .task-card {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    /* Remove any max-width constraints */
+    * {
+      max-width: none !important;
+    }
+    
+    /* But keep some elements reasonable */
+    .modal-dialog {
+      max-width: 500px !important; /* Keep modals reasonable */
+    }
+    
+    .btn {
+      max-width: none !important; /* But buttons can be full width if needed */
     }
     
     
@@ -333,93 +466,12 @@
       right: 0;
       background: var(--bg-color);
       border-top: 1px solid var(--border-color);
-      z-index: 1050;
+      z-index: 10000;
       padding: 8px 0;
       box-shadow: 0 -2px 10px var(--shadow-color);
       transition: all 0.3s ease;
     }
     
-    /* Dropdown styling for bottom nav */
-    .bottom-nav .dropdown-nav {
-      position: relative;
-    }
-    
-    .bottom-nav .dropdown-menu {
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-bottom: 8px;
-      min-width: 200px;
-      max-width: 250px;
-      background: var(--bg-color);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: 0 -4px 12px var(--shadow-color);
-      z-index: 1060;
-      display: none;
-      opacity: 0;
-      transition: all 0.3s ease;
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    
-    .bottom-nav .dropdown-menu.show {
-      display: block;
-      opacity: 1;
-      animation: slideUp 0.3s ease;
-    }
-    
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-    }
-    
-    .bottom-nav .dropdown-item {
-      color: var(--text-color);
-      padding: 10px 15px;
-      font-size: 0.9rem;
-      border-bottom: 1px solid var(--border-color);
-      transition: all 0.3s ease;
-      display: block;
-      text-decoration: none;
-      width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .bottom-nav .dropdown-item:last-child {
-      border-bottom: none;
-    }
-    
-    .bottom-nav .dropdown-item:hover {
-      background: var(--hover-bg);
-      color: var(--active-color);
-    }
-    
-    .bottom-nav .dropdown-item.active {
-      background: var(--active-bg);
-      color: var(--active-color);
-    }
-    
-    .bottom-nav .dropdown-item i {
-      font-size: 1rem;
-    }
-    
-    .bottom-nav .dropdown-menu li {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
     
     .bottom-nav .nav-item {
       flex: 1;
@@ -429,14 +481,14 @@
     .bottom-nav .nav-link {
       color: var(--text-color);
       text-decoration: none;
-      padding: 8px 4px;
+      padding: 10px 4px;
       border-radius: 8px;
       transition: all 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
       font-size: 0.75rem;
-      min-height: 50px;
+      min-height: 60px;
       justify-content: center;
     }
     
@@ -457,12 +509,14 @@
     
     .bottom-nav .nav-link span {
       font-size: 0.7rem;
-      line-height: 1;
+      line-height: 1.2;
+      margin-top: 2px;
     }
     
     /* Ensure proper spacing for bottom nav */
     .bottom-nav {
-      height: 70px;
+      height: 80px;
+      padding: 12px 0;
     }
     
     .bottom-nav .row {
@@ -567,7 +621,7 @@
     /* Scroll to top button */
     .scroll-to-top {
       position: fixed;
-      bottom: 90px;
+      bottom: 100px;
       right: 20px;
       width: 45px;
       height: 45px;
@@ -613,10 +667,26 @@
         width: 100% !important;
         margin-bottom: 90px !important;
         padding-bottom: 20px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
       }
       
       .bottom-nav {
         display: flex !important;
+        height: 80px !important;
+        padding: 12px 0 !important;
+      }
+      
+      /* Mobile specific bottom nav adjustments */
+      .bottom-nav .nav-link {
+        min-height: 60px !important;
+        padding: 10px 4px !important;
+      }
+      
+      .bottom-nav .nav-link span {
+        font-size: 0.7rem !important;
+        line-height: 1.2 !important;
+        margin-top: 2px !important;
       }
       
       .sidebar-toggle {
@@ -630,7 +700,7 @@
       
       /* Position scroll to top button for mobile */
       .scroll-to-top {
-        bottom: 100px;
+        bottom: 110px;
         right: 15px;
         width: 40px;
         height: 40px;
@@ -640,6 +710,73 @@
         font-size: 1.1rem;
       }
       
+      /* Mobile responsive improvements */
+      .container-fluid {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+      
+      /* Card responsive */
+      .card {
+        margin-bottom: 15px;
+        border-radius: 10px;
+      }
+      
+      .card-body {
+        padding: 15px;
+      }
+      
+      /* Table responsive */
+      .table-responsive {
+        border-radius: 8px;
+      }
+      
+      /* Button groups responsive */
+      .btn-group-vertical .btn {
+        margin-bottom: 5px;
+      }
+      
+      /* Modal responsive */
+      .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+      }
+      
+      /* Form responsive */
+      .form-control, .form-select {
+        font-size: 16px; /* Prevent zoom on iOS */
+      }
+      
+    }
+    
+    /* Tablet adjustments */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .main-content {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+      }
+      
+      .card {
+        margin-bottom: 20px;
+      }
+      
+      .btn-action {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+      }
+    }
+    
+    /* Large screen optimizations */
+    @media (min-width: 1200px) {
+      .main-content {
+        padding-left: 30px !important;
+        padding-right: 30px !important;
+      }
+      
+      .container-fluid {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
     }
     
     /* Tooltip for collapsed sidebar */
@@ -817,45 +954,43 @@
         
         @auth
         @if(Auth::user()->isAdmin() || Auth::user()->isDirector())
-          <!-- Dropdown cho Quản lý nhân viên -->
-          <div class="col nav-item dropdown-nav">
+          <!-- Nút Quản lý với Dropdown thông thường -->
+          <div class="col nav-item dropdown">
             <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs('users.*') || request()->routeIs('employees.new.*') || request()->routeIs('departments.*')?'active':'' }}" 
-               onclick="toggleBottomDropdown(this)" aria-expanded="false">
+               data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-people"></i>
               <span>Quản lý</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item {{ request()->routeIs('users.*')?'active':'' }}" href="{{ route('users.index') }}">
-                <i class="bi bi-person-check me-2"></i>Nhân viên
+              <li><a class="dropdown-item" href="{{ route('users.index') }}">
+                <i class="bi bi-person-check me-2"></i>Nhân viên chính thức
               </a></li>
-              <li><a class="dropdown-item {{ request()->routeIs('employees.new.*')?'active':'' }}" href="{{ route('employees.new.index') }}">
+              <li><a class="dropdown-item" href="{{ route('employees.new.index') }}">
                 <i class="bi bi-person-plus me-2"></i>Nhân viên mới
               </a></li>
-              <li><a class="dropdown-item {{ request()->routeIs('departments.*')?'active':'' }}" href="{{ route('departments.index') }}">
+              <li><a class="dropdown-item" href="{{ route('departments.index') }}">
                 <i class="bi bi-building me-2"></i>Phòng ban
               </a></li>
             </ul>
           </div>
         @endif
         
-        <!-- Dropdown cho Báo cáo -->
-        <div class="col nav-item dropdown-nav">
+        <!-- Nút Báo cáo với Dropdown thông thường -->
+        <div class="col nav-item dropdown">
           <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs('work-reports.*') || request()->routeIs('reports.index')?'active':'' }}" 
-             onclick="toggleBottomDropdown(this)" aria-expanded="false">
+             data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bi bi-file-earmark-text"></i>
             <span>Báo cáo</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item {{ request()->routeIs('work-reports.*')?'active':'' }}" href="{{ route('work-reports.index') }}">
+            <li><a class="dropdown-item" href="{{ route('work-reports.index') }}">
               <i class="bi bi-file-earmark-text me-2"></i>Báo cáo công việc
             </a></li>
-            @auth
             @if(Auth::user()->isAdmin() || Auth::user()->isDirector() || Auth::user()->isManager())
-            <li><a class="dropdown-item {{ request()->routeIs('reports.index')?'active':'' }}" href="{{ route('reports.index') }}">
+            <li><a class="dropdown-item" href="{{ route('reports.index') }}">
               <i class="bi bi-bar-chart me-2"></i>Báo cáo thống kê
             </a></li>
             @endif
-            @endauth
           </ul>
         </div>
 
@@ -1010,58 +1145,6 @@
       }
     });
     
-    // Bottom navigation dropdown functionality
-    function toggleBottomDropdown(toggleElement) {
-      event.preventDefault();
-      event.stopPropagation();
-      
-      const dropdown = toggleElement.closest('.dropdown-nav');
-      const dropdownMenu = dropdown.querySelector('.dropdown-menu');
-      const isOpen = dropdownMenu.classList.contains('show');
-      
-      console.log('Toggle dropdown:', dropdown, dropdownMenu, isOpen);
-      
-      // Close all other dropdowns
-      document.querySelectorAll('.bottom-nav .dropdown-menu').forEach(function(menu) {
-        menu.classList.remove('show');
-      });
-      document.querySelectorAll('.bottom-nav .dropdown-toggle').forEach(function(toggle) {
-        toggle.setAttribute('aria-expanded', 'false');
-      });
-      
-      // Toggle current dropdown
-      if (!isOpen) {
-        dropdownMenu.classList.add('show');
-        toggleElement.setAttribute('aria-expanded', 'true');
-        console.log('Dropdown opened');
-      } else {
-        console.log('Dropdown closed');
-      }
-    }
-    
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(event) {
-      if (!event.target.closest('.bottom-nav .dropdown-nav')) {
-        document.querySelectorAll('.bottom-nav .dropdown-menu').forEach(function(menu) {
-          menu.classList.remove('show');
-        });
-        document.querySelectorAll('.bottom-nav .dropdown-toggle').forEach(function(toggle) {
-          toggle.setAttribute('aria-expanded', 'false');
-        });
-      }
-    });
-    
-    // Close dropdown when selecting an item
-    document.addEventListener('click', function(event) {
-      if (event.target.closest('.bottom-nav .dropdown-item')) {
-        const dropdown = event.target.closest('.dropdown-nav');
-        const dropdownMenu = dropdown.querySelector('.dropdown-menu');
-        const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
-        
-        dropdownMenu.classList.remove('show');
-        dropdownToggle.setAttribute('aria-expanded', 'false');
-      }
-    });
   </script>
   
   
@@ -1079,5 +1162,8 @@
   </script>
   
   @stack('scripts')
+
+
+
 </body>
 </html>

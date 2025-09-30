@@ -845,7 +845,7 @@ class TaskController extends Controller
         if (!$isEmployeeResubmitting && !$user->canApproveTask($task)) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
-
+        
         // ✅ Kiểm tra transition hợp lệ
         $validTransitions = $this->getValidStatusTransitions($task, $user);
         if (!in_array($status, $validTransitions)) {
@@ -854,7 +854,7 @@ class TaskController extends Controller
             }
             return back()->withErrors(['status' => 'Không thể chuyển sang trạng thái này']);
         }
-
+        
         // ✅ Subtask validation
         if (in_array($status, ['pending_approval', 'finished']) && $task->hasSubtasks()) {
             \Log::debug('SUBTASK VALIDATION CHECK', [
@@ -916,7 +916,7 @@ class TaskController extends Controller
                     // Kiểm tra cả assignee_id và assignees (multi-user)
                     $isAssigned = $task->assignee_id === $user->id || $task->assignees->contains('id', $user->id);
                     if ($isAssigned) {
-                        return ['pending_approval'];
+                    return ['pending_approval'];
                     }
                 }
                 // Role cao có thể thay đổi trạng thái
@@ -938,7 +938,7 @@ class TaskController extends Controller
                     // Kiểm tra cả assignee_id và assignees (multi-user)
                     $isAssigned = $task->assignee_id === $user->id || $task->assignees->contains('id', $user->id);
                     if ($isAssigned) {
-                        return ['pending_approval'];
+                    return ['pending_approval'];
                     }
                 }
                 break;

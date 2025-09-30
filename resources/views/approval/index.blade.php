@@ -237,8 +237,11 @@
                                         <td>
                                             @if($request->creator)
                                                 <div class="d-flex align-items-center">
-                                                    <div class="bg-info bg-opacity-10 rounded-circle p-1 me-2">
-                                                        <i class="bi bi-person-circle text-info"></i>
+                                                    <div class="me-2">
+                                                        <img src="{{ $request->creator->avatar_url }}" 
+                                                             alt="{{ $request->creator->name }}" 
+                                                             class="rounded-circle" 
+                                                             style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #e9ecef;">
                                                     </div>
                                                     <div>
                                                         <strong class="text-dark">{{ $request->creator->name }}</strong>
@@ -264,8 +267,11 @@
                                         <td>
                                             @if($request->currentApprover)
                                                 <div class="d-flex align-items-center">
-                                                    <div class="bg-success bg-opacity-10 rounded-circle p-1 me-2">
-                                                        <i class="bi bi-person-check text-success"></i>
+                                                    <div class="me-2">
+                                                        <img src="{{ $request->currentApprover->avatar_url }}" 
+                                                             alt="{{ $request->currentApprover->name }}" 
+                                                             class="rounded-circle" 
+                                                             style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #e9ecef;">
                                                     </div>
                                                     <div>
                                                         <strong class="text-dark">{{ $request->currentApprover->name }}</strong>

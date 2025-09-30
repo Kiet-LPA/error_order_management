@@ -4,7 +4,7 @@
 @section('content')
 <style>
 .card-header {
-    background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
+    background: #198754;
     color: #fff;
     border-bottom: none;
 }

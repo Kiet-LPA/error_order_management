@@ -137,6 +137,7 @@ class UserController extends Controller
             'health_insurance_number'=>'nullable|string|max:50',
             'personal_identification_number'=>'nullable|string|max:50',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'can_manage_cars' => 'nullable|boolean',
         ]);
         
         // Kiểm tra ít nhất phải có email hoặc số điện thoại
@@ -305,6 +306,7 @@ class UserController extends Controller
             'account_status'=>($user->isAdmin() || $user->isDirector()) ? 'nullable|in:active,inactive' : 'required|in:active,inactive',
             'contract_images.*'=>'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'can_manage_cars' => 'nullable|boolean',
             // Thông tin hợp đồng
             'contract_salary'=>'nullable|numeric|min:0',
             'contract_period'=>'nullable|integer|min:1|max:60',

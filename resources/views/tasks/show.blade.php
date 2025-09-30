@@ -13,7 +13,7 @@
 }
 
 .task-header-gradient {
-    background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
+    background: #007bff;
     color: #fff;
     border-radius: 18px;
     padding: 32px 32px 24px 32px;
@@ -85,7 +85,7 @@
 
 /* Modal styling */
 .modal-header {
-    background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
+    background: #007bff;
     color: #fff;
     border-bottom: none;
 }
@@ -415,7 +415,7 @@
 <!-- Subtasks Section -->
 @if($task->hasSubtasks())
 <div class="card card-custom p-4 mb-4">
-    <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+    <div class="card-header" style="background: #198754; color: white;">
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="bi bi-list-task me-2"></i>Các bước thực hiện
@@ -682,9 +682,10 @@ function deleteAttachment(attachmentId, fileName) {
                 <div class="comment-item" data-comment-id="{{ $comment->id }}">
                     <div class="d-flex align-items-center mb-2">
                         <div class="d-flex align-items-center">
-                            <div class="avatar me-2" style="width: 32px; height: 32px; background: linear-gradient(135deg, #558EC1, #5DA444); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
-                                {{ substr($comment->user->name, 0, 1) }}
-                            </div>
+                            <img src="{{ $comment->user->avatar_url }}" 
+                                 alt="{{ $comment->user->name }}" 
+                                 class="rounded-circle me-2" 
+                                 style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #e9ecef;">
                             <div>
                                 <strong class="text-primary d-block">{{ $comment->user->name }}</strong>
                                 <small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
@@ -768,7 +769,7 @@ function deleteAttachment(attachmentId, fileName) {
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header" style="background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%); color: white;">
+          <div class="modal-header" style="background: #007bff; color: white;">
             <h5 class="modal-title" id="imageModalLabel">
               <i class="bi bi-image me-2"></i>Xem hình ảnh
             </h5>
@@ -1213,21 +1214,21 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
 <style>
 /* Button undo styling */
 .btn-undo {
-    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-    color: #fff;
+    background: #ffc107;
+    color: #000;
     border: none;
     border-radius: 8px;
     padding: 12px 20px;
     font-weight: 500;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
 .btn-undo:hover {
-    background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
-    color: #fff;
+    background: #e0a800;
+    color: #000;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
 }
 
 .btn-undo:active {
@@ -1237,7 +1238,7 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
 
 /* Task recurring notification styling - giống hệt như trong ảnh */
 .recurring-notification {
-    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+    background: #e7f3ff;
     border: 2px solid #10b981;
     border-radius: 12px;
     padding: 16px 20px;
@@ -1254,7 +1255,7 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(45deg, rgba(16, 185, 129, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
+    background: rgba(16, 185, 129, 0.05);
     pointer-events: none;
 }
 
@@ -1642,7 +1643,7 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
 
 /* Assignee badges styling */
 .badge.bg-primary {
-  background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%) !important;
+  background: #007bff !important;
   border: none;
   font-weight: 500;
   padding: 0.5rem 0.75rem;

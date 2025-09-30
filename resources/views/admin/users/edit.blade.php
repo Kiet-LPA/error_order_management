@@ -26,6 +26,28 @@
     color: #374151;
     font-weight: 500;
 }
+
+/* Custom checkbox styling for car management permission */
+#can_manage_cars {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 4px !important;
+    border: 2px solid #6c757d !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    max-width: 20px !important;
+}
+
+#can_manage_cars:checked {
+    background-color: #5DA444 !important;
+    border-color: #5DA444 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' view='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+}
+
+#can_manage_cars:hover {
+    border-color: #5DA444 !important;
+    transform: scale(1.05) !important;
+}
 </style>
 
 <div class="container-fluid">
@@ -123,6 +145,19 @@
                                         <option value="employee" {{ old('role', $user->role)=='employee'?'selected':'' }}>Employee</option>
                                     </select>
                                     @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+
+                                <!-- Quyền quản lý xe -->
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="can_manage_cars" value="1" id="can_manage_cars" 
+                                               style="width: 20px; height: 20px; border-radius: 4px; border: 2px solid #6c757d;" 
+                                               {{ old('can_manage_cars', $user->can_manage_cars) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="can_manage_cars" style="margin-left: 10px;">
+                                            <strong>Quyền quản lý xe</strong>
+                                            <small class="text-muted d-block">Cho phép quản lý hệ thống thuê xe (quản lý xe, duyệt gia hạn, v.v.)</small>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div class="mb-3">

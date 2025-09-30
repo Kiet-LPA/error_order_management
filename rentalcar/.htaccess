@@ -1,0 +1,25 @@
+RewriteEngine On
+
+# Redirect to login if accessing root
+RewriteCond %{REQUEST_URI} ^/remaining_order_management/?$
+RewriteRule ^(.*)$ login.php [L]
+
+# Security: Deny access to sensitive files
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "database.sql">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Enable error reporting for development
+php_flag display_errors On
+php_value error_reporting E_ALL
+
+# Set UTF-8 encoding
+AddDefaultCharset UTF-8
+php_value default_charset "UTF-8"
+

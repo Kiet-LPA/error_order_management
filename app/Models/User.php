@@ -26,6 +26,7 @@ class User extends Authenticatable
         'avatar',
         'checkin_region_id',
         'is_active',
+        'can_manage_cars',
     ];
     
     protected $hidden = ['password','remember_token'];
@@ -377,5 +378,32 @@ class User extends Authenticatable
     public function getCheckinDepartment()
     {
         return $this->department;
+    }
+
+    // Rental relationships
+    public function rentals()
+    {
+        return $this->hasMany(Rental::class);
+    }
+
+    public function activeRental()
+    {
+        return $this->hasOne(Rental::class)->where('status', 'active');
+    }
+
+    public function approvedExtensions()
+    {
+        return $this->hasMany(RentalExtension::class, 'approved_by');
+    }
+
+    // Rental methods
+    public function canManageCars(): bool
+    {
+        return $this->can_manage_cars || $this->isAdmin() || $this->isDirector();
+    }
+
+    public function hasActiveRental(): bool
+    {
+        return $this->activeRental()->exists();
     }
 }

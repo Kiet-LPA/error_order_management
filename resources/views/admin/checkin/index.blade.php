@@ -4,7 +4,7 @@
 @section('content')
 <style>
 .card-header {
-    background: linear-gradient(90deg, #558EC1 0%, #5DA444 100%);
+    background: #198754;
     color: #fff;
     border-bottom: none;
 }
@@ -13,7 +13,7 @@
 }
 
 .stats-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #007bff;
     color: white;
     border-radius: 10px;
     padding: 1.5rem;
@@ -70,19 +70,19 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="stats-card" style="background: #dc3545;">
             <h3>{{ $stats['today_checkins'] }}</h3>
             <p><i class="bi bi-calendar-day me-2"></i>Hôm nay</p>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+        <div class="stats-card" style="background: #198754;">
             <h3>{{ $stats['today_success'] }}</h3>
             <p><i class="bi bi-check-circle me-2"></i>Thành công hôm nay</p>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+        <div class="stats-card" style="background: #ffc107; color: #000;">
             <h3>{{ $stats['success_rate'] }}%</h3>
             <p><i class="bi bi-graph-up me-2"></i>Tỷ lệ thành công</p>
         </div>

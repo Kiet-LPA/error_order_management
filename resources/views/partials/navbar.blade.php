@@ -1,18 +1,18 @@
 <!-- Navbar -->
-<nav class="navbar navbar-light bg-white shadow-sm" style="position: fixed; top: 0; left: 0; right: 0; z-index: 1070; width: 100%;">
+<nav class="navbar navbar-light bg-white shadow-sm" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; width: 100%;">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold text-primary" href="{{ route('dashboard') }}">
+    <a class="navbar-brand fw-bold text-primary" href="{{ route('kanban') }}">
       <i class="bi bi-clipboard-data me-2"></i>📋 Quản lý công việc
     </a>
     
     <div class="d-flex align-items-center">
       <!-- Shortcuts -->
-      <div class="navbar-nav me-3">
+      <div class="navbar-nav me-3 d-flex flex-row align-items-center">
         <div class="dropdown">
-          <button class="btn btn-outline-primary dropdown-toggle" type="button" id="shortcutsDropdown" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
-            <i class="bi bi-grid me-1"></i>Shortcuts
+          <button class="btn btn-outline-primary dropdown-toggle" type="button" id="shortcutsDropdown" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <i class="bi bi-grid me-1"></i>Phím tắt
           </button>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shortcutsDropdown" style="min-width: 250px;">
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shortcutsDropdown" style="min-width: 250px; max-width: 90vw;">
             <li class="dropdown-header">Chọn hệ thống</li>
             <li>
               <a class="dropdown-item" href="{{ route('kanban') }}">
@@ -23,7 +23,7 @@
                     </div>
                   </div>
                   <div>
-                    <div class="fw-bold">Workflow</div>
+                    <div class="fw-bold">Quy trình làm việc</div>
                     <small class="text-muted">Quản lý công việc</small>
                   </div>
                 </div>
@@ -38,8 +38,8 @@
                     </div>
                   </div>
                   <div>
-                    <div class="fw-bold">Checkin</div>
-                    <small class="text-muted">Điểm danh</small>
+                    <div class="fw-bold">Điểm danh</div>
+                    <small class="text-muted">Check-in GPS</small>
                   </div>
                 </div>
               </a>
@@ -54,24 +54,41 @@
                     </div>
                   </div>
                   <div>
-                    <div class="fw-bold">Quản lý Checkin</div>
+                    <div class="fw-bold">Quản lý điểm danh</div>
                     <small class="text-muted">{{ auth()->user()->isManager() ? 'Phòng ban' : 'Toàn công ty' }}</small>
                   </div>
                 </div>
               </a>
             </li>
             @endif
+            @if(auth()->user()->canManageCars())
             <li>
-              <a class="dropdown-item disabled" href="#">
+              <a class="dropdown-item" href="{{ route('rental.admin') }}">
                 <div class="d-flex align-items-center">
                   <div class="me-3">
-                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="bi bi-tools"></i>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-bold">Quản lý xe</div>
+                    <small class="text-muted">Quản trị xe</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+            @endif
+            <li>
+              <a class="dropdown-item" href="{{ route('rental.index') }}">
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                       <i class="bi bi-car-front"></i>
                     </div>
                   </div>
                   <div>
-                    <div class="fw-bold text-muted">Cho thuê xe</div>
-                    <small class="text-muted">Đang phát triển</small>
+                    <div class="fw-bold">Thuê xe</div>
+                    <small class="text-muted">Đặt xe công ty</small>
                   </div>
                 </div>
               </a>
@@ -85,8 +102,12 @@
       
       <!-- User Menu -->
       <div class="dropdown">
-        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
-          <i class="bi bi-person-circle me-1"></i>{{ auth()->user()->name }}
+        <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
+          <img src="{{ auth()->user()->avatar_url }}" 
+               alt="{{ auth()->user()->name }}" 
+               class="rounded-circle me-2" 
+               style="width: 24px; height: 24px; object-fit: cover; border: 1px solid #dee2e6;">
+          {{ auth()->user()->name }}
         </button>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
           <li>
@@ -119,7 +140,20 @@
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     border-radius: 0.5rem;
     padding: 0.5rem 0;
+    z-index: 10000 !important;
 }
+
+/* Simple shortcuts dropdown styling */
+.dropdown-menu[aria-labelledby="shortcutsDropdown"] {
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    top: 100% !important;
+    min-width: 250px;
+    max-width: 90vw;
+    z-index: 10001 !important;
+}
+
 
 .dropdown-item {
     padding: 0.5rem 1rem;
@@ -204,10 +238,11 @@
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    z-index: 1070 !important;
+    z-index: 99999 !important;
     background-color: white !important;
     border-bottom: 1px solid #dee2e6;
     width: 100% !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
 }
 
 /* Fix any potential overflow issues */
@@ -216,4 +251,102 @@
     overflow: visible;
 }
 
+/* Responsive navbar styles */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1rem;
+    }
+    
+    .navbar-brand i {
+        font-size: 0.9rem;
+    }
+    
+    .btn {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .dropdown-toggle {
+        font-size: 0.8rem;
+    }
+    
+    .navbar .d-flex {
+        gap: 0.5rem;
+    }
+    
+    .navbar .me-3 {
+        margin-right: 0.5rem !important;
+    }
+    
+    /* Ensure dropdowns are visible on mobile */
+    .dropdown-menu {
+        z-index: 100000 !important;
+        max-width: 90vw;
+    }
+    
+    /* Make navbar more compact on mobile */
+    .navbar {
+        padding: 0.5rem 1rem;
+        min-height: 56px;
+    }
+    
+    .navbar .container-fluid {
+        padding: 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar-brand {
+        font-size: 0.9rem;
+    }
+    
+    .navbar-brand span {
+        display: none;
+    }
+    
+    .btn {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .dropdown-toggle {
+        font-size: 0.75rem;
+    }
+    
+    /* Hide user name on very small screens */
+    .btn-outline-secondary .me-1 {
+        margin-right: 0 !important;
+    }
+    
+    .btn-outline-secondary {
+        padding: 0.25rem 0.5rem !important;
+    }
+}
+
+/* Force dropdown visibility on all pages */
+.dropdown-menu.show {
+    display: block !important;
+    z-index: 10001 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const shortcutsBtn = document.getElementById("shortcutsDropdown");
+  const shortcutsMenu = document.querySelector('[aria-labelledby="shortcutsDropdown"]');
+
+  if (shortcutsBtn && shortcutsMenu) {
+    shortcutsBtn.addEventListener("show.bs.dropdown", () => {
+      shortcutsMenu.style.right = "0";
+      shortcutsMenu.style.left = "auto";
+      shortcutsMenu.style.top = "100%";
+    });
+  }
+});
+</script>
+
