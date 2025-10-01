@@ -40,6 +40,13 @@
             </div>
 
             <div class="mb-3">
+                <button type="button" class="btn btn-outline-primary" id="btnGetGps">
+                    📍 Lấy GPS từ thiết bị
+                </button>
+                <small class="text-muted ms-2" id="gpsStatus" style="display:none;"></small>
+            </div>
+
+            <div class="mb-3">
                 <label for="radius_meters" class="form-label">Bán kính cho phép (mét)</label>
                 <input type="number" name="radius_meters" id="radius_meters" class="form-control @error('radius_meters') is-invalid @enderror" 
                        value="{{ old('radius_meters', $department->radius_meters ?? 200) }}" min="1" max="10000">
@@ -64,4 +71,53 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('btnGetGps');
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const statusEl = document.getElementById('gpsStatus');
+
+    if (!btn) return;
+
+    btn.addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            alert('Trình duyệt không hỗ trợ GPS.');
+            return;
+        }
+        statusEl.style.display = 'inline';
+        statusEl.textContent = 'Đang lấy vị trí...';
+        btn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            const { latitude, longitude, accuracy } = pos.coords;
+            const ACC_THRESHOLD = 100; // mét
+            const roundedAcc = Math.round(accuracy || 0);
+            if (accuracy && accuracy > ACC_THRESHOLD) {
+                const proceed = confirm(`Độ chính xác hiện tại ~${roundedAcc}m (> ${ACC_THRESHOLD}m).\nBạn vẫn muốn dùng tọa độ này không?`);
+                if (!proceed) {
+                    statusEl.textContent = `Hủy do độ chính xác thấp (~${roundedAcc}m). Hãy thử lại ở nơi thoáng hoặc bật High accuracy.`;
+                    btn.disabled = false;
+                    return;
+                }
+            }
+            latInput.value = latitude.toFixed(8);
+            lngInput.value = longitude.toFixed(8);
+            statusEl.textContent = `Đã lấy vị trí (độ chính xác ~${roundedAcc}m)`;
+            btn.disabled = false;
+        }, function(err) {
+            alert('Không lấy được vị trí: ' + (err.message || 'Lỗi không xác định'));
+            statusEl.style.display = 'none';
+            btn.disabled = false;
+        }, {
+            enableHighAccuracy: true,
+            timeout: 30000,
+            maximumAge: 0
+        });
+    });
+});
+</script>
+@endpush
 @endsection
