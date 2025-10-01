@@ -3,28 +3,32 @@
     <div class="mb-3 text-center">
         <div class="avatar-container position-relative d-inline-block">
             <img id="avatar-preview" 
-                 src="{{ isset($user) ? $user->avatar_url : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNjAiIGN5PSI2MCIgcj0iNjAiIGZpbGw9IiNmOGY5ZmEiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjQ1IiByPSIxOCIgZmlsbD0iIzZkNzM4MCIvPjxwYXRoIGQ9Ik0zMCA5MEMzMCA3NS42NDEgNDIuNjQxIDYzIDU3IDYzSDYzQzc3LjM1OSA2MyA5MCA3NS42NDEgOTAgOTBWMTAySDMwVjkwWiIgZmlsbD0iIzZkNzM4MCIvPjwvc3ZnPg==' }}" 
+                 src="{{ isset($user) ? $user->avatar_url : '' }}" 
+                 data-default-avatar="{{ isset($user) ? $user->avatar_url : '' }}"
                  alt="Avatar" 
-                 class="rounded-circle border border-3 border-primary" 
-                 style="width: 120px; height: 120px; object-fit: cover;"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-            
-            <i class="bi bi-person-circle fs-1 text-primary position-absolute top-50 start-50 translate-middle" 
-               style="display: none; z-index: 1;"></i>
+                 class="rounded-circle border border-3" 
+                 style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: all 0.3s ease;">
         </div>
     </div>
 
     <!-- Avatar Input (No Form) -->
     <div class="mb-3">
-        <label for="avatar-input" class="form-label">Ảnh đại diện</label>
+        <label for="avatar-input" class="form-label fw-bold">
+            <i class="bi bi-cloud-upload me-1"></i>Chọn ảnh mới
+        </label>
         <input type="file" 
                id="avatar-input" 
                name="avatar" 
-               accept="image/*" 
+               accept="image/jpeg,image/png,image/jpg,image/gif" 
                class="form-control @error('avatar') is-invalid @enderror">
         @error('avatar')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
+        <small class="text-muted d-block mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            Chọn ảnh rồi nhấn "Lưu tất cả thay đổi" ở cuối trang
+        </small>
+        <div id="avatar-file-name" class="mt-2"></div>
     </div>
 
     <!-- Remove Avatar Checkbox (Optional) -->
@@ -42,12 +46,6 @@
         </div>
     </div>
     @endif
-
-    <!-- Help text -->
-    <small class="text-muted d-block mt-2">
-        <i class="bi bi-info-circle me-1"></i>
-        Định dạng: JPG, PNG, GIF. Tối đa 2MB
-    </small>
 </div>
 
 <script>
@@ -59,31 +57,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle file selection and preview
     avatarInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
+        const fileNameDisplay = document.getElementById('avatar-file-name');
+        
         if (file) {
             // Validate file size (2MB)
             if (file.size > 2 * 1024 * 1024) {
                 alert('Kích thước file không được vượt quá 2MB');
-                avatarInput.value = ''; // Clear input
+                avatarInput.value = '';
+                if (fileNameDisplay) fileNameDisplay.innerHTML = '';
                 return;
             }
 
             // Validate file type
             if (!file.type.startsWith('image/')) {
                 alert('Vui lòng chọn file ảnh');
-                avatarInput.value = ''; // Clear input
+                avatarInput.value = '';
+                if (fileNameDisplay) fileNameDisplay.innerHTML = '';
                 return;
+            }
+
+            // Show file name
+            if (fileNameDisplay) {
+                fileNameDisplay.innerHTML = '<div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i><strong>Đã chọn:</strong> ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)</div>';
             }
 
             // Show preview using FileReader
             const reader = new FileReader();
             reader.onload = function(e) {
                 avatarPreview.src = e.target.result;
-                avatarPreview.style.display = 'block';
-                // Hide fallback icon
-                const fallbackIcon = avatarPreview.nextElementSibling;
-                if (fallbackIcon) {
-                    fallbackIcon.style.display = 'none';
-                }
+                avatarPreview.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    avatarPreview.style.transform = 'scale(1)';
+                }, 300);
             };
             reader.readAsDataURL(file);
 
@@ -91,6 +96,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (removeAvatarCheckbox) {
                 removeAvatarCheckbox.checked = false;
             }
+        } else {
+            if (fileNameDisplay) fileNameDisplay.innerHTML = '';
         }
     });
 
@@ -100,14 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.checked) {
                 // Clear file input
                 avatarInput.value = '';
-                // Show default avatar
-                avatarPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNjAiIGN5PSI2MCIgcj0iNjAiIGZpbGw9IiNmOGY5ZmEiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjQ1IiByPSIxOCIgZmlsbD0iIzZkNzM4MCIvPjxwYXRoIGQ9Ik0zMCA5MEMzMCA3NS42NDEgNDIuNjQxIDYzIDU3IDYzSDYzQzc3LjM1OSA2MyA5MCA3NS42NDEgOTAgOTBWMTAySDMwVjkwWiIgZmlsbD0iIzZkNzM4MCIvPjwvc3ZnPg==';
-                avatarPreview.style.display = 'block';
-                // Show fallback icon
-                const fallbackIcon = avatarPreview.nextElementSibling;
-                if (fallbackIcon) {
-                    fallbackIcon.style.display = 'block';
-                }
+                // Reload page để hiển thị avatar mặc định mới
+                avatarPreview.src = avatarPreview.getAttribute('data-default-avatar');
             }
         });
     }

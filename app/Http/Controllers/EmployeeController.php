@@ -79,9 +79,12 @@ class EmployeeController extends Controller
 
         try {
             // Xử lý upload avatar
-            $avatarPath = null;
+            $avatarFilename = null;
             if ($request->hasFile('avatar')) {
-                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+                $file = $request->file('avatar');
+                $avatarFilename = time() . '_new_emp.' . $file->getClientOriginalExtension();
+                $file->storeAs('avatars', $avatarFilename, 'public');
+                \Log::info('Created avatar for new employee: ' . $avatarFilename);
             }
             
             // Tạo user mới
@@ -93,7 +96,7 @@ class EmployeeController extends Controller
                 'department_id' => $request->department_ids[0], // Phòng ban đầu tiên
                 'employee_type' => 'new',
                 'password' => bcrypt('password123'), // mật khẩu mặc định
-                'avatar' => $avatarPath,
+                'avatar' => $avatarFilename,
             ]);
 
             // Xử lý multiple departments
@@ -337,13 +340,26 @@ class EmployeeController extends Controller
         
         // Xử lý upload avatar
         if ($request->hasFile('avatar')) {
+            \Log::info('Updating employee avatar for: ' . $user->id);
+            
             // Xóa avatar cũ nếu có
             if ($user->avatar) {
-                \Storage::disk('public')->delete($user->avatar);
+                // Handle both formats
+                if (strpos($user->avatar, 'avatars/') === 0) {
+                    \Storage::disk('public')->delete($user->avatar);
+                } else {
+                    \Storage::disk('public')->delete('avatars/' . $user->avatar);
+                }
+                \Log::info('Deleted old avatar: ' . $user->avatar);
             }
             
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $data['avatar'] = $avatarPath;
+            // Store new avatar với filename unique
+            $file = $request->file('avatar');
+            $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('avatars', $filename, 'public');
+            
+            $data['avatar'] = $filename; // Chỉ lưu filename
+            \Log::info('Saved new employee avatar: ' . $filename);
         }
         
         $user->update($data);

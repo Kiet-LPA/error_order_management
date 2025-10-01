@@ -4,50 +4,118 @@
 
 @push('styles')
 <style>
+/* Page header improvements */
+.kanban-page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 25px 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    color: white;
+}
+
+.kanban-page-header h2 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 28px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.kanban-page-header .btn-primary {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.kanban-page-header .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    background: #f8f9fa;
+}
+
 .kanban-board {
     display: flex;
-    gap: 20px;
-    padding: 20px;
-    min-height: calc(100vh - 200px);
+    gap: 24px;
+    padding: 20px 10px;
+    min-height: calc(100vh - 250px);
     overflow-x: auto;
-    align-items: stretch; /* Đảm bảo các cột có chiều cao bằng nhau */
+    align-items: stretch;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.kanban-board::-webkit-scrollbar {
+    height: 10px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+    background: #f7fafc;
+    border-radius: 10px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
+    border-radius: 10px;
 }
 
 .kanban-column {
     flex: 1;
-    min-width: 300px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 320px;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
     display: flex;
     flex-direction: column;
     height: 100%;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.kanban-column:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
 }
 
 .kanban-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #dee2e6;
-    flex-shrink: 0; /* Không co lại */
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
 .kanban-title {
-    font-weight: 600;
-    font-size: 16px;
-    color: #495057;
+    font-weight: 700;
+    font-size: 17px;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kanban-title i {
+    font-size: 20px;
 }
 
 .kanban-count {
-    background: #6c757d;
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     color: white;
-    border-radius: 12px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 500;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    min-width: 32px;
+    text-align: center;
 }
 
 /* CSS đã được di chuyển lên trên */
@@ -108,20 +176,21 @@
 
 /* Task card styling improvements */
 .kanban-task {
-    background: white;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     cursor: move;
-    transition: all 0.2s ease;
-    border-left: 4px solid #007bff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 5px solid #007bff;
     min-height: 100px;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    display: block; /* Đảm bảo task hiển thị dạng block */
-    width: 100%; /* Chiếm toàn bộ chiều rộng */
-    position: relative; /* Để tránh đè lên nhau */
+    display: block;
+    width: 100%;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 .kanban-task:last-child {
@@ -130,17 +199,18 @@
 
 /* Task content styling */
 .kanban-task .task-title {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    line-height: 1.3;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 10px;
+    line-height: 1.4;
+    font-size: 15px;
 }
 
 .kanban-task .task-meta {
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 4px;
-    line-height: 1.4;
+    font-size: 13px;
+    color: #4a5568;
+    margin-bottom: 6px;
+    line-height: 1.5;
 }
 
 .kanban-task .task-meta:last-child {
@@ -148,11 +218,11 @@
 }
 
 .kanban-task .task-description {
-    font-size: 11px;
-    color: #777;
-    margin-top: 6px;
-    line-height: 1.3;
-    max-height: 2.6em;
+    font-size: 12px;
+    color: #718096;
+    margin-top: 8px;
+    line-height: 1.4;
+    max-height: 2.8em;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -187,8 +257,9 @@
 }
 
 .kanban-task:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    transform: translateY(-3px) scale(1.02);
+    border-left-width: 6px;
 }
 
 .kanban-task.dragging {
@@ -220,34 +291,39 @@
 }
 
 .task-assignee-avatar {
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: #007bff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    border: 2px solid white;
 }
 
 .task-deadline {
-    color: #dc3545;
-    font-weight: 500;
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 12px;
 }
 
 .task-deadline.past {
-    color: #dc3545;
-    background: #f8d7da;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-    border: 1px solid #f5c6cb;
+    color: white;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    font-size: 11px;
 }
 
 .task-deadline.future {
-    color: #28a745;
+    color: #10b981;
+    font-weight: 600;
 }
 
 .task-department {
@@ -304,86 +380,157 @@
     transform: scale(1.05);
 }
 
-/* Status specific colors */
+/* Status specific colors with gradients */
+.kanban-column.in-progress {
+    border-top: 4px solid #3b82f6;
+}
+
 .kanban-column.in-progress .kanban-header {
-    border-bottom-color: #007bff;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.kanban-column.in-progress .kanban-title {
+    color: #1e40af;
 }
 
 .kanban-column.in-progress .kanban-count {
-    background: #007bff;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
-.kanban-column.completed .kanban-header {
-    border-bottom-color: #ffc107;
-}
-
-.kanban-column.completed .kanban-count {
-    background: #ffc107;
-    color: #212529;
+.kanban-column.pending-approval {
+    border-top: 4px solid #8b5cf6;
 }
 
 .kanban-column.pending-approval .kanban-header {
-    border-bottom-color: #8b5cf6;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+}
+
+.kanban-column.pending-approval .kanban-title {
+    color: #6d28d9;
 }
 
 .kanban-column.pending-approval .kanban-count {
-    background: #8b5cf6;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.kanban-column.rejected {
+    border-top: 4px solid #ef4444;
 }
 
 .kanban-column.rejected .kanban-header {
-    border-bottom-color: #dc3545;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+}
+
+.kanban-column.rejected .kanban-title {
+    color: #b91c1c;
 }
 
 .kanban-column.rejected .kanban-count {
-    background: #dc3545;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.kanban-column.overdue {
+    border-top: 4px solid #f97316;
 }
 
 .kanban-column.overdue .kanban-header {
-    border-bottom-color: #dc3545;
+    background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+}
+
+.kanban-column.overdue .kanban-title {
+    color: #c2410c;
 }
 
 .kanban-column.overdue .kanban-count {
-    background: #dc3545;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.kanban-column.finished {
+    border-top: 4px solid #10b981;
 }
 
 .kanban-column.finished .kanban-header {
-    border-bottom-color: #28a745;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.kanban-column.finished .kanban-title {
+    color: #047857;
 }
 
 .kanban-column.finished .kanban-count {
-    background: #28a745;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 /* Task border colors by status */
 .kanban-task.in-progress {
-    border-left-color: #007bff;
-}
-
-.kanban-task.completed {
-    border-left-color: #ffc107;
+    border-left-color: #3b82f6;
+    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
 }
 
 .kanban-task.pending-approval {
     border-left-color: #8b5cf6;
+    background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
 }
 
 .kanban-task.rejected {
-    border-left-color: #dc3545;
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
 }
 
 .kanban-task.overdue {
-    border-left-color: #dc3545;
+    border-left-color: #f97316;
+    background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
 }
 
 .kanban-task.finished {
-    border-left-color: #28a745;
+    border-left-color: #10b981;
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+    opacity: 0.85;
 }
 
 /* Drop zone styling */
 .kanban-column.drag-over {
-    background: #e3f2fd;
-    border: 2px dashed #2196f3;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 3px dashed #2196f3;
+    transform: scale(1.02);
 }
+
+/* Empty state styling */
+.kanban-tasks .text-center {
+    padding: 40px 20px;
+}
+
+.kanban-tasks .text-center i {
+    opacity: 0.3;
+    margin-bottom: 10px;
+}
+
+.kanban-tasks .text-center p {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kanban-column {
+    animation: slideIn 0.4s ease-out;
+}
+
+.kanban-column:nth-child(1) { animation-delay: 0.1s; }
+.kanban-column:nth-child(2) { animation-delay: 0.2s; }
+.kanban-column:nth-child(3) { animation-delay: 0.3s; }
+.kanban-column:nth-child(4) { animation-delay: 0.4s; }
+.kanban-column:nth-child(5) { animation-delay: 0.5s; }
 
 /* Sidebar collapsed adjustments */
 .main-content.expanded .kanban-board {
@@ -400,67 +547,87 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+    .kanban-page-header {
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .kanban-page-header h2 {
+        font-size: 22px;
+    }
+    
+    .kanban-page-header .btn-primary {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
     .kanban-board {
         flex-direction: column;
-        gap: 15px;
+        gap: 20px;
+        padding: 15px 5px;
     }
     
     .kanban-column {
         min-width: auto;
+        padding: 16px;
+        border-radius: 12px;
+    }
+    
+    .kanban-header {
+        padding: 12px;
     }
     
     /* Mobile Kanban improvements */
     .kanban-tasks {
-      max-height: calc(3 * 120px + 20px); /* 3 tasks on mobile với chiều cao tự nhiên */
-      display: block; /* Đảm bảo mobile cũng hiển thị đúng */
+        max-height: calc(3 * 120px + 20px);
+        display: block;
     }
     
     .kanban-task {
-        padding: 10px;
-        margin-bottom: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
         min-height: 80px;
         word-wrap: break-word;
         overflow-wrap: break-word;
-        display: block; /* Đảm bảo task mobile hiển thị đúng */
+        display: block;
         width: 100%;
         position: relative;
     }
     
     .kanban-task .task-title {
-        font-size: 13px;
-        line-height: 1.2;
-    }
-    
-    .kanban-task .task-meta {
-        font-size: 11px;
+        font-size: 14px;
         line-height: 1.3;
     }
     
+    .kanban-task .task-meta {
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    
     .kanban-task .task-description {
-        font-size: 10px;
-        line-height: 1.2;
-        max-height: 2.4em;
+        font-size: 11px;
+        line-height: 1.3;
+        max-height: 2.6em;
     }
 }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">
-                    <i class="fas fa-columns me-2"></i>
-                    Trang Chủ
-                </h2>
-                <div>
-                    <a href="{{ route('tasks.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>
-                        Tạo công việc
-                    </a>
-                </div>
-            </div>
+<div class="container-fluid" style="padding-top: 20px;">
+    <div class="kanban-page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-th-large me-2"></i>
+                Trang Chủ
+            </h2>
+            @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+            <a href="{{ route('tasks.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>
+                Tạo công việc
+            </a>
+            @endif
         </div>
     </div>
 
@@ -619,14 +786,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add task count indicator
-    function addTaskCountIndicator(column, totalTasks) {
-        if (column.querySelector('.task-count-indicator')) return;
+    // function addTaskCountIndicator(column, totalTasks) {
+    //     if (column.querySelector('.task-count-indicator')) return;
         
-        const indicator = document.createElement('div');
-        indicator.className = 'task-count-indicator';
-        indicator.innerHTML = `+${totalTasks - 3} công việc khác`;
-        column.parentElement.appendChild(indicator);
-    }
+    //     const indicator = document.createElement('div');
+    //     indicator.className = 'task-count-indicator';
+    //     // indicator.innerHTML = `+${totalTasks - 3} công việc khác`;
+    //     column.parentElement.appendChild(indicator);
+    // }
     
     // Remove task count indicator
     function removeTaskCountIndicator(column) {
@@ -746,16 +913,31 @@ function updateColumnCounts() {
 }
 
 function showNotification(type, message) {
+    // Tạo container dưới navbar để tránh bị che
+    let alertContainer = document.getElementById('global-alert-container');
+    if (!alertContainer) {
+        alertContainer = document.createElement('div');
+        alertContainer.id = 'global-alert-container';
+        alertContainer.style.position = 'fixed';
+        alertContainer.style.right = '20px';
+        alertContainer.style.left = '20px';
+        alertContainer.style.zIndex = '100000';
+        const navbar = document.querySelector('.navbar');
+        const topOffset = (navbar ? navbar.offsetHeight : 0) + 10;
+        alertContainer.style.top = `${topOffset}px`;
+        document.body.appendChild(alertContainer);
+    }
+
     // Create notification element
     const notification = document.createElement('div');
-    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    notification.style.cssText = 'min-width: 300px; max-width: 600px; margin-left: auto;';
     notification.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
-    document.body.appendChild(notification);
+    alertContainer.appendChild(notification);
     
     // Auto remove after 3 seconds
     setTimeout(() => {

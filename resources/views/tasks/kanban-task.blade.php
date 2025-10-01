@@ -18,7 +18,8 @@
     $deadlineClass = '';
     $deadlineText = '';
     if ($task->deadline) {
-        if ($task->deadline->isPast()) {
+        // Chỉ hiển thị "Quá hạn" nếu task chưa hoàn thành hoặc bị từ chối
+        if ($task->deadline->isPast() && !in_array($task->status, ['finished', 'rejected'])) {
             $deadlineClass = 'past';
             $daysOverdue = $task->deadline->diffInDays(now());
             $deadlineText = 'Quá hạn ' . $daysOverdue . ' ngày: ' . $task->deadline->format('d/m/Y');

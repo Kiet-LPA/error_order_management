@@ -304,7 +304,7 @@ if (file_exists(__DIR__ . '/auth.php')) {
 }
 
 // Approval System Routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'employee.type'])->group(function () {
     // Approval Requests
     Route::get('/approval', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approval.index');
     Route::get('/approval/create', [App\Http\Controllers\ApprovalController::class, 'create'])->name('approval.create');
@@ -358,7 +358,7 @@ Route::post('/approval/bulk-reject', [App\Http\Controllers\ApprovalController::c
 });
 
 // Checkin routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::get('/checkin', [CheckinController::class, 'index'])->name('checkin.index');
     Route::post('/checkin', [CheckinController::class, 'checkin'])->name('checkin.checkin');
     Route::get('/checkin/history', [CheckinController::class, 'history'])->name('checkin.history');
@@ -379,7 +379,7 @@ Route::middleware(['auth', 'role:admin,director,manager'])->prefix('admin/checki
 });
 
 // Rental Car routes
-Route::middleware(['auth'])->prefix('rental')->name('rental.')->group(function () {
+Route::middleware(['auth', 'employee.type'])->prefix('rental')->name('rental.')->group(function () {
     // Public routes (all users can rent cars)
     Route::get('/', [\App\Http\Controllers\RentalCarController::class, 'index'])->name('index');
     Route::post('/rent', [\App\Http\Controllers\RentalCarController::class, 'rentCar'])->name('rent');

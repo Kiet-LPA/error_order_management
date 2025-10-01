@@ -354,11 +354,54 @@ class User extends Authenticatable
     public function getAvatarUrlAttribute()
     {
         if ($this->avatar) {
-            return asset('storage/' . $this->avatar);
+            // Kiểm tra file tồn tại trong storage
+            $storagePath = 'avatars/' . $this->avatar;
+            
+            if (\Storage::disk('public')->exists($storagePath)) {
+                return asset('storage/avatars/' . $this->avatar);
+            }
         }
         
-        // Return a simple placeholder avatar
-        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNjAiIGN5PSI2MCIgcj0iNjAiIGZpbGw9IiNmOGY5ZmEiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjQ1IiByPSIxOCIgZmlsbD0iIzZkNzM4MCIvPjxwYXRoIGQ9Ik0zMCA5MEMzMCA3NS42NDEgNDIuNjQxIDYzIDU3IDYzSDYzQzc3LjM1OSA2MyA5MCA3NS42NDEgOTAgOTBWMTAySDMwVjkwWiIgZmlsbD0iIzZkNzM4MCIvPjwvc3ZnPg==';
+        // Tạo SVG avatar đẹp với chữ cái đầu
+        return $this->generateDefaultAvatar();
+    }
+    
+    /**
+     * Generate beautiful SVG avatar with user's initial
+     */
+    private function generateDefaultAvatar()
+    {
+        $name = $this->name ?? 'User';
+        $initial = strtoupper(mb_substr($name, 0, 1));
+        
+        // Tạo màu dựa trên ID để mỗi user có màu riêng
+        $colors = [
+            '#667eea', '#764ba2', '#f093fb', '#4facfe',
+            '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+            '#a8edea', '#fed6e3', '#89f7fe', '#66a6ff',
+            '#f38181', '#aa076b', '#61045f', '#eecda3',
+            '#ef629f', '#42e695', '#3bb2b8', '#fa8231'
+        ];
+        
+        $colorIndex = $this->id % count($colors);
+        $color1 = $colors[$colorIndex];
+        $color2 = $colors[($colorIndex + 1) % count($colors)];
+        
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">' .
+               '<defs>' .
+               '<linearGradient id="grad-' . $this->id . '" x1="0%" y1="0%" x2="100%" y2="100%">' .
+               '<stop offset="0%" style="stop-color:' . $color1 . ';stop-opacity:1" />' .
+               '<stop offset="100%" style="stop-color:' . $color2 . ';stop-opacity:0.8" />' .
+               '</linearGradient>' .
+               '</defs>' .
+               '<rect width="120" height="120" fill="url(#grad-' . $this->id . ')"/>' .
+               '<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" ' .
+               'font-family="Arial, sans-serif" font-size="48" fill="white" font-weight="bold">' .
+               $initial .
+               '</text>' .
+               '</svg>';
+        
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
 
     // Checkin relationships

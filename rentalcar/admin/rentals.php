@@ -46,6 +46,7 @@ $stmt = $pdo->prepare("
     SELECT r.*, 
            u.name as user_name, 
            u.email as user_email,
+           u.avatar as user_avatar,
            c.license_plate, 
            c.car_type, 
            c.color,
@@ -97,8 +98,15 @@ include '../includes/header.php';
                                 <tr>
                                     <td><?php echo $rental['id']; ?></td>
                                     <td>
-                                        <strong><?php echo sanitize($rental['user_name']); ?></strong><br>
-                                        <small class="text-muted"><?php echo sanitize($rental['user_email']); ?></small>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <img src="<?php echo getUserAvatar($rental['user_avatar'], $rental['user_name']); ?>" 
+                                                 alt="<?php echo sanitize($rental['user_name']); ?>" 
+                                                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                            <div>
+                                                <strong><?php echo sanitize($rental['user_name']); ?></strong><br>
+                                                <small class="text-muted"><?php echo sanitize($rental['user_email']); ?></small>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>
                                         <strong><?php echo sanitize($rental['car_type']); ?></strong><br>

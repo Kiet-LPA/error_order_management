@@ -1988,10 +1988,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showAlert(type, message) {
-        // Tạo alert element
+        // Tạo container giữ alert ngay dưới navbar để tránh bị che
+        let alertContainer = document.getElementById('global-alert-container');
+        if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.id = 'global-alert-container';
+            alertContainer.style.position = 'fixed';
+            alertContainer.style.right = '20px';
+            alertContainer.style.left = '20px';
+            alertContainer.style.zIndex = '100000';
+            const navbar = document.querySelector('.navbar');
+            const topOffset = (navbar ? navbar.offsetHeight : 0) + 10;
+            alertContainer.style.top = `${topOffset}px`;
+            document.body.appendChild(alertContainer);
+        }
+
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
-        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; word-wrap: break-word;';
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+        alertDiv.style.cssText = 'min-width: 300px; max-width: 600px; margin-left: auto; word-wrap: break-word;';
         
         // Thêm icon cho alert
         const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
@@ -2001,8 +2015,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
         
-        // Thêm vào body
-        document.body.appendChild(alertDiv);
+        // Thêm vào container
+        alertContainer.appendChild(alertDiv);
         
         // Tự động ẩn sau 7 giây (tăng thời gian để đọc thông báo dài)
         setTimeout(() => {

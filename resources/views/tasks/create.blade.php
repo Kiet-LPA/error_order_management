@@ -61,13 +61,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     <div class="col-6">
       <h2 class="text-primary mb-0">
         <i class="bi bi-plus-circle me-2"></i>
-        + Tạo công việc mới
+         Tạo công việc mới
       </h2>
     </div>
     <div class="col-6 text-end">
       <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-2"></i>
-        ← Quay lại
+         Quay lại
       </a>
     </div>
   </div>

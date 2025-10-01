@@ -104,7 +104,7 @@
                                 
                                 <div class="mb-3">
                                     <label for="password" class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
-                                    <div class="input-group">
+                                    <div class="input-group flex-nowrap">
                                         <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror"
                                                @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')"
@@ -114,10 +114,10 @@
                                     </div>
                                     @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
-                                    <div class="input-group">
+                                    <div class="input-group flex-nowrap">
                                         <input type="password" name="password_confirmation" id="password_confirmation" class="form-control"
                                                @if(auth()->user()->isDirector() && $user->role == 'admin') disabled @endif>
                                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')"

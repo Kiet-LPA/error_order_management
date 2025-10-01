@@ -192,8 +192,11 @@ class UserController extends Controller
         
         // Xử lý upload avatar
         if ($request->hasFile('avatar')) {
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $data['avatar'] = $avatarPath;
+            $file = $request->file('avatar');
+            $filename = time() . '_new.' . $file->getClientOriginalExtension();
+            $file->storeAs('avatars', $filename, 'public');
+            $data['avatar'] = $filename; // Chỉ lưu filename
+            \Log::info('Created avatar for new user: ' . $filename);
         }
         
         $newUser = User::create($data);
@@ -462,13 +465,27 @@ class UserController extends Controller
         
         // Xử lý upload avatar
         if ($request->hasFile('avatar')) {
+            \Log::info('Admin editing user avatar for: ' . $user->id);
+            
             // Xóa avatar cũ nếu có
             if ($user->avatar) {
-                \Storage::disk('public')->delete($user->avatar);
+                // Handle both formats
+                if (strpos($user->avatar, 'avatars/') === 0) {
+                    \Storage::disk('public')->delete($user->avatar);
+                } else {
+                    \Storage::disk('public')->delete('avatars/' . $user->avatar);
+                }
+                \Log::info('Deleted old avatar: ' . $user->avatar);
             }
             
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $data['avatar'] = $avatarPath;
+            // Store new avatar với filename unique
+            $file = $request->file('avatar');
+            $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('avatars', $filename, 'public');
+            
+            // Chỉ lưu filename, không lưu full path
+            $data['avatar'] = $filename;
+            \Log::info('Saved new avatar: ' . $filename);
         }
         
         $user->update($data);

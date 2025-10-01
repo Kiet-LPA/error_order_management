@@ -202,8 +202,23 @@ class SupportRequestController extends Controller
     {
         $user = auth()->user();
         
+        // Debug log
+        \Log::info('Support Request Show - User attempting to view', [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'user_email' => $user->email,
+            'support_request_id' => $supportRequest->id,
+            'requester_id' => $supportRequest->requester_id,
+            'is_requester' => $supportRequest->requester_id === $user->id,
+            'is_follower' => $supportRequest->followers()->where('user_id', $user->id)->exists(),
+        ]);
+        
         // Kiểm tra quyền xem
         if (!$this->canViewSupportRequest($user, $supportRequest)) {
+            \Log::warning('403 - User cannot view support request', [
+                'user_id' => $user->id,
+                'support_request_id' => $supportRequest->id,
+            ]);
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
@@ -595,18 +610,22 @@ class SupportRequestController extends Controller
             // Manager có thể xem nếu:
             // 1. Là recipient hiện tại, HOẶC
             // 2. Là người tạo request, HOẶC  
-            // 3. Là người đã forward request
+            // 3. Là người đã forward request, HOẶC
+            // 4. Là follower của request
             return $supportRequest->isRecipient($user) || 
                    $supportRequest->requester_id === $user->id || 
-                   $supportRequest->forwarded_by === $user->id;
+                   $supportRequest->forwarded_by === $user->id ||
+                   $supportRequest->followers()->where('user_id', $user->id)->exists();
         }
         
         if ($user->isEmployee()) {
             // Employee có thể xem nếu:
             // 1. Là người tạo request, HOẶC
-            // 2. Là người đã forward request
+            // 2. Là người đã forward request, HOẶC
+            // 3. Là follower của request
             return $supportRequest->requester_id === $user->id || 
-                   $supportRequest->forwarded_by === $user->id;
+                   $supportRequest->forwarded_by === $user->id ||
+                   $supportRequest->followers()->where('user_id', $user->id)->exists();
         }
         
         return false;

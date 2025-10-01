@@ -575,9 +575,14 @@ if (isset($_GET['edit'])) {
                             <tr>
                                 <td><strong>#<?= $u['id'] ?></strong></td>
                                 <td>
-                                    <div class="user-info">
-                                        <div class="user-name"><?= htmlspecialchars($u['full_name']) ?></div>
-                                        <div class="user-username">@<?= htmlspecialchars($u['username']) ?></div>
+                                    <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
+                                        <img src="<?= getUserAvatar($u['avatar'], $u['full_name']) ?>" 
+                                             alt="<?= htmlspecialchars($u['full_name']) ?>" 
+                                             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                        <div>
+                                            <div class="user-name"><?= htmlspecialchars($u['full_name']) ?></div>
+                                            <div class="user-username">@<?= htmlspecialchars($u['username']) ?></div>
+                                        </div>
                                     </div>
                                 </td>
                                 <td>

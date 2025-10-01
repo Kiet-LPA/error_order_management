@@ -9,7 +9,7 @@
         <!-- Password -->
         <div>
             <x-input-label for="password" :value="__('Password')" />
-            <div class="input-group">
+            <div class="input-group flex-nowrap">
                 <x-text-input id="password" class="form-control"
                                 type="password"
                                 name="password"

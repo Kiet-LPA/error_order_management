@@ -506,14 +506,10 @@
             <tr class="border-bottom">
               <td class="px-4 py-3">
                 <div class="d-flex align-items-center">
-                  <div class="avatar-sm me-3">
-                    <img src="{{ $user->avatar_url }}" 
-                         alt="{{ $user->name }}" 
-                         class="rounded-circle border border-2 border-primary" 
-                         style="width: 40px; height: 40px; object-fit: cover;"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <i class="bi bi-person-circle fs-2 text-primary" style="display: none;"></i>
-                  </div>
+                  <img src="{{ $user->avatar_url }}" 
+                       alt="{{ $user->name }}" 
+                       class="rounded-circle me-3" 
+                       style="width: 45px; height: 45px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                   <div>
                     <div class="fw-medium text-dark employee-name">{{ $user->name }}</div>
                     <small class="text-muted">ID: {{ $user->id }}</small>

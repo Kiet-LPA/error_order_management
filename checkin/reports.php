@@ -29,13 +29,13 @@ $stats['success_rate'] = $stats['total_checkins'] > 0 ? 100 : 0;
 
 // Get attendance statistics by user (who didn't check in on working days)
 $stmt = $db->prepare("
-    SELECT u.full_name, u.username, r.name as region_name,
+    SELECT u.full_name, u.username, u.avatar, r.name as region_name,
            COUNT(DISTINCT c.checkin_date) as checkin_days
     FROM users u
     JOIN regions r ON u.region_id = r.id
     LEFT JOIN checkins c ON u.id = c.user_id AND c.checkin_date BETWEEN ? AND ?
     WHERE u.role_id = 3 AND u.is_active = 1
-    GROUP BY u.id, u.full_name, u.username, r.name
+    GROUP BY u.id, u.full_name, u.username, u.avatar, r.name
     HAVING checkin_days < DATEDIFF(?, ?)
     ORDER BY checkin_days ASC
 ");
@@ -44,7 +44,7 @@ $attendanceByUser = $stmt->fetchAll();
 
 // GPS requests
 $stmt = $db->prepare("
-    SELECT gr.*, u.full_name, u.username, r.name as region_name
+    SELECT gr.*, u.full_name, u.username, u.avatar, r.name as region_name
     FROM gps_requests gr
     JOIN users u ON gr.user_id = u.id
     JOIN regions r ON gr.region_id = r.id
@@ -277,6 +277,24 @@ if ($_POST && isset($_POST['action'])) {
             border-radius: 3px;
             font-weight: bold;
         }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            vertical-align: middle;
+        }
+        .user-info {
+            display: inline-flex;
+            align-items: center;
+        }
+        .user-name {
+            font-weight: 600;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -353,8 +371,15 @@ if ($_POST && isset($_POST['action'])) {
                             ?>
                             <tr>
                                 <td>
-                                    <strong><?= htmlspecialchars($attendance['full_name']) ?></strong><br>
-                                    <small><?= htmlspecialchars($attendance['username']) ?></small>
+                                    <div class="user-info">
+                                        <img src="<?= getUserAvatar($attendance['avatar'], $attendance['full_name']) ?>" 
+                                             alt="<?= htmlspecialchars($attendance['full_name']) ?>" 
+                                             class="user-avatar">
+                                        <div>
+                                            <div class="user-name"><?= htmlspecialchars($attendance['full_name']) ?></div>
+                                            <small style="color: #666;"><?= htmlspecialchars($attendance['username']) ?></small>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td><?= htmlspecialchars($attendance['region_name']) ?></td>
                                 <td>
@@ -401,8 +426,15 @@ if ($_POST && isset($_POST['action'])) {
                             <?php foreach ($gpsRequests as $request): ?>
                             <tr>
                                 <td>
-                                    <strong><?= htmlspecialchars($request['full_name']) ?></strong><br>
-                                    <small><?= htmlspecialchars($request['username']) ?></small>
+                                    <div class="user-info">
+                                        <img src="<?= getUserAvatar($request['avatar'], $request['full_name']) ?>" 
+                                             alt="<?= htmlspecialchars($request['full_name']) ?>" 
+                                             class="user-avatar">
+                                        <div>
+                                            <div class="user-name"><?= htmlspecialchars($request['full_name']) ?></div>
+                                            <small style="color: #666;"><?= htmlspecialchars($request['username']) ?></small>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td><?= htmlspecialchars($request['region_name']) ?></td>
                                 <td><?= date('d/m/Y', strtotime($request['request_date'])) ?></td>

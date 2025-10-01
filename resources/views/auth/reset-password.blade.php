@@ -30,7 +30,7 @@
                             <!-- Password -->
                             <div class="mb-4">
                                 <x-input-label for="password" :value="__('Mật khẩu mới')" class="form-label fw-semibold" />
-                                <div class="input-group">
+                                <div class="input-group flex-nowrap">
                                     <span class="input-group-text bg-light border-end-0">
                                         <i class="bi bi-lock text-muted"></i>
                                     </span>
@@ -52,7 +52,7 @@
                             <!-- Confirm Password -->
                             <div class="mb-4">
                                 <x-input-label for="password_confirmation" :value="__('Xác nhận mật khẩu')" class="form-label fw-semibold" />
-                                <div class="input-group">
+                                <div class="input-group flex-nowrap">
                                     <span class="input-group-text bg-light border-end-0">
                                         <i class="bi bi-shield-lock text-muted"></i>
                                     </span>

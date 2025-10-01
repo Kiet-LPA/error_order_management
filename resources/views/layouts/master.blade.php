@@ -76,7 +76,7 @@
     
     /* Add padding to body to account for fixed navbar */
     body {
-      padding-top: 56px !important; /* Height of navbar */
+      padding-top: 80px !important; /* Height of navbar */
       padding-bottom: 80px !important; /* Height of bottom nav */
       margin: 0 !important;
     }

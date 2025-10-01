@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Đăng ký observer để tự động đồng bộ avatar (safe mode)
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
     }
 }

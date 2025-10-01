@@ -387,7 +387,9 @@ class Task extends Model
      */
     public function isOverdue(): bool
     {
-        return $this->deadline && $this->deadline->isPast() && $this->status !== 'completed';
+        return $this->deadline && 
+               $this->deadline->isPast() && 
+               !in_array($this->status, ['completed', 'finished', 'rejected', 'overdue']);
     }
 
     /**

@@ -836,13 +836,37 @@ class TaskController extends Controller
         $status = $r->input('status') ?? $r->json('status');
         $task->load('assignees');
 
+        // Xác định user có được giao task không (hỗ trợ cả single và multi-user)
+        $isAssignedToUser = ($task->assignee_id === $user->id) || $task->assignees->contains('id', $user->id);
+
         // ✅ Cho phép employee resubmit khi task bị rejected
-        $isEmployeeResubmitting = $user->role === 'employee' &&
+        $isEmployeeResubmitting = $user->isEmployee() &&
             $task->status === 'rejected' &&
             $status === 'pending_approval' &&
-            ($task->assignee_id === $user->id || $task->assignees->contains('id', $user->id));
+            $isAssignedToUser;
 
-        if (!$isEmployeeResubmitting && !$user->canApproveTask($task)) {
+        // ✅ Cho phép employee (được assign) gửi duyệt khi đang làm
+        $isEmployeeSubmittingForApproval = $user->isEmployee() &&
+            in_array($task->status, ['in_progress']) &&
+            $status === 'pending_approval' &&
+            $isAssignedToUser;
+
+        // ✅ Gộp điều kiện cho employee
+        $allowEmployeeSubmit = $isEmployeeResubmitting || $isEmployeeSubmittingForApproval;
+
+        \Log::debug('UPDATE STATUS PERMISSION CHECK', [
+            'task_id' => $task->id,
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'requested_status' => $status,
+            'current_status' => $task->status,
+            'isAssignedToUser' => $isAssignedToUser,
+            'isEmployeeResubmitting' => $isEmployeeResubmitting,
+            'isEmployeeSubmittingForApproval' => $isEmployeeSubmittingForApproval,
+            'allowEmployeeSubmit' => $allowEmployeeSubmit,
+        ]);
+
+        if (!$allowEmployeeSubmit && !$user->canApproveTask($task)) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
@@ -903,8 +927,9 @@ class TaskController extends Controller
         $currentStatus = $task->status;
         $userRole = $user->role;
         
-        // Kiểm tra nếu task quá hạn
-        if ($task->deadline && $task->deadline->isPast() && $currentStatus !== 'overdue') {
+        // Kiểm tra nếu task quá hạn (nhưng không áp dụng cho task đã hoàn thành hoặc bị từ chối)
+        if ($task->deadline && $task->deadline->isPast() && 
+            !in_array($currentStatus, ['overdue', 'finished', 'rejected'])) {
             return ['overdue'];
         }
         

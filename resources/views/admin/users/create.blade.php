@@ -91,7 +91,7 @@
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Mật khẩu</label>
-                <div class="input-group">
+                <div class="input-group flex-nowrap">
                     <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" required>
                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'passwordToggle', 'passwordIcon')">
                         <i class="bi bi-eye" id="passwordIcon"></i>
@@ -101,7 +101,7 @@
             </div>
             <div class="mb-3">
                 <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
-                <div class="input-group">
+                <div class="input-group flex-nowrap">
                     <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password_confirmation', 'passwordConfirmToggle', 'passwordConfirmIcon')">
                         <i class="bi bi-eye" id="passwordConfirmIcon"></i>

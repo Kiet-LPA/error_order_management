@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar UI Demo</title>
+    <link rel="stylesheet" href="css/avatar-styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .section {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .demo-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .demo-item:hover {
+            transform: translateY(-5px);
+        }
+        .demo-item h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .demo-item p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge-new {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Avatar UI Components Demo</h1>
+        <p class="subtitle">Hệ thống avatar đồng nhất cho Laravel + Checkin + RentalCar</p>
+
+        <!-- Avatar Sizes -->
+        <div class="section">
+            <h2>📏 Kích thước Avatar</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>Small <code>avatar-sm</code></h3>
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E" 
+                         alt="Small Avatar" 
+                         class="avatar-img avatar-sm">
+                    <p>28x28px - Dùng cho danh sách nhỏ, badges</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>Medium <code>avatar-md</code> <span class="badge badge-new">Default</span></h3>
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%2328a745'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EM%3C/text%3E%3C/svg%3E" 
+                         alt="Medium Avatar" 
+                         class="avatar-img avatar-md">
+                    <p>40x40px - Kích thước mặc định, dùng phổ biến nhất</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>Large <code>avatar-lg</code></h3>
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23ffc107'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EL%3C/text%3E%3C/svg%3E" 
+                         alt="Large Avatar" 
+                         class="avatar-img avatar-lg">
+                    <p>60x60px - Dùng cho profile cards, modals</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>Extra Large <code>avatar-xl</code></h3>
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23dc3545'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EXL%3C/text%3E%3C/svg%3E" 
+                         alt="XL Avatar" 
+                         class="avatar-img avatar-xl">
+                    <p>80x80px - Dùng cho profile page, settings</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="section">
+            <h2>👤 Avatar với thông tin User</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>Basic User Info</h3>
+                    <div class="user-info">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3ENA%3C/text%3E%3C/svg%3E" 
+                             alt="Nguyễn Văn A" 
+                             class="avatar-img">
+                        <div class="user-details">
+                            <div class="user-name">Nguyễn Văn A</div>
+                            <div class="user-email">nguyenvana@example.com</div>
+                        </div>
+                    </div>
+                    <p>Layout phổ biến nhất cho danh sách users</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>With Username</h3>
+                    <div class="user-info">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%2328a745'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3ETB%3C/text%3E%3C/svg%3E" 
+                             alt="Trần Thị B" 
+                             class="avatar-img">
+                        <div class="user-details">
+                            <div class="user-name">Trần Thị B</div>
+                            <div class="user-username">@tranthib</div>
+                        </div>
+                    </div>
+                    <p>Hiển thị username thay vì email</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar with Status -->
+        <div class="section">
+            <h2>🟢 Avatar với Status Badge</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>Online <span class="badge badge-new">New</span></h3>
+                    <div class="avatar-with-status">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EO%3C/text%3E%3C/svg%3E" 
+                             class="avatar-img avatar-lg">
+                        <span class="avatar-status-badge status-online"></span>
+                    </div>
+                    <p>Badge xanh lá - User đang online</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>Offline</h3>
+                    <div class="avatar-with-status">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23dc3545'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EX%3C/text%3E%3C/svg%3E" 
+                             class="avatar-img avatar-lg">
+                        <span class="avatar-status-badge status-offline"></span>
+                    </div>
+                    <p>Badge đỏ - User offline</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>Away</h3>
+                    <div class="avatar-with-status">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23ffc107'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EA%3C/text%3E%3C/svg%3E" 
+                             class="avatar-img avatar-lg">
+                        <span class="avatar-status-badge status-away"></span>
+                    </div>
+                    <p>Badge vàng - User away</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Group -->
+        <div class="section">
+            <h2>👥 Avatar Group</h2>
+            <div class="demo-item">
+                <h3>Nhiều users trong cùng task/project</h3>
+                <div class="avatar-group">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EA%3C/text%3E%3C/svg%3E" 
+                         alt="User A" 
+                         class="avatar-img">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%2328a745'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EB%3C/text%3E%3C/svg%3E" 
+                         alt="User B" 
+                         class="avatar-img">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23ffc107'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3EC%3C/text%3E%3C/svg%3E" 
+                         alt="User C" 
+                         class="avatar-img">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23dc3545'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='white' font-weight='bold'%3ED%3C/text%3E%3C/svg%3E" 
+                         alt="User D" 
+                         class="avatar-img">
+                    <div class="avatar-more">+3</div>
+                </div>
+                <p style="margin-top: 15px;">Avatars chồng lên nhau, hiển thị số user còn lại</p>
+                
+                <div class="code-block">&lt;div class="avatar-group"&gt;
+    &lt;img src="..." class="avatar-img"&gt;
+    &lt;img src="..." class="avatar-img"&gt;
+    &lt;img src="..." class="avatar-img"&gt;
+    &lt;div class="avatar-more"&gt;+5&lt;/div&gt;
+&lt;/div&gt;</div>
+            </div>
+        </div>
+
+        <!-- Integration -->
+        <div class="section">
+            <h2>🔧 Integration</h2>
+            <div style="background: white; padding: 20px; border-radius: 10px;">
+                <h3 style="color: #333; margin-bottom: 15px;">✅ Đã tích hợp vào:</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <strong>📊 Checkin System</strong><br>
+                        <span style="color: #666; font-size: 0.9rem;">
+                            ✓ reports.php - Báo cáo điểm danh<br>
+                            ✓ manage_users.php - Quản lý users
+                        </span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <strong>🚗 RentalCar System</strong><br>
+                        <span style="color: #666; font-size: 0.9rem;">
+                            ✓ admin/rentals.php - Danh sách thuê xe
+                        </span>
+                    </li>
+                    <li style="padding: 10px 0;">
+                        <strong>⚙️ Laravel Main App</strong><br>
+                        <span style="color: #666; font-size: 0.9rem;">
+                            ✓ Auto-sync khi upload avatar<br>
+                            ✓ Observer pattern cho real-time sync
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

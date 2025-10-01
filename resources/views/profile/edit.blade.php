@@ -33,6 +33,24 @@
     box-shadow: 0 0.25rem 0.5rem rgba(85, 142, 193, 0.25);
 }
 
+.btn-success {
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3) !important;
+}
+
+.btn-warning {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
 .btn-danger {
     background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
     border: none;
@@ -79,6 +97,15 @@
     padding: 1.5rem;
 }
 
+.card.border-success {
+    border: 3px solid #28a745 !important;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.15) !important;
+}
+
+.card.border-success .card-body {
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
 /* Fix modal on mobile */
 @media (max-width: 576px) {
     .modal-dialog {
@@ -105,52 +132,90 @@
             </div>
         </div>
 
-        <!-- Avatar Section - Centered -->
-        <div class="row justify-content-center mb-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-image me-2"></i>Ảnh đại diện
-                        </h5>
-                    </div>
-                    <div class="card-body text-center">
-                        @include('profile.partials.avatar-form')
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Single Form for All Updates -->
+        <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" id="profile-form">
+            @csrf
+            @method('PATCH')
 
-        <!-- Form Sections -->
-        <div class="row">
-            <!-- Thông tin cá nhân -->
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-person me-2"></i>Thông tin cá nhân
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        @include('profile.partials.update-profile-information-form')
+            <!-- Avatar Section - Centered -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-image me-2"></i>Ảnh đại diện
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            @include('profile.partials.avatar-form')
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Đổi mật khẩu -->
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-shield-lock me-2"></i>Đổi mật khẩu
-                        </h5>
+            <!-- Form Sections -->
+            <div class="row">
+                <!-- Thông tin cá nhân -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person me-2"></i>Thông tin cá nhân
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            @include('profile.partials.update-profile-information-form')
+                        </div>
                     </div>
-                    <div class="card-body">
-                        @include('profile.partials.update-password-form')
+                </div>
+
+                <!-- Đổi mật khẩu -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-shield-lock me-2"></i>Đổi mật khẩu
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            @include('profile.partials.update-password-form')
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <!-- Single Save Button at Bottom -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-success">
+                        <div class="card-body text-center py-4">
+                            <button type="submit" class="btn btn-success btn-lg px-5 py-3 fw-bold shadow-sm" id="save-all-btn">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Lưu tất cả thay đổi
+                            </button>
+                            
+                            @if (session('status') === 'profile-updated')
+                                <div class="alert alert-success mt-3 mb-0" 
+                                     x-data="{ show: true }"
+                                     x-show="show"
+                                     x-transition
+                                     x-init="setTimeout(() => show = false, 4000)">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    {{ session('message', 'Cập nhật thành công!') }}
+                                </div>
+                            @endif
+                            
+                            @if ($errors->any())
+                                <div class="alert alert-danger mt-3 mb-0">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Có lỗi xảy ra, vui lòng kiểm tra lại các trường
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
 
         <!-- Thông tin hợp đồng và phòng ban -->
         <div class="row mt-4">
@@ -317,4 +382,59 @@
 
 <!-- Add Alpine.js for JavaScript functionality -->
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('profile-form');
+    const saveBtn = document.getElementById('save-all-btn');
+    const originalBtnText = saveBtn.innerHTML;
+    
+    // Track changes
+    let hasChanges = false;
+    
+    // Monitor form changes
+    form.addEventListener('change', function() {
+        hasChanges = true;
+        saveBtn.classList.add('btn-warning');
+        saveBtn.classList.remove('btn-success');
+        saveBtn.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Có thay đổi - Click để lưu';
+    });
+    
+    // Monitor input changes
+    form.addEventListener('input', function() {
+        hasChanges = true;
+        saveBtn.classList.add('btn-warning');
+        saveBtn.classList.remove('btn-success');
+        saveBtn.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Có thay đổi - Click để lưu';
+    });
+    
+    // Handle form submission
+    form.addEventListener('submit', function(e) {
+        // Debug: Check if avatar file is present
+        const avatarInput = document.getElementById('avatar-input');
+        if (avatarInput && avatarInput.files.length > 0) {
+            console.log('Avatar file detected:', avatarInput.files[0].name);
+        }
+        
+        // Debug: Check form data
+        const formData = new FormData(form);
+        console.log('Form data entries:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
+        }
+        
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Đang lưu...';
+    });
+    
+    // Warn before leaving if has unsaved changes
+    window.addEventListener('beforeunload', function(e) {
+        if (hasChanges) {
+            e.preventDefault();
+            e.returnValue = 'Bạn có thay đổi chưa lưu. Bạn có chắc muốn rời khỏi trang?';
+        }
+    });
+});
+</script>
+
 @endsection

@@ -36,7 +36,7 @@
                             <!-- Password -->
                             <div class="mb-3">
                                 <x-input-label for="password" :value="__('Mật khẩu')" class="form-label fw-semibold" />
-                                <div class="input-group">
+                                <div class="input-group flex-nowrap">
                                     <span class="input-group-text bg-light border-end-0">
                                         <i class="bi bi-lock text-muted"></i>
                                     </span>
