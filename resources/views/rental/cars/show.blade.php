@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Chi tiết xe - HPFoods')
+@section('title', 'Chi tiết xe - HP Foods')
 
 @section('content')
 <style>
@@ -79,7 +79,7 @@
                                             @endif fs-6 p-2">
                                             @if($car->status === 'active') Có sẵn
                                             @elseif($car->status === 'inactive') Không hoạt động
-                                            @else Đang thuê
+                                            @else Đang mượn
                                             @endif
                                         </span>
                                     </div>
@@ -102,11 +102,11 @@
                             @if($car->status === 'rented' && $car->activeRental)
                                 <div class="mt-4 p-3 bg-warning bg-opacity-10 rounded">
                                     <h6 class="mb-3">
-                                        <i class="bi bi-exclamation-triangle me-2"></i>Thông tin thuê hiện tại
+                                        <i class="bi bi-exclamation-triangle me-2"></i>Thông tin mượn hiện tại
                                     </h6>
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <p><strong>Người thuê:</strong> {{ $car->activeRental->user->name }}</p>
+                                            <p><strong>Người mượn:</strong> {{ $car->activeRental->user->name }}</p>
                                             <p><strong>Vai trò:</strong> {{ ucfirst($car->activeRental->user->role) }}</p>
                                             <p><strong>Bắt đầu:</strong> {{ $car->activeRental->rental_start->format('d/m/Y H:i') }}</p>
                                         </div>
@@ -146,18 +146,18 @@
                                 <div class="text-center">
                                     <i class="bi bi-check-circle text-success display-4"></i>
                                     <h5 class="text-success mt-2">Có sẵn</h5>
-                                    <p class="text-muted">Xe đang sẵn sàng để thuê</p>
+                                    <p class="text-muted">Xe đang sẵn sàng để mượn</p>
                                 </div>
                             @elseif($car->status === 'inactive')
                                 <div class="text-center">
                                     <i class="bi bi-pause-circle text-secondary display-4"></i>
                                     <h5 class="text-secondary mt-2">Không hoạt động</h5>
-                                    <p class="text-muted">Xe tạm thời không thể thuê</p>
+                                    <p class="text-muted">Xe tạm thời không thể mượn</p>
                                 </div>
                             @else
                                 <div class="text-center">
                                     <i class="bi bi-car-front-fill text-primary display-4"></i>
-                                    <h5 class="text-primary mt-2">Đang thuê</h5>
+                                    <h5 class="text-primary mt-2">Đang mượn</h5>
                                     <p class="text-muted">Xe đang được sử dụng</p>
                                     @if($car->available_from)
                                         <small class="text-info">
@@ -195,7 +195,7 @@
                                     </form>
                                 @else
                                     <button class="btn btn-secondary" disabled>
-                                        <i class="bi bi-lock me-1"></i>Không thể sửa (đang thuê)
+                                        <i class="bi bi-lock me-1"></i>Không thể sửa (đang mượn)
                                     </button>
                                 @endif
 
@@ -215,7 +215,7 @@
                         <div class="card rental-history-card detail-card">
                             <div class="card-header bg-info text-white">
                                 <h5 class="mb-0">
-                                    <i class="bi bi-clock-history me-2"></i>Lịch sử thuê xe ({{ $car->rentals->count() }})
+                                    <i class="bi bi-clock-history me-2"></i>Lịch sử mượn xe ({{ $car->rentals->count() }})
                                 </h5>
                             </div>
                             <div class="card-body">
@@ -223,8 +223,8 @@
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
-                                                <th>Người thuê</th>
-                                                <th>Thời gian thuê</th>
+                                                <th>Người mượn</th>
+                                                <th>Thời gian mượn</th>
                                                 <th>Trạng thái</th>
                                                 <th>Ghi chú</th>
                                                 <th>Thao tác</th>
@@ -251,7 +251,7 @@
                                                             @if($rental->is_overdue)
                                                                 <span class="badge bg-danger">Quá hạn</span>
                                                             @else
-                                                                <span class="badge bg-success">Đang thuê</span>
+                                                                <span class="badge bg-success">Đang mượn</span>
                                                             @endif
                                                         @elseif($rental->status === 'completed')
                                                             <span class="badge bg-secondary">Hoàn thành</span>
@@ -286,13 +286,13 @@
                         <div class="card rental-history-card detail-card">
                             <div class="card-header bg-info text-white">
                                 <h5 class="mb-0">
-                                    <i class="bi bi-clock-history me-2"></i>Lịch sử thuê xe
+                                    <i class="bi bi-clock-history me-2"></i>Lịch sử mượn xe
                                 </h5>
                             </div>
                             <div class="card-body text-center py-4">
                                 <i class="bi bi-car-front display-1 text-muted"></i>
-                                <h5 class="text-muted mt-3">Chưa có lịch sử thuê xe</h5>
-                                <p class="text-muted">Xe này chưa được thuê lần nào</p>
+                                <h5 class="text-muted mt-3">Chưa có lịch sử mượn xe</h5>
+                                <p class="text-muted">Xe này chưa được mượn lần nào</p>
                             </div>
                         </div>
                     </div>

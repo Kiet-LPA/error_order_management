@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Quản lý xe - HPFoods')
+@section('title', 'Quản lý xe - HP Foods')
 
 @section('content')
 <style>
@@ -33,7 +33,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="bi bi-car-front me-2"></i>Quản lý xe HPFoods
+                    <i class="bi bi-car-front me-2"></i>Quản lý xe HP Foods
                 </h2>
                 <div>
                     <a href="{{ route('rental.cars.create') }}" class="btn btn-success btn-action">
@@ -80,7 +80,7 @@
                                             @endif">
                                             @if($car->status === 'active') Có sẵn
                                             @elseif($car->status === 'inactive') Không hoạt động
-                                            @else Đang thuê
+                                            @else Đang mượn
                                             @endif
                                         </span>
                                     </div>
@@ -106,7 +106,7 @@
                                             <strong>Trạng thái:</strong><br>
                                             @if($car->status === 'rented' && $car->activeRental)
                                                 <small class="text-primary">
-                                                    Thuê bởi: {{ $car->activeRental->user->name }}<br>
+                                                    Mượn bởi: {{ $car->activeRental->user->name }}<br>
                                                     Đến: {{ $car->available_from->format('d/m/Y H:i') }}
                                                 </small>
                                             @else
@@ -153,7 +153,7 @@
                                             </form>
                                         @else
                                             <button class="btn btn-secondary btn-sm" disabled>
-                                                <i class="bi bi-lock me-1"></i>Đang thuê
+                                                <i class="bi bi-lock me-1"></i>Đang mượn
                                             </button>
                                         @endif
                                     </div>

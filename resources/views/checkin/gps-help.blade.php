@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hướng dẫn GPS - HPFoods</title>
+    <title>Hướng dẫn GPS - HP Foods</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -127,7 +127,7 @@
 <body>
     <div class="header">
         <div class="container">
-            <div class="logo">🔧 Hướng dẫn GPS - HPFoods</div>
+            <div class="logo">🔧 Hướng dẫn GPS - HP Foods</div>
             <a href="{{ route('checkin.index') }}" class="back-btn">← Quay lại</a>
         </div>
     </div>

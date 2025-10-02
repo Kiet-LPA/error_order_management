@@ -131,7 +131,7 @@ $recentFixes = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sửa lỗi điểm danh - Checkin HPFoods</title>
+    <title>Sửa lỗi điểm danh - Checkin HP Foods</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="responsive.css">

@@ -104,7 +104,25 @@
     
     /* Modals should be above navbar */
     .modal {
-      z-index: 1055 !important;
+      z-index: 100000 !important;
+    }
+    
+    /* Modal backdrop should be above navbar too */
+    .modal-backdrop {
+      z-index: 99999 !important;
+    }
+    
+    /* Specific z-index for rental modals */
+    #rentModal,
+    #extensionModal,
+    #returnModal,
+    .modal[data-bs-target*="Modal"] {
+      z-index: 100000 !important;
+    }
+    
+    /* Ensure modal dialogs are above everything */
+    .modal-dialog {
+      z-index: 100001 !important;
     }
     
     

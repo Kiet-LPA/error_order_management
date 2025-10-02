@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('car_id')->constrained()->onDelete('cascade');
             $table->timestamp('rental_start');
             $table->timestamp('rental_end');
-            $table->enum('status', ['active', 'completed', 'cancelled'])->default('active');
+            $table->enum('status', ['active', 'completed'])->default('active');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

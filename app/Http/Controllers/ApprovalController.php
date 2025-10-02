@@ -223,6 +223,7 @@ class ApprovalController extends Controller
             'form_type' => $formType,
             'form_data' => $request->input('form_data'),
             'status' => 'submitted',
+            'approval_status' => 'pending',
             'created_by_id' => Auth::id(),
             'current_approver_id' => $currentApproverId
         ]);
@@ -671,5 +672,46 @@ class ApprovalController extends Controller
             ->take(10);
         
         return response()->json($suggestions);
+    }
+
+    /**
+     * Update approval request status via AJAX (for Kanban drag & drop)
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $user = $request->user();
+        
+        // Check if user can update status (Admin/Director/Manager only)
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền cập nhật trạng thái'
+            ], 403);
+        }
+        
+        $approvalRequest = ApprovalRequest::findOrFail($id);
+        $newStatus = $request->input('approval_status');
+        
+        // Validate status
+        if (!in_array($newStatus, ['pending', 'approved', 'rejected'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Trạng thái không hợp lệ'
+            ], 400);
+        }
+        
+        // Update status
+        $approvalRequest->update([
+            'approval_status' => $newStatus,
+            'approved_at' => $newStatus === 'approved' ? now() : null,
+            'rejected_at' => $newStatus === 'rejected' ? now() : null,
+            'approved_by_id' => $newStatus === 'approved' ? $user->id : null,
+            'rejected_by_id' => $newStatus === 'rejected' ? $user->id : null,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật trạng thái thành công'
+        ]);
     }
 }

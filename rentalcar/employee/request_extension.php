@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rental = $stmt->fetch();
     
     if (!$rental) {
-        $message = 'Không tìm thấy thuê xe hoặc thuê xe không hợp lệ!';
+        $message = 'Không tìm thấy mượn xe hoặc mượn xe không hợp lệ!';
         $message_type = 'danger';
     } else {
         // Check if new end time is after current end time

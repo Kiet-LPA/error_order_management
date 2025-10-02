@@ -108,7 +108,7 @@ foreach ($todayCheckins as $checkin) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Nhân viên - Checkin HPFoods</title>
+    <title>Dashboard Nhân viên - Checkin HP Foods</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <style>
@@ -405,7 +405,7 @@ foreach ($todayCheckins as $checkin) {
     <!-- Header -->
     <div class="header">
         <div class="container">
-            <div class="logo">🕐 Checkin HPFoods - Hệ thống điểm danh</div>
+            <div class="logo">🕐 Checkin HP Foods - Hệ thống điểm danh</div>
             <div class="user-info">
                 <a href="https://hpfoods.com.vn" target="_blank" class="logout-btn">💼 Quản lý công việc</a>
                 <span>Xin chào, <?= htmlspecialchars($user['full_name']) ?></span>

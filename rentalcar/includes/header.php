@@ -45,7 +45,7 @@ if (!isset($page_title)) {
                                     <i class="fas fa-users"></i> Quản lý người dùng
                                 </a></li>
                                 <li><a class="dropdown-item" href="rentals.php">
-                                    <i class="fas fa-list"></i> Quản lý thuê xe
+                                    <i class="fas fa-list"></i> Quản lý mượn xe
                                 </a></li>
                                 <li><a class="dropdown-item" href="extensions.php">
                                     <i class="fas fa-clock"></i> Duyệt gia hạn
@@ -54,14 +54,14 @@ if (!isset($page_title)) {
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="rentalDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-car"></i> Thuê xe
+                                <i class="fas fa-car"></i> Mượn xe
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="rent_car.php">
-                                    <i class="fas fa-car"></i> Thuê xe mới
+                                    <i class="fas fa-car"></i> Mượn xe mới
                                 </a></li>
                                 <li><a class="dropdown-item" href="my_rentals.php">
-                                    <i class="fas fa-history"></i> Lịch sử thuê xe
+                                    <i class="fas fa-history"></i> Lịch sử mượn xe
                                 </a></li>
                             </ul>
                         </li>
@@ -73,12 +73,12 @@ if (!isset($page_title)) {
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="cars.php">
-                                <i class="fas fa-car"></i> Thuê xe
+                                <i class="fas fa-car"></i> Mượn xe
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="rentals.php">
-                                <i class="fas fa-list"></i> Lịch sử thuê xe
+                                <i class="fas fa-list"></i> Lịch sử mượn xe
                             </a>
                         </li>
                     <?php endif; ?>

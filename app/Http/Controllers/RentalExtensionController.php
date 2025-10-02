@@ -53,7 +53,7 @@ class RentalExtensionController extends Controller
                 'new_rental_end' => $extension->new_rental_end->format('d/m/Y H:i')
             ],
             'title' => 'Gia hạn được duyệt',
-            'message' => "Quản lý " . $user->name . " đã duyệt gia hạn thuê xe " . $extension->rental->car->license_plate . " đến " . $extension->new_rental_end->format('d/m/Y H:i')
+            'message' => "Quản lý " . $user->name . " đã duyệt gia hạn mượn xe " . $extension->rental->car->license_plate . " đến " . $extension->new_rental_end->format('d/m/Y H:i')
         ]);
 
         return back()->with('success', 'Đã duyệt gia hạn thành công!');
@@ -91,7 +91,7 @@ class RentalExtensionController extends Controller
                 'rejection_reason' => $request->rejection_reason
             ],
             'title' => 'Gia hạn bị từ chối',
-            'message' => "Quản lý " . $user->name . " đã từ chối gia hạn thuê xe " . $extension->rental->car->license_plate . ". Lý do: " . $request->rejection_reason
+            'message' => "Quản lý " . $user->name . " đã từ chối gia hạn mượn xe " . $extension->rental->car->license_plate . ". Lý do: " . $request->rejection_reason
         ]);
 
         return back()->with('success', 'Đã từ chối gia hạn!');

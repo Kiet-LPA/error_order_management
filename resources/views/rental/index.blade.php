@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Thuê xe - HPFoods')
+@section('title', 'Mượn xe - HP Foods')
 
 @section('content')
 <style>
@@ -15,6 +15,14 @@
 }
 .car-card {
     border-left: 4px solid #007bff;
+}
+.car-card.disabled {
+    opacity: 0.7;
+    background-color: #f8f9fa;
+    border-left: 4px solid #dc3545;
+}
+.car-card.disabled .card-body {
+    color: #6c757d;
 }
 .status-active {
     background: #198754;
@@ -47,7 +55,7 @@
             <div class="card rental-card">
                 <div class="card-header status-active">
                     <h4 class="mb-0">
-                        <i class="bi bi-car-front me-2"></i>Hệ thống thuê xe HPFoods
+                        <i class="bi bi-car-front me-2"></i>Hệ thống mượn xe HP Foods
                     </h4>
                 </div>
                 <div class="card-body">
@@ -68,11 +76,11 @@
                     <!-- Active Rental Status -->
                     @if($activeRental)
                         <div class="alert alert-info">
-                            <h5><i class="bi bi-info-circle me-2"></i>Thuê xe hiện tại</h5>
+                            <h5><i class="bi bi-info-circle me-2"></i>Mượn xe hiện tại</h5>
                             <div class="row">
                                 <div class="col-md-6">
                                     <p><strong>Xe:</strong> {{ $activeRental->car->license_plate }} - {{ $activeRental->car->car_type }}</p>
-                                    <p><strong>Thời gian thuê:</strong> {{ $activeRental->rental_start->format('d/m/Y H:i') }}</p>
+                                    <p><strong>Thời gian mượn:</strong> {{ $activeRental->rental_start->format('d/m/Y H:i') }}</p>
                                     <p><strong>Thời gian trả:</strong> {{ $activeRental->rental_end->format('d/m/Y H:i') }}</p>
                                 </div>
                                 <div class="col-md-6">
@@ -107,40 +115,60 @@
                     @endif
 
                     <div class="row">
-                        <!-- Available Cars -->
+                        <!-- All Cars -->
                         <div class="col-12 col-lg-8">
                             <h5 class="mb-3">
-                                <i class="bi bi-car-front-fill me-2"></i>Xe có sẵn ({{ $availableCars->count() }} xe)
+                                <i class="bi bi-car-front-fill me-2"></i>Danh sách xe ({{ $allCars->count() }} xe)
                             </h5>
                             
-                            @if($availableCars->count() > 0)
+                            @if($allCars->count() > 0)
                                 <div class="row">
-                                    @foreach($availableCars as $car)
+                                    @foreach($allCars as $car)
                                         <div class="col-12 col-sm-6 col-lg-4 mb-3">
-                                            <div class="card car-card rental-card">
+                                            <div class="card car-card rental-card {{ $car->activeRental ? 'disabled' : '' }}">
                                                 <div class="card-body">
                                                     <h6 class="card-title">
                                                         <i class="bi bi-car-front me-1"></i>{{ $car->license_plate }}
+                                                        @if($car->activeRental)
+                                                            <span class="badge bg-danger ms-2">Đang mượn</span>
+                                                        @else
+                                                            <span class="badge bg-success ms-2">Có sẵn</span>
+                                                        @endif
                                                     </h6>
                                                     <p class="card-text">
                                                         <strong>Loại:</strong> {{ $car->car_type }}<br>
                                                         <strong>Màu:</strong> {{ $car->color }}<br>
                                                         <strong>Trọng lượng:</strong> {{ $car->weight }}kg
                                                     </p>
+                                                    
+                                                    @if($car->activeRental)
+                                                        <div class="alert alert-warning py-2 mb-3">
+                                                            <small>
+                                                                <strong>Người mượn:</strong> {{ $car->activeRental->user->name }}<br>
+                                                                <strong>Ngày mượn:</strong> {{ $car->activeRental->rental_start->format('d/m/Y H:i') }}<br>
+                                                                <strong>Ngày trả:</strong> {{ $car->activeRental->rental_end->format('d/m/Y H:i') }}
+                                                            </small>
+                                                        </div>
+                                                    @endif
+                                                    
                                                     @if($car->description)
                                                         <p class="card-text">
                                                             <small class="text-muted">{{ Str::limit($car->description, 80) }}</small>
                                                         </p>
                                                     @endif
                                                     
-                                                    @if(!$activeRental)
+                                                    @if($car->activeRental)
+                                                        <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                                                            <i class="bi bi-lock me-1"></i>Xe đang được mượn
+                                                        </button>
+                                                    @elseif(!$activeRental)
                                                         <button class="btn btn-rent btn-sm w-100" 
                                                                 onclick="openRentModal({{ $car->id }}, '{{ $car->license_plate }}', '{{ $car->car_type }}')">
-                                                            <i class="bi bi-calendar-plus me-1"></i>Thuê xe này
+                                                            <i class="bi bi-calendar-plus me-1"></i>Mượn xe này
                                                         </button>
                                                     @else
                                                         <button class="btn btn-secondary btn-sm w-100" disabled>
-                                                            <i class="bi bi-x-circle me-1"></i>Bạn đang có thuê xe chưa trả
+                                                            <i class="bi bi-x-circle me-1"></i>Bạn đang có mượn xe chưa trả
                                                         </button>
                                                     @endif
                                                 </div>
@@ -196,7 +224,7 @@
                             @else
                                 <div class="text-center py-3">
                                     <i class="bi bi-clock-history display-6 text-muted"></i>
-                                    <p class="text-muted mt-2 mb-0">Chưa có lịch sử thuê xe</p>
+                                    <p class="text-muted mt-2 mb-0">Chưa có lịch sử mượn xe</p>
                                 </div>
                             @endif
                         </div>
@@ -208,12 +236,12 @@
 </div>
 
 <!-- Rent Car Modal -->
-<div class="modal fade" id="rentModal" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="rentModal" tabindex="-1" style="z-index: 100000 !important;">
+    <div class="modal-dialog" style="z-index: 100001 !important;">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-calendar-plus me-2"></i>Thuê xe
+                    <i class="bi bi-calendar-plus me-2"></i>Mượn xe
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -221,7 +249,7 @@
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Xe thuê</label>
+                        <label class="form-label">Xe mượn</label>
                         <input type="text" class="form-control" id="rentCarInfo" readonly>
                         <input type="hidden" name="car_id" id="rentCarId">
                     </div>
@@ -263,7 +291,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-1"></i>Xác nhận thuê xe
+                        <i class="bi bi-check-circle me-1"></i>Xác nhận mượn xe
                     </button>
                 </div>
             </form>
@@ -372,6 +400,26 @@
                     </div>
                     
                     <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="refueled" id="refueled" 
+                                   onchange="toggleFuelAmount()">
+                            <label class="form-check-label" for="refueled">
+                                Đổ đầy nhiên liệu
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="fuelAmountDiv" style="display: none;">
+                        <label for="fuel_amount" class="form-label">Số tiền đã dùng để đổ nhiên liệu (VNĐ)</label>
+                        <input type="number" class="form-control @error('fuel_amount') is-invalid @enderror" 
+                               name="fuel_amount" id="fuel_amount" 
+                               placeholder="Nhập số tiền đã đổ nhiên liệu..." min="0" step="1000">
+                        @error('fuel_amount')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="return_notes" class="form-label">Ghi chú (tùy chọn)</label>
                         <textarea class="form-control @error('return_notes') is-invalid @enderror" 
                                   name="return_notes" id="return_notes" rows="3" 
@@ -405,5 +453,19 @@ function openRentModal(carId, licensePlate, carType) {
     
     new bootstrap.Modal(document.getElementById('rentModal')).show();
 }
+
+function toggleFuelAmount() {
+    const checkbox = document.getElementById('refueled');
+    const fuelAmountDiv = document.getElementById('fuelAmountDiv');
+    
+    if (checkbox.checked) {
+        fuelAmountDiv.style.display = 'block';
+    } else {
+        fuelAmountDiv.style.display = 'none';
+        // Clear the fuel amount input when unchecked
+        document.getElementById('fuel_amount').value = '';
+    }
+}
+
 </script>
 @endsection

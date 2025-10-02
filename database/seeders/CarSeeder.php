@@ -70,6 +70,14 @@ class CarSeeder extends Seeder
                 'description' => 'Xe compact tiết kiệm nhiên liệu, dễ đỗ xe',
                 'status' => 'active',
             ],
+            [
+                'license_plate' => '30A-66666',
+                'weight' => 1900.00,
+                'car_type' => 'Pickup',
+                'color' => 'Xám',
+                'description' => 'Xe pickup chở hàng, phù hợp vận chuyển và công việc',
+                'status' => 'active',
+            ],
         ];
 
         foreach ($cars as $car) {

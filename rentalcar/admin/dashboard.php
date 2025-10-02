@@ -114,7 +114,7 @@ include '../includes/header.php';
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-primary"><?php echo $stats['active_rentals']; ?></h5>
-                <p class="card-text">Thuê xe hoạt động</p>
+                <p class="card-text">Mượn xe hoạt động</p>
             </div>
         </div>
     </div>
@@ -133,11 +133,11 @@ include '../includes/header.php';
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-clock"></i> Thuê xe gần đây</h5>
+                <h5><i class="fas fa-clock"></i> Mượn xe gần đây</h5>
             </div>
             <div class="card-body">
                 <?php if (empty($recent_rentals)): ?>
-                    <p class="text-muted">Chưa có thuê xe nào.</p>
+                    <p class="text-muted">Chưa có mượn xe nào.</p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -174,11 +174,11 @@ include '../includes/header.php';
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-exclamation-triangle text-danger"></i> Thuê xe quá hạn</h5>
+                <h5><i class="fas fa-exclamation-triangle text-danger"></i> Mượn xe quá hạn</h5>
             </div>
             <div class="card-body">
                 <?php if (empty($overdue_rentals)): ?>
-                    <p class="text-muted">Không có thuê xe quá hạn.</p>
+                    <p class="text-muted">Không có mượn xe quá hạn.</p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -220,7 +220,7 @@ include '../includes/header.php';
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-car"></i> Thuê xe đang hoạt động của tôi</h5>
+                <h5><i class="fas fa-car"></i> Mượn xe đang hoạt động của tôi</h5>
             </div>
             <div class="card-body">
                 <?php foreach ($manager_active_rentals as $rental): ?>

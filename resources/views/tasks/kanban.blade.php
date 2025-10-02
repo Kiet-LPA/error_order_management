@@ -206,6 +206,29 @@
     font-size: 15px;
 }
 
+.kanban-task .task-department {
+    font-size: 12px;
+    color: #6c757d;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kanban-task .task-department i {
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.kanban-task .task-department .department-name {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.kanban-task .task-department .department-tooltip {
+    cursor: help;
+}
+
 .kanban-task .task-meta {
     font-size: 13px;
     color: #4a5568;
@@ -461,6 +484,55 @@
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
+/* Approval Request Column Colors */
+.kanban-column.approval-pending {
+    border-top: 4px solid #ed8712;
+}
+
+.kanban-column.approval-pending .kanban-header {
+    background: #ed8712;
+}
+
+.kanban-column.approval-pending .kanban-title {
+    color: #ffffff;
+}
+
+.kanban-column.approval-pending .kanban-count {
+    background: #ed8712;
+}
+
+.kanban-column.approval-approved {
+    border-top: 4px solid #50a344;
+}
+
+.kanban-column.approval-approved .kanban-header {
+    background: #50a344;
+}
+
+.kanban-column.approval-approved .kanban-title {
+    color: #ffffff;
+}
+
+.kanban-column.approval-approved .kanban-count {
+    background: #50a344;
+}
+
+.kanban-column.approval-rejected {
+    border-top: 4px solid #F23005;
+}
+
+.kanban-column.approval-rejected .kanban-header {
+    background: #F23005;
+}
+
+.kanban-column.approval-rejected .kanban-title {
+    color: #ffffff;
+}
+
+.kanban-column.approval-rejected .kanban-count {
+    background: #F23005;
+}
+
 /* Task border colors by status */
 .kanban-task.in-progress {
     border-left-color: #3b82f6;
@@ -486,6 +558,80 @@
     border-left-color: #10b981;
     background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
     opacity: 0.85;
+}
+
+/* Approval Request Card Styling */
+.kanban-approval-request {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: move;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 5px solid #6c757d;
+    min-height: 100px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    display: block;
+    width: 100%;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.kanban-approval-request:last-child {
+    margin-bottom: 0;
+}
+
+.kanban-approval-request .approval-title {
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 10px;
+    line-height: 1.4;
+    font-size: 15px;
+}
+
+.kanban-approval-request .approval-creator,
+.kanban-approval-request .approval-approver,
+.kanban-approval-request .approval-approved,
+.kanban-approval-request .approval-rejected {
+    font-size: 13px;
+    color: #4a5568;
+    margin-bottom: 6px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kanban-approval-request .approval-approved {
+    color: #50a344;
+}
+
+.kanban-approval-request .approval-rejected {
+    color: #F23005;
+}
+
+.kanban-approval-request:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    transform: translateY(-3px) scale(1.02);
+    border-left-width: 6px;
+}
+
+/* Approval Request Status Colors */
+.kanban-approval-request.pending {
+    border-left-color: #ed8712;
+    background: #ffffff;
+}
+
+.kanban-approval-request.approved {
+    border-left-color: #50a344;
+    background: #ffffff;
+}
+
+.kanban-approval-request.rejected {
+    border-left-color: #F23005;
+    background: #ffffff;
 }
 
 /* Drop zone styling */
@@ -543,6 +689,61 @@
 .main-content.expanded .kanban-column {
     flex: 1;
     min-width: 280px;
+}
+
+/* Tooltip improvements */
+.kanban-task .task-department .department-tooltip {
+    position: relative;
+}
+
+.kanban-task .task-department .department-tooltip:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin-bottom: 5px;
+}
+
+.kanban-task .task-department .department-tooltip:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    margin-bottom: -5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .kanban-task .task-department {
+        font-size: 11px;
+    }
+}
+
+/* Section styling */
+.kanban-section {
+    margin-bottom: 40px;
+}
+
+.section-title {
+    color: #2d3748;
+    font-weight: 700;
+    font-size: 20px;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 10px;
+    display: inline-block;
 }
 
 /* Responsive */
@@ -631,110 +832,257 @@
         </div>
     </div>
 
-    <div class="kanban-board" id="kanbanBoard">
-        <!-- Đang làm -->
-        <div class="kanban-column in-progress" data-status="in_progress">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-play-circle me-2"></i>
-                    Đang làm
-                </div>
-                <div class="kanban-count">{{ $kanbanData['in_progress']->count() }}</div>
-            </div>
-            <div class="kanban-tasks" data-status="in_progress">
-                @forelse($kanbanData['in_progress'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
+    <!-- Tasks Section -->
+    <div class="kanban-section">
+        <h4 class="section-title mb-3">
+            <i class="fas fa-tasks me-2"></i>
+            Quản lý công việc
+        </h4>
+        <div class="kanban-board" id="kanbanBoard">
+            <!-- Đang làm -->
+            <div class="kanban-column in-progress" data-status="in_progress">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-play-circle me-2"></i>
+                        Đang làm
                     </div>
-                @endforelse
+                    <div class="kanban-count">{{ $kanbanData['in_progress']->count() }}</div>
+                </div>
+                <div class="kanban-tasks" data-status="in_progress">
+                    @forelse($kanbanData['in_progress'] as $task)
+                        @include('tasks.kanban-task', ['task' => $task])
+                    @empty
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>Không có công việc nào</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
+
+            @if(auth()->user()->isDirector())
+                <!-- Director: Đang làm -> Hoàn thành -> Từ chối -> Trễ hạn -->
+                
+                <!-- Hoàn thành -->
+                <div class="kanban-column finished" data-status="finished">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-flag-checkered me-2"></i>
+                            Hoàn thành
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['finished']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="finished">
+                        @forelse($kanbanData['finished'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Từ chối -->
+                <div class="kanban-column rejected" data-status="rejected">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Từ chối
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['rejected']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="rejected">
+                        @forelse($kanbanData['rejected'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Trễ hạn -->
+                <div class="kanban-column overdue" data-status="overdue">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Trễ hạn
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['overdue']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="overdue">
+                        @forelse($kanbanData['overdue'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            @else
+                <!-- Các role khác: Đang làm -> Chờ phê duyệt -> Hoàn thành -> Từ chối -> Trễ hạn -->
+                
+                <!-- Chờ phê duyệt -->
+                <div class="kanban-column pending-approval" data-status="pending_approval">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-clock me-2"></i>
+                            Chờ phê duyệt
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['pending_approval']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="pending_approval">
+                        @forelse($kanbanData['pending_approval'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Hoàn thành -->
+                <div class="kanban-column finished" data-status="finished">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-flag-checkered me-2"></i>
+                            Hoàn thành
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['finished']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="finished">
+                        @forelse($kanbanData['finished'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Từ chối -->
+                <div class="kanban-column rejected" data-status="rejected">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Từ chối
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['rejected']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="rejected">
+                        @forelse($kanbanData['rejected'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Trễ hạn -->
+                <div class="kanban-column overdue" data-status="overdue">
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Trễ hạn
+                        </div>
+                        <div class="kanban-count">{{ $kanbanData['overdue']->count() }}</div>
+                    </div>
+                    <div class="kanban-tasks" data-status="overdue">
+                        @forelse($kanbanData['overdue'] as $task)
+                            @include('tasks.kanban-task', ['task' => $task])
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>Không có công việc nào</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
         </div>
+    </div>
 
-        <!-- Chờ phê duyệt -->
-        <div class="kanban-column pending-approval" data-status="pending_approval">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-clock me-2"></i>
-                    Chờ phê duyệt
-                </div>
-                <div class="kanban-count">{{ $kanbanData['pending_approval']->count() }}</div>
-            </div>
-            <div class="kanban-tasks" data-status="pending_approval">
-                @forelse($kanbanData['pending_approval'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
+    <!-- Approval Requests Section -->
+    <div class="kanban-section mt-5">
+        <h4 class="section-title mb-3">
+            <i class="fas fa-clipboard-check me-2"></i>
+            Quản lý yêu cầu phê duyệt
+        </h4>
+        <div class="kanban-board" id="approvalKanbanBoard">
+            <!-- Yêu cầu chờ phê duyệt -->
+            <div class="kanban-column approval-pending" data-status="approval_pending">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-hourglass-half me-2"></i>
+                        Yêu cầu chờ phê duyệt
                     </div>
-                @endforelse
-            </div>
-        </div>
-
-
-        <!-- Từ chối -->
-        <div class="kanban-column rejected" data-status="rejected">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-times-circle me-2"></i>
-                    Từ chối
+                    <div class="kanban-count">{{ $approvalKanbanData['pending_approval_requests']->count() }}</div>
                 </div>
-                <div class="kanban-count">{{ $kanbanData['rejected']->count() }}</div>
-            </div>
-            <div class="kanban-tasks" data-status="rejected">
-                @forelse($kanbanData['rejected'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
-        <!-- Trễ hạn -->
-        <div class="kanban-column overdue" data-status="overdue">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Trễ hạn
+                <div class="kanban-tasks" data-status="approval_pending">
+                    @forelse($approvalKanbanData['pending_approval_requests'] as $approvalRequest)
+                        @include('tasks.kanban-approval-request', ['approvalRequest' => $approvalRequest])
+                    @empty
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>Không có yêu cầu nào</p>
+                        </div>
+                    @endforelse
                 </div>
-                <div class="kanban-count">{{ $kanbanData['overdue']->count() }}</div>
             </div>
-            <div class="kanban-tasks" data-status="overdue">
-                @forelse($kanbanData['overdue'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
 
-        <!-- Hoàn thành -->
-        <div class="kanban-column finished" data-status="finished">
-            <div class="kanban-header">
-                <div class="kanban-title">
-                    <i class="fas fa-flag-checkered me-2"></i>
-                    Hoàn thành
-                </div>
-                <div class="kanban-count">{{ $kanbanData['finished']->count() }}</div>
-            </div>
-            <div class="kanban-tasks" data-status="finished">
-                @forelse($kanbanData['finished'] as $task)
-                    @include('tasks.kanban-task', ['task' => $task])
-                @empty
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Không có công việc nào</p>
+            <!-- Yêu cầu đã phê duyệt -->
+            <div class="kanban-column approval-approved" data-status="approval_approved">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Yêu cầu đã phê duyệt
                     </div>
-                @endforelse
+                    <div class="kanban-count">{{ $approvalKanbanData['approved_requests']->count() }}</div>
+                </div>
+                <div class="kanban-tasks" data-status="approval_approved">
+                    @forelse($approvalKanbanData['approved_requests'] as $approvalRequest)
+                        @include('tasks.kanban-approval-request', ['approvalRequest' => $approvalRequest])
+                    @empty
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>Không có yêu cầu nào</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Yêu cầu bị từ chối -->
+            <div class="kanban-column approval-rejected" data-status="approval_rejected">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Yêu cầu bị từ chối
+                    </div>
+                    <div class="kanban-count">{{ $approvalKanbanData['rejected_requests']->count() }}</div>
+                </div>
+                <div class="kanban-tasks" data-status="approval_rejected">
+                    @forelse($approvalKanbanData['rejected_requests'] as $approvalRequest)
+                        @include('tasks.kanban-approval-request', ['approvalRequest' => $approvalRequest])
+                    @empty
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>Không có yêu cầu nào</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
@@ -746,6 +1094,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const kanbanBoard = document.getElementById('kanbanBoard');
+    const approvalKanbanBoard = document.getElementById('approvalKanbanBoard');
     const columns = document.querySelectorAll('.kanban-tasks');
     
     // Initialize tooltips with click trigger
@@ -772,8 +1121,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkScrollableColumns() {
         const columns = document.querySelectorAll('.kanban-tasks');
         columns.forEach(column => {
-            const tasks = column.querySelectorAll('.kanban-task');
-            console.log('Column has', tasks.length, 'tasks'); // Debug log
+            const tasks = column.querySelectorAll('.kanban-task, .kanban-approval-request');
+            console.log('Column has', tasks.length, 'items'); // Debug log
             if (tasks.length > 3) {
                 column.classList.add('scrollable');
                 // Add task count indicator (chỉ hiển thị từ task thứ 4 trở đi)
@@ -811,15 +1160,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add readonly class to task cards for Employee
     if (!canDragDrop) {
-        document.querySelectorAll('.kanban-task').forEach(task => {
-            task.classList.add('readonly');
+        document.querySelectorAll('.kanban-task, .kanban-approval-request').forEach(item => {
+            item.classList.add('readonly');
         });
     }
     
-    // Initialize Sortable for each column
-    columns.forEach(column => {
+    // Initialize Sortable for tasks columns
+    const taskColumns = document.querySelectorAll('#kanbanBoard .kanban-tasks');
+    taskColumns.forEach(column => {
         new Sortable(column, {
-            group: canDragDrop ? 'kanban' : false, // Disable drag & drop for Employee
+            group: canDragDrop ? 'tasks' : false, // Separate group for tasks
             animation: 150,
             ghostClass: 'kanban-task-ghost',
             chosenClass: 'kanban-task-chosen',
@@ -828,7 +1178,6 @@ document.addEventListener('DOMContentLoaded', function() {
             onEnd: function(evt) {
                 if (!canDragDrop) return; // Double check
                 
-                const taskId = evt.item.dataset.taskId;
                 const newStatus = evt.to.dataset.status;
                 const oldStatus = evt.from.dataset.status;
                 
@@ -837,8 +1186,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Update task status via AJAX
+                // It's a task
+                const taskId = evt.item.dataset.taskId;
                 updateTaskStatus(taskId, newStatus, evt.item);
+            }
+        });
+    });
+    
+    // Initialize Sortable for approval request columns
+    const approvalColumns = document.querySelectorAll('#approvalKanbanBoard .kanban-tasks');
+    approvalColumns.forEach(column => {
+        new Sortable(column, {
+            group: canDragDrop ? 'approvals' : false, // Separate group for approvals
+            animation: 150,
+            ghostClass: 'kanban-task-ghost',
+            chosenClass: 'kanban-task-chosen',
+            dragClass: 'kanban-task-dragging',
+            disabled: !canDragDrop, // Disable for Employee
+            onEnd: function(evt) {
+                if (!canDragDrop) return; // Double check
+                
+                const newStatus = evt.to.dataset.status;
+                const oldStatus = evt.from.dataset.status;
+                
+                // Don't update if dropped in the same column
+                if (newStatus === oldStatus) {
+                    return;
+                }
+                
+                // It's an approval request
+                const approvalId = evt.item.dataset.approvalId;
+                updateApprovalStatus(approvalId, newStatus, evt.item);
             }
         });
     });
@@ -902,11 +1280,57 @@ function updateTaskStatus(taskId, newStatus, taskElement) {
     });
 }
 
+function updateApprovalStatus(approvalId, newStatus, approvalElement) {
+    // Map Kanban status to approval request status
+    const statusMap = {
+        'approval_pending': 'pending',
+        'approval_approved': 'approved',
+        'approval_rejected': 'rejected'
+    };
+    
+    const approvalStatus = statusMap[newStatus];
+    if (!approvalStatus) {
+        console.error('Invalid status mapping:', newStatus);
+        return;
+    }
+    
+    approvalElement.style.opacity = '0.5';
+    
+    fetch(`/approval-requests/${approvalId}/update-status`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            approval_status: approvalStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('success', data.message);
+            // Update the card's status class
+            approvalElement.className = approvalElement.className.replace(/pending|approved|rejected/g, approvalStatus);
+        } else {
+            showNotification('error', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        location.reload();
+        showNotification('error', 'Có lỗi xảy ra khi cập nhật trạng thái');
+    })
+    .finally(() => {
+        approvalElement.style.opacity = '1';
+    });
+}
+
 function updateColumnCounts() {
     const columns = document.querySelectorAll('.kanban-column');
     columns.forEach(column => {
         const status = column.dataset.status;
-        const count = column.querySelectorAll('.kanban-task').length;
+        const count = column.querySelectorAll('.kanban-task, .kanban-approval-request').length;
         const countElement = column.querySelector('.kanban-count');
         countElement.textContent = count;
     });

@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             ManagerAccountsSeeder::class,
             DirectorAccountsSeeder::class,
+            CarSeeder::class,
         ]);
     }
 }

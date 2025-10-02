@@ -355,6 +355,9 @@ Route::post('/approval/{id}/approve', [App\Http\Controllers\ApprovalController::
 Route::post('/approval/{id}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('approval.reject');
 Route::post('/approval/bulk-approve', [App\Http\Controllers\ApprovalController::class, 'bulkApprove'])->name('approval.bulk-approve');
 Route::post('/approval/bulk-reject', [App\Http\Controllers\ApprovalController::class, 'bulkReject'])->name('approval.bulk-reject');
+
+// Route for Kanban drag & drop status update
+Route::patch('/approval-requests/{id}/update-status', [App\Http\Controllers\ApprovalController::class, 'updateStatus'])->name('approval-requests.update-status');
 });
 
 // Checkin routes
@@ -401,7 +404,6 @@ Route::middleware(['auth', 'employee.type'])->prefix('rental')->name('rental.')-
         Route::post('/extensions/{extension}/reject', [\App\Http\Controllers\RentalExtensionController::class, 'reject'])->name('extensions.reject');
         
         // Rental management
-        Route::post('/rentals/{rental}/cancel', [\App\Http\Controllers\RentalCarController::class, 'cancelRental'])->name('rentals.cancel');
         Route::post('/rentals/{rental}/complete-early', [\App\Http\Controllers\RentalCarController::class, 'completeRentalEarly'])->name('rentals.complete-early');
     });
 });

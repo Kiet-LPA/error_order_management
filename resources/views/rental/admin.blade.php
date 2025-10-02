@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Quản lý xe - HPFoods')
+@section('title', 'Quản lý xe - HP Foods')
 
 @section('content')
 <style>
@@ -12,28 +12,25 @@
 }
 
 .stat-card.card-1 {
-    background: #667eea;
+    background: #f29a2c; /* Tổng xe - cam */
 }
 
 .stat-card.card-2 {
-    background: #f5576c;
+    background: #54a14c; /* Có sẵn - xanh lá */
 }
 
 .stat-card.card-3 {
-    background: #4facfe;
+    background: #d12738; /* Đang mượn - đỏ */
 }
 
 .stat-card.card-4 {
-    background: #43e97b;
+    background: #428cbb; /* Người dùng - xanh dương */
 }
 
-.stat-card.card-5 {
-    background: #fa709a;
-}
 
 .stat-card.card-6 {
-    background: #a8edea;
-    color: #333;
+    background: #8e44ad; /* Chờ duyệt - tím */
+    color: #fff;
 }
 .stat-card:hover {
     transform: translateY(-5px);
@@ -59,7 +56,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="bi bi-tools me-2"></i>Quản lý xe HPFoods
+                    <i class="bi bi-tools me-2"></i>Quản lý xe HP Foods
                 </h2>
                 <div>
                     @if(auth()->user()->canManageCars())
@@ -81,7 +78,7 @@
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{{ route('rental.admin') }}">
-                                    <i class="bi bi-list-ul me-2"></i>Quản lý thuê xe
+                                    <i class="bi bi-list-ul me-2"></i>Quản lý mượn xe
                                 </a>
                             </li>
                             <li>
@@ -95,18 +92,18 @@
                     
                     <div class="dropdown d-inline-block">
                         <button class="btn btn-info btn-action dropdown-toggle" type="button" id="rentalDropdown" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
-                            <i class="bi bi-car-front me-1"></i>Thuê xe
+                            <i class="bi bi-car-front me-1"></i>Mượn xe
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="rentalDropdown" style="min-width: 180px;">
-                            <li class="dropdown-header">Thuê xe</li>
+                            <li class="dropdown-header">Mượn xe</li>
                             <li>
                                 <a class="dropdown-item" href="{{ route('rental.index') }}">
-                                    <i class="bi bi-car-front me-2"></i>Thuê xe mới
+                                    <i class="bi bi-car-front me-2"></i>Mượn xe mới
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{{ route('rental.my-rentals') }}">
-                                    <i class="bi bi-arrow-clockwise me-2"></i>Lịch sử thuê xe
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Lịch sử mượn xe
                                 </a>
                             </li>
                         </ul>
@@ -145,7 +142,7 @@
                                 <i class="bi bi-car-front-fill"></i>
                             </div>
                             <h3 class="mb-0">{{ $stats['rented_cars'] }}</h3>
-                            <small>Đang thuê</small>
+                            <small>Đang mượn</small>
                         </div>
                     </div>
                 </div>
@@ -157,17 +154,6 @@
                             </div>
                             <h3 class="mb-0">{{ $stats['total_users'] }}</h3>
                             <small>Người dùng</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-2 col-md-4 col-sm-6 mb-3">
-                    <div class="card stat-card card-5">
-                        <div class="card-body text-center">
-                            <div class="stat-icon">
-                                <i class="bi bi-calendar-check"></i>
-                            </div>
-                            <h3 class="mb-0">{{ $stats['active_rentals'] }}</h3>
-                            <small>Thuê active</small>
                         </div>
                     </div>
                 </div>
@@ -191,7 +177,7 @@
                     <div class="card recent-card">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">
-                                <i class="bi bi-car-front-fill me-2"></i>Thuê xe của tôi
+                                <i class="bi bi-car-front-fill me-2"></i>Mượn xe của tôi
                             </h5>
                         </div>
                         <div class="card-body">
@@ -233,7 +219,7 @@
                     <div class="card overdue-card">
                         <div class="card-header bg-danger text-white">
                             <h5 class="mb-0">
-                                <i class="bi bi-exclamation-triangle me-2"></i>Thuê xe quá hạn ({{ $overdueRentals->count() }})
+                                <i class="bi bi-exclamation-triangle me-2"></i>Mượn xe quá hạn ({{ $overdueRentals->count() }})
                             </h5>
                         </div>
                         <div class="card-body">
@@ -267,7 +253,7 @@
                     <div class="card recent-card">
                         <div class="card-header bg-info text-white">
                             <h5 class="mb-0">
-                                <i class="bi bi-clock-history me-2"></i>Thuê xe gần đây
+                                <i class="bi bi-clock-history me-2"></i>Mượn xe gần đây
                             </h5>
                         </div>
                         <div class="card-body">
@@ -277,7 +263,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Xe</th>
-                                                <th>Người thuê</th>
+                                                <th>Người mượn</th>
                                                 <th>Thời gian</th>
                                                 <th>Trạng thái</th>
                                                 <th>Thao tác</th>
@@ -308,7 +294,7 @@
                                                             @if($rental->is_overdue)
                                                                 <span class="badge bg-danger">Quá hạn</span>
                                                             @else
-                                                                <span class="badge bg-success">Đang thuê</span>
+                                                                <span class="badge bg-success">Đang mượn</span>
                                                             @endif
                                                         @elseif($rental->status === 'completed')
                                                             <span class="badge bg-secondary">Hoàn thành</span>
@@ -322,10 +308,6 @@
                                                                 <i class="bi bi-eye me-1"></i>Chi tiết
                                                             </a>
                                                             @if($rental->status === 'active')
-                                                                <button type="button" class="btn btn-outline-warning btn-sm" 
-                                                                        onclick="openCancelModal({{ $rental->id }}, '{{ $rental->car->license_plate }}', '{{ $rental->user->name }}')">
-                                                                    <i class="bi bi-x-circle me-1"></i>Hủy
-                                                                </button>
                                                                 <button type="button" class="btn btn-outline-success btn-sm" 
                                                                         onclick="openCompleteModal({{ $rental->id }}, '{{ $rental->car->license_plate }}', '{{ $rental->user->name }}')">
                                                                     <i class="bi bi-check-circle me-1"></i>Kết thúc
@@ -341,7 +323,7 @@
                             @else
                                 <div class="text-center py-4">
                                     <i class="bi bi-car-front display-1 text-muted"></i>
-                                    <h5 class="text-muted mt-3">Chưa có thuê xe nào</h5>
+                                    <h5 class="text-muted mt-3">Chưa có mượn xe nào</h5>
                                 </div>
                             @endif
                         </div>
@@ -354,48 +336,6 @@
     </div>
 </div>
 
-<!-- Cancel Rental Modal -->
-<div class="modal fade" id="cancelModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-x-circle me-2"></i>Hủy thuê xe
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="cancelForm" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Bạn có chắc chắn muốn hủy thuê xe này không?
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Thông tin thuê xe:</label>
-                        <div class="border rounded p-3 bg-light">
-                            <strong>Xe:</strong> <span id="cancelCarInfo"></span><br>
-                            <strong>Người thuê:</strong> <span id="cancelUserInfo"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="cancelReason" class="form-label">Lý do hủy <span class="text-danger">*</span></label>
-                        <textarea class="form-control" name="reason" id="cancelReason" rows="3" 
-                                  placeholder="Nhập lý do hủy thuê xe..." required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-x-circle me-1"></i>Hủy thuê xe
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Complete Rental Early Modal -->
 <div class="modal fade" id="completeModal" tabindex="-1">
@@ -403,7 +343,7 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
-                    <i class="bi bi-check-circle me-2"></i>Kết thúc thuê xe sớm
+                    <i class="bi bi-check-circle me-2"></i>Kết thúc mượn xe sớm
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -412,14 +352,14 @@
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle me-2"></i>
-                        Kết thúc thuê xe sớm sẽ làm xe trở về trạng thái có sẵn ngay lập tức.
+                        Kết thúc mượn xe sớm sẽ làm xe trở về trạng thái có sẵn ngay lập tức.
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Thông tin thuê xe:</label>
+                        <label class="form-label">Thông tin mượn xe:</label>
                         <div class="border rounded p-3 bg-light">
                             <strong>Xe:</strong> <span id="completeCarInfo"></span><br>
-                            <strong>Người thuê:</strong> <span id="completeUserInfo"></span>
+                            <strong>Người mượn:</strong> <span id="completeUserInfo"></span>
                         </div>
                     </div>
                     
@@ -431,13 +371,13 @@
                     <div class="mb-3">
                         <label for="completeReason" class="form-label">Lý do kết thúc sớm <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="reason" id="completeReason" rows="3" 
-                                  placeholder="Nhập lý do kết thúc thuê xe sớm..." required></textarea>
+                                  placeholder="Nhập lý do kết thúc mượn xe sớm..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                     <button type="submit" class="btn btn-success">
-                        <i class="bi bi-check-circle me-1"></i>Kết thúc thuê xe
+                        <i class="bi bi-check-circle me-1"></i>Kết thúc mượn xe
                     </button>
                 </div>
             </form>
@@ -446,12 +386,6 @@
 </div>
 
 <script>
-function openCancelModal(rentalId, carInfo, userInfo) {
-    document.getElementById('cancelCarInfo').textContent = carInfo;
-    document.getElementById('cancelUserInfo').textContent = userInfo;
-    document.getElementById('cancelForm').action = `/rental/rentals/${rentalId}/cancel`;
-    new bootstrap.Modal(document.getElementById('cancelModal')).show();
-}
 
 function openCompleteModal(rentalId, carInfo, userInfo) {
     document.getElementById('completeCarInfo').textContent = carInfo;

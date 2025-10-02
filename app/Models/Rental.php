@@ -56,10 +56,6 @@ class Rental extends Model
         return $query->where('status', 'completed');
     }
 
-    public function scopeCancelled($query)
-    {
-        return $query->where('status', 'cancelled');
-    }
 
     public function scopeOverdue($query)
     {
@@ -112,11 +108,6 @@ class Rental extends Model
         $this->car->setAvailable();
     }
 
-    public function cancel()
-    {
-        $this->update(['status' => 'cancelled']);
-        $this->car->setAvailable();
-    }
 
     public function extendRental($newEndTime, $reason)
     {

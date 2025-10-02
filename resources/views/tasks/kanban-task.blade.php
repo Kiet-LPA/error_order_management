@@ -31,24 +31,12 @@
 @endphp
 
 <div class="kanban-task {{ $task->status }}" data-task-id="{{ $task->id }}">
-    <div class="task-title">{{ $task->title }}</div>
-    
-    <div class="task-meta">
-        <div class="task-assignee">
-            <div class="task-assignee-avatar">{{ $assigneeInitials }}</div>
-            <span>{{ $assigneeName }}</span>
-        </div>
-        @if($task->deadline)
-            <div class="task-deadline {{ $deadlineClass }}">{{ $deadlineText }}</div>
-        @endif
-    </div>
-    
     @if($departments->count() > 0)
         <div class="task-meta">
             <div class="task-department">
                 <i class="fas fa-building me-1"></i>
                 @if($departments->count() == 1)
-                    <span class="department-name">Phòng: {{ $departments->first()->name }}</span>
+                    <span class="department-name">{{ $departments->first()->name }}</span>
                 @else
                     <span class="department-name department-tooltip" 
                           data-bs-toggle="tooltip" 
@@ -60,6 +48,18 @@
             </div>
         </div>
     @endif
+    
+    <div class="task-title">{{ $task->title }}</div>
+    
+    <div class="task-meta">
+        <div class="task-assignee">
+            <div class="task-assignee-avatar">{{ $assigneeInitials }}</div>
+            <span>{{ $assigneeName }}</span>
+        </div>
+        @if($task->deadline)
+            <div class="task-deadline {{ $deadlineClass }}">{{ $deadlineText }}</div>
+        @endif
+    </div>
     
     <div class="task-meta">
         <small class="text-muted">

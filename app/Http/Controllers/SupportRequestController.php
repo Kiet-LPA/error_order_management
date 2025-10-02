@@ -613,8 +613,8 @@ class SupportRequestController extends Controller
             // 3. Là người đã forward request, HOẶC
             // 4. Là follower của request
             return $supportRequest->isRecipient($user) || 
-                   $supportRequest->requester_id === $user->id || 
-                   $supportRequest->forwarded_by === $user->id ||
+                   $supportRequest->requester_id == $user->id || 
+                   $supportRequest->forwarded_by == $user->id ||
                    $supportRequest->followers()->where('user_id', $user->id)->exists();
         }
         
@@ -623,9 +623,23 @@ class SupportRequestController extends Controller
             // 1. Là người tạo request, HOẶC
             // 2. Là người đã forward request, HOẶC
             // 3. Là follower của request
-            return $supportRequest->requester_id === $user->id || 
-                   $supportRequest->forwarded_by === $user->id ||
-                   $supportRequest->followers()->where('user_id', $user->id)->exists();
+            $canView = $supportRequest->requester_id == $user->id || 
+                       $supportRequest->forwarded_by == $user->id ||
+                       $supportRequest->followers()->where('user_id', $user->id)->exists();
+            
+            // Debug log để kiểm tra
+            \Log::info('Employee permission check', [
+                'user_id' => $user->id,
+                'support_request_id' => $supportRequest->id,
+                'requester_id' => $supportRequest->requester_id,
+                'forwarded_by' => $supportRequest->forwarded_by,
+                'is_requester' => $supportRequest->requester_id == $user->id,
+                'is_forwarder' => $supportRequest->forwarded_by == $user->id,
+                'is_follower' => $supportRequest->followers()->where('user_id', $user->id)->exists(),
+                'can_view' => $canView
+            ]);
+            
+            return $canView;
         }
         
         return false;

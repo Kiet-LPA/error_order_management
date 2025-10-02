@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Duyệt gia hạn - HPFoods')
+@section('title', 'Duyệt gia hạn - HP Foods')
 
 @section('content')
 <style>
@@ -97,7 +97,7 @@
                                             </div>
                                             
                                             <div class="mb-3">
-                                                <strong>Người thuê:</strong><br>
+                                                <strong>Người mượn:</strong><br>
                                                 <span class="text-muted">{{ $extension->rental->user->name }} ({{ ucfirst($extension->rental->user->role) }})</span>
                                             </div>
 
@@ -167,7 +167,7 @@
                                                     </div>
                                                     
                                                     <div class="mb-3">
-                                                        <label class="form-label">Người thuê</label>
+                                                        <label class="form-label">Người mượn</label>
                                                         <input type="text" class="form-control" 
                                                                value="{{ $extension->rental->user->name }}" readonly>
                                                     </div>
@@ -231,7 +231,7 @@
                                             </div>
                                             
                                             <div class="mb-3">
-                                                <strong>Người thuê:</strong><br>
+                                                <strong>Người mượn:</strong><br>
                                                 <span class="text-muted">{{ $extension->rental->user->name }}</span>
                                             </div>
 
@@ -291,7 +291,7 @@
                                             </div>
                                             
                                             <div class="mb-3">
-                                                <strong>Người thuê:</strong><br>
+                                                <strong>Người mượn:</strong><br>
                                                 <span class="text-muted">{{ $extension->rental->user->name }}</span>
                                             </div>
 

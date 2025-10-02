@@ -2,7 +2,7 @@
 -- CHECKIN HPFOODS - Complete Database Setup
 -- Version: 1.0 (Production Ready)
 -- Created: 2025-09-22
--- Description: Complete database setup for HPFoods Check-in System
+-- Description: Complete database setup for HP Foods Check-in System
 -- ===================================================================
 
 -- Drop and create database
@@ -116,7 +116,7 @@ INSERT INTO regions (name, latitude, longitude, radius_meters, address) VALUES
 -- Insert default users (password: 123456 for all)
 -- Note: Password hash for "123456" is $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
 INSERT INTO users (username, email, password, full_name, role_id, region_id) VALUES
-('admin', 'admin@hpfoods.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator HPFoods', 1, NULL),
+('admin', 'admin@hpfoods.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator HP Foods', 1, NULL),
 ('manager1', 'manager1@hpfoods.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Manager Kiến Thành', 2, 1),
 ('emp001', 'emp001@hpfoods.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Nhân viên A', 3, 1),
 ('emp002', 'emp002@hpfoods.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Nhân viên B', 3, 1);

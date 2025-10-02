@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lịch sử điểm danh - HPFoods</title>
+    <title>Lịch sử điểm danh - HP Foods</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -165,7 +165,7 @@
 <body>
     <div class="header">
         <div class="container">
-            <div class="logo">🏢 HPFoods - Lịch sử điểm danh</div>
+            <div class="logo">🏢 HP Foods - Lịch sử điểm danh</div>
             <div class="user-info">
                 <span>Xin chào, {{ auth()->user()->name }}</span>
                 <a href="{{ route('checkin.index') }}" class="logout-btn">← Quay lại</a>

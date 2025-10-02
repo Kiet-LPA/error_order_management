@@ -139,7 +139,7 @@ class CarController extends Controller
             abort(403, 'Không có quyền quản lý xe');
         }
 
-        // Kiểm tra xe có thuê xe active không
+        // Kiểm tra xe có mượn xe active không
         if ($car->activeRental()->exists()) {
             return back()->with('error', 'Không thể xóa xe đang được thuê');
         }

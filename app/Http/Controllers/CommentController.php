@@ -5,11 +5,44 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalComment;
+use App\Models\Task;
+use App\Models\Comment;
+use App\Models\CommentAttachment;
 use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
-    public function store(Request $request, $approvalRequestId)
+    public function store(Request $request, Task $task)
+    {
+        // Kiểm tra xem có phải là task hay approval request
+        if ($request->has('approval_request_id')) {
+            return $this->storeApprovalComment($request, $request->approval_request_id);
+        }
+        
+        // Xử lý comment cho task
+        // Kiểm tra quyền comment
+        $user = Auth::user();
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager() && 
+            $task->assignee_id !== $user->id && $task->creator_id !== $user->id) {
+            return redirect()->back()->with('error', 'Bạn không có quyền bình luận');
+        }
+
+        $request->validate([
+            'content' => 'required|string|max:1000',
+            'parent_id' => 'nullable|exists:comments,id'
+        ]);
+
+        Comment::create([
+            'task_id' => $task->id,
+            'user_id' => Auth::id(),
+            'content' => $request->content,
+            'parent_id' => $request->parent_id
+        ]);
+
+        return redirect()->back()->with('success', 'Đã thêm bình luận thành công');
+    }
+    
+    private function storeApprovalComment(Request $request, $approvalRequestId)
     {
         $approvalRequest = ApprovalRequest::findOrFail($approvalRequestId);
         
@@ -32,5 +65,79 @@ class CommentController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Đã thêm bình luận thành công');
+    }
+    
+    public function update(Request $request, Comment $comment)
+    {
+        // Kiểm tra quyền chỉnh sửa
+        if (!$comment->canEdit(Auth::user())) {
+            return redirect()->back()->with('error', 'Bạn không có quyền chỉnh sửa bình luận này');
+        }
+
+        $request->validate([
+            'content' => 'required|string|max:1000'
+        ]);
+
+        $comment->update([
+            'content' => $request->content
+        ]);
+        
+        $comment->markAsEdited();
+
+        return redirect()->back()->with('success', 'Đã cập nhật bình luận thành công');
+    }
+    
+    public function destroy(Comment $comment)
+    {
+        // Kiểm tra quyền xóa
+        if (!$comment->canDelete(Auth::user())) {
+            return redirect()->back()->with('error', 'Bạn không có quyền xóa bình luận này');
+        }
+
+        $comment->delete();
+
+        return redirect()->back()->with('success', 'Đã xóa bình luận thành công');
+    }
+    
+    public function addReaction(Request $request, Comment $comment)
+    {
+        $request->validate([
+            'type' => 'required|string|in:like,dislike,love,laugh,angry'
+        ]);
+
+        $userId = Auth::id();
+        $type = $request->type;
+
+        if ($comment->hasReaction($type, $userId)) {
+            $comment->removeReaction($type, $userId);
+            $message = 'Đã bỏ ' . $type;
+        } else {
+            $comment->addReaction($type, $userId);
+            $message = 'Đã thêm ' . $type;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'count' => $comment->getReactionCount($type)
+        ]);
+    }
+    
+    public function deleteAttachment(CommentAttachment $attachment)
+    {
+        // Kiểm tra quyền xóa attachment
+        $user = Auth::user();
+        if (!$attachment->comment->canDelete($user)) {
+            return redirect()->back()->with('error', 'Bạn không có quyền xóa file đính kèm này');
+        }
+
+        // Xóa file từ storage
+        if ($attachment->file_path && \Storage::exists($attachment->file_path)) {
+            \Storage::delete($attachment->file_path);
+        }
+
+        $attachment->delete();
+
+        return redirect()->back()->with('success', 'Đã xóa file đính kèm thành công');
     }
 }

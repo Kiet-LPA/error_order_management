@@ -2,7 +2,7 @@
 require_once '../includes/config.php';
 requireEmployee();
 
-$page_title = 'Lịch sử thuê xe - Employee';
+$page_title = 'Lịch sử mượn xe - Employee';
 
 // Get specific rental if ID is provided
 $rental = null;
@@ -49,7 +49,7 @@ include '../includes/header.php';
 
 <div class="row">
     <div class="col-12">
-        <h2><i class="fas fa-list"></i> Lịch sử thuê xe</h2>
+        <h2><i class="fas fa-list"></i> Lịch sử mượn xe</h2>
         <hr>
     </div>
 </div>
@@ -61,7 +61,7 @@ include '../includes/header.php';
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-car"></i> Chi tiết thuê xe #<?php echo $rental['id']; ?></h5>
+                        <h5><i class="fas fa-car"></i> Chi tiết mượn xe #<?php echo $rental['id']; ?></h5>
                         <a href="rentals.php" class="btn btn-secondary btn-sm">
                             <i class="fas fa-arrow-left"></i> Quay lại
                         </a>
@@ -81,7 +81,7 @@ include '../includes/header.php';
                             </p>
                         </div>
                         <div class="col-md-6">
-                            <h6>Thông tin thuê xe</h6>
+                            <h6>Thông tin mượn xe</h6>
                             <p>
                                 <strong>Bắt đầu:</strong> <?php echo formatDateTime($rental['rental_start']); ?><br>
                                 <strong>Kết thúc:</strong> <?php echo formatDateTime($rental['rental_end']); ?><br>
@@ -220,10 +220,10 @@ include '../includes/header.php';
                     <?php if (empty($rentals)): ?>
                         <div class="text-center py-5">
                             <i class="fas fa-car fa-3x text-muted mb-3"></i>
-                            <h5>Chưa có lịch sử thuê xe</h5>
-                            <p class="text-muted">Bạn chưa có thuê xe nào. Hãy bắt đầu thuê xe đầu tiên!</p>
+                            <h5>Chưa có lịch sử mượn xe</h5>
+                            <p class="text-muted">Bạn chưa có mượn xe nào. Hãy bắt đầu mượn xe đầu tiên!</p>
                             <a href="cars.php" class="btn btn-primary">
-                                <i class="fas fa-car"></i> Thuê xe ngay
+                                <i class="fas fa-car"></i> Mượn xe ngay
                             </a>
                         </div>
                     <?php else: ?>
@@ -311,7 +311,7 @@ include '../includes/header.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Yêu cầu gia hạn thuê xe</h5>
+                <h5 class="modal-title">Yêu cầu gia hạn mượn xe</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="request_extension.php">

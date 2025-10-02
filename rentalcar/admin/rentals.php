@@ -2,7 +2,7 @@
 require_once '../includes/config.php';
 requireManager();
 
-$page_title = 'Quản lý thuê xe - Manager';
+$page_title = 'Quản lý mượn xe - Manager';
 
 $message = '';
 $message_type = '';
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $rental = $stmt->fetch();
         
         if (!$rental) {
-            throw new Exception('Không tìm thấy thuê xe hoặc thuê xe không hợp lệ!');
+            throw new Exception('Không tìm thấy mượn xe hoặc mượn xe không hợp lệ!');
         }
         
         // Update rental status
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([$rental['car_id']]);
         
         $pdo->commit();
-        $message = 'Hủy thuê xe thành công!';
+        $message = 'Hủy mượn xe thành công!';
         $message_type = 'success';
     } catch (Exception $e) {
         $pdo->rollBack();
@@ -64,7 +64,7 @@ include '../includes/header.php';
 
 <div class="row">
     <div class="col-12">
-        <h2><i class="fas fa-list"></i> Quản lý thuê xe</h2>
+        <h2><i class="fas fa-list"></i> Quản lý mượn xe</h2>
         <hr>
     </div>
 </div>
@@ -189,7 +189,7 @@ include '../includes/header.php';
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Chi tiết thuê xe</h5>
+                <h5 class="modal-title">Chi tiết mượn xe</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="viewRentalContent">
@@ -211,7 +211,7 @@ function viewRental(rentalId) {
             <div class="spinner-border" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mt-2">Đang tải thông tin thuê xe...</p>
+            <p class="mt-2">Đang tải thông tin mượn xe...</p>
         </div>
     `;
     
@@ -220,14 +220,14 @@ function viewRental(rentalId) {
     // Simulate loading
     setTimeout(() => {
         document.getElementById('viewRentalContent').innerHTML = `
-            <p>Chi tiết thuê xe ID: ${rentalId}</p>
+            <p>Chi tiết mượn xe ID: ${rentalId}</p>
             <p>Thông tin chi tiết sẽ được hiển thị ở đây.</p>
         `;
     }, 1000);
 }
 
 function cancelRental(rentalId, userName) {
-    if (confirm(`Bạn có chắc chắn muốn hủy thuê xe của ${userName}?`)) {
+    if (confirm(`Bạn có chắc chắn muốn hủy mượn xe của ${userName}?`)) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `

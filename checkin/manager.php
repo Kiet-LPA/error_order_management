@@ -62,7 +62,7 @@ if (!empty($employees)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Dashboard - Checkin HPFoods</title>
+    <title>Manager Dashboard - Checkin HP Foods</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <style>
@@ -212,7 +212,7 @@ if (!empty($employees)) {
     <!-- Header -->
     <div class="header">
         <div class="container">
-            <div class="logo">👨‍💼 Manager Dashboard - Checkin HPFoods</div>
+            <div class="logo">👨‍💼 Manager Dashboard - Checkin HP Foods</div>
             <div class="user-info">
                 <a href="https://hpfoods.com.vn" target="_blank" class="logout-btn">💼 Quản lý công việc</a>
                 <span>Xin chào, <?= htmlspecialchars($user['full_name']) ?></span>

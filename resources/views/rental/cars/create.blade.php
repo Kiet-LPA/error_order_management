@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Thêm xe mới - HPFoods')
+@section('title', 'Thêm xe mới - HP Foods')
 
 @section('content')
 <style>
@@ -121,7 +121,7 @@
                             @enderror
                             <div class="form-text">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Chọn "Hoạt động" để xe có thể được thuê ngay
+                                Chọn "Hoạt động" để xe có thể được mượn ngay
                             </div>
                         </div>
 

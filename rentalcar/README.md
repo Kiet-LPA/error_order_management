@@ -1,22 +1,22 @@
-# Hệ thống quản lý thuê xe (Rental Car Management System)
+# Hệ thống quản lý mượn xe (Rental Car Management System)
 
 ## Mô tả
-Hệ thống quản lý thuê xe được xây dựng bằng PHP thuần, hỗ trợ 2 vai trò người dùng: **Manager** và **Employee**.
+Hệ thống quản lý mượn xe được xây dựng bằng PHP thuần, hỗ trợ 2 vai trò người dùng: **Manager** và **Employee**.
 
 ## Tính năng chính
 
 ### Cho Manager:
 - **Quản lý xe**: Thêm, sửa, xóa, xem danh sách xe
 - **Quản lý người dùng**: Tạo, sửa, xóa tài khoản employee/manager
-- **Quản lý thuê xe**: Xem tất cả thuê xe, hủy thuê xe
-- **Duyệt gia hạn**: Duyệt hoặc từ chối yêu cầu gia hạn thuê xe
+- **Quản lý mượn xe**: Xem tất cả mượn xe, hủy mượn xe
+- **Duyệt gia hạn**: Duyệt hoặc từ chối yêu cầu gia hạn mượn xe
 - **Dashboard**: Thống kê tổng quan về hệ thống
 
 ### Cho Employee:
-- **Thuê xe**: Xem danh sách xe có sẵn và thuê xe
-- **Lịch sử thuê xe**: Xem tất cả thuê xe của mình
-- **Gia hạn thuê xe**: Yêu cầu gia hạn thời gian thuê xe
-- **Dashboard**: Xem thuê xe đang hoạt động và yêu cầu gia hạn đang chờ
+- **Mượn xe**: Xem danh sách xe có sẵn và mượn xe
+- **Lịch sử mượn xe**: Xem tất cả mượn xe của mình
+- **Gia hạn mượn xe**: Yêu cầu gia hạn thời gian mượn xe
+- **Dashboard**: Xem mượn xe đang hoạt động và yêu cầu gia hạn đang chờ
 
 ## Cài đặt
 
@@ -85,14 +85,14 @@ remaining_order_management/
 - **Mật khẩu**: password
 - **Vai trò**: Manager
 
-### Quy trình thuê xe
-1. **Employee đăng nhập** và vào trang "Thuê xe"
+### Quy trình mượn xe
+1. **Employee đăng nhập** và vào trang "Mượn xe"
 2. **Chọn xe** có sẵn và nhập thời gian thuê
-3. **Xác nhận thuê xe** - xe sẽ chuyển sang trạng thái "Đang thuê"
+3. **Xác nhận mượn xe** - xe sẽ chuyển sang trạng thái "Đang thuê"
 4. **Sau khi trả xe** - xe sẽ có thời gian nghỉ 6 tiếng trước khi có thể thuê lại
 
 ### Quy trình gia hạn
-1. **Employee** yêu cầu gia hạn từ trang dashboard hoặc chi tiết thuê xe
+1. **Employee** yêu cầu gia hạn từ trang dashboard hoặc chi tiết mượn xe
 2. **Nhập lý do** và thời gian trả xe mới
 3. **Manager** xem và duyệt/từ chối yêu cầu từ trang "Duyệt gia hạn"
 4. **Nếu được duyệt** - thời gian trả xe sẽ được cập nhật tự động

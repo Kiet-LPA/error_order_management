@@ -55,8 +55,8 @@ include '../includes/header.php';
     <div class="col-md-6">
         <div class="card">
             <div class="card-body text-center">
-                <h5 class="card-title">Thuê xe mới</h5>
-                <p class="card-text">Tìm và thuê xe có sẵn</p>
+                <h5 class="card-title">Mượn xe mới</h5>
+                <p class="card-text">Tìm và mượn xe có sẵn</p>
                 <a href="cars.php" class="btn btn-primary">
                     <i class="fas fa-car"></i> Xem danh sách xe
                 </a>
@@ -66,8 +66,8 @@ include '../includes/header.php';
     <div class="col-md-6">
         <div class="card">
             <div class="card-body text-center">
-                <h5 class="card-title">Lịch sử thuê xe</h5>
-                <p class="card-text">Xem tất cả thuê xe của bạn</p>
+                <h5 class="card-title">Lịch sử mượn xe</h5>
+                <p class="card-text">Xem tất cả mượn xe của bạn</p>
                 <a href="rentals.php" class="btn btn-info">
                     <i class="fas fa-list"></i> Xem lịch sử
                 </a>
@@ -81,12 +81,12 @@ include '../includes/header.php';
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-car"></i> Thuê xe đang hoạt động</h5>
+                <h5><i class="fas fa-car"></i> Mượn xe đang hoạt động</h5>
             </div>
             <div class="card-body">
                 <?php if (empty($active_rentals)): ?>
-                    <p class="text-muted">Bạn chưa có thuê xe nào đang hoạt động.</p>
-                    <a href="cars.php" class="btn btn-primary btn-sm">Thuê xe ngay</a>
+                    <p class="text-muted">Bạn chưa có mượn xe nào đang hoạt động.</p>
+                    <a href="cars.php" class="btn btn-primary btn-sm">Mượn xe ngay</a>
                 <?php else: ?>
                     <?php foreach ($active_rentals as $rental): ?>
                         <div class="card mb-3">
@@ -168,11 +168,11 @@ include '../includes/header.php';
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-history"></i> Lịch sử thuê xe gần đây</h5>
+                <h5><i class="fas fa-history"></i> Lịch sử mượn xe gần đây</h5>
             </div>
             <div class="card-body">
                 <?php if (empty($rental_history)): ?>
-                    <p class="text-muted">Chưa có lịch sử thuê xe.</p>
+                    <p class="text-muted">Chưa có lịch sử mượn xe.</p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -240,7 +240,7 @@ include '../includes/header.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Yêu cầu gia hạn thuê xe</h5>
+                <h5 class="modal-title">Yêu cầu gia hạn mượn xe</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="request_extension.php">

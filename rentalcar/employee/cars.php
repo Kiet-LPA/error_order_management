@@ -2,7 +2,7 @@
 require_once '../includes/config.php';
 requireEmployee();
 
-$page_title = 'Thuê xe - Employee';
+$page_title = 'Mượn xe - Employee';
 
 $message = '';
 $message_type = '';
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("UPDATE cars SET status = 'rented', available_from = ? WHERE id = ?");
                 $stmt->execute([$availableFrom, $car_id]);
                 
-                $message = 'Thuê xe thành công!';
+                $message = 'Mượn xe thành công!';
                 $message_type = 'success';
             } catch (PDOException $e) {
                 $message = 'Lỗi: ' . $e->getMessage();
@@ -73,7 +73,7 @@ include '../includes/header.php';
 
 <div class="row">
     <div class="col-12">
-        <h2><i class="fas fa-car"></i> Thuê xe</h2>
+        <h2><i class="fas fa-car"></i> Mượn xe</h2>
         <hr>
     </div>
 </div>
@@ -115,7 +115,7 @@ include '../includes/header.php';
                     </div>
                     <div class="card-footer">
                         <button type="button" class="btn btn-primary w-100" onclick="rentCar(<?php echo htmlspecialchars(json_encode($car)); ?>)">
-                            <i class="fas fa-car"></i> Thuê xe này
+                            <i class="fas fa-car"></i> Mượn xe này
                         </button>
                     </div>
                 </div>
@@ -129,7 +129,7 @@ include '../includes/header.php';
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Thuê xe</h5>
+                <h5 class="modal-title">Mượn xe</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" onsubmit="return validateRentalForm()">
@@ -174,7 +174,7 @@ include '../includes/header.php';
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">Xác nhận thuê xe</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận mượn xe</button>
                 </div>
             </form>
         </div>

@@ -346,27 +346,44 @@
   {{-- Filter theo phòng ban --}}
   <div class="mb-2">
     <small class="text-muted mb-2 d-block"><i class="bi bi-building me-1"></i>Lọc theo phòng ban:</small>
-    <div class="d-flex flex-wrap gap-2">
-      <form method="GET" action="{{ route('users.index') }}">
-        <input type="hidden" name="search" value="{{ request('search') }}">
-        <input type="hidden" name="role" value="{{ request('role') }}">
-        <input type="hidden" name="sort" value="{{ request('sort') }}">
-        <input type="hidden" name="direction" value="{{ request('direction') }}">
-        <button type="submit" class="btn btn-sm btn-outline-secondary{{ !request('department') ? ' active' : '' }}">Tất cả</button>
-      </form>
-
-      @foreach($departments as $department)
-        <form method="GET" action="{{ route('users.index') }}">
-          <input type="hidden" name="search" value="{{ request('search') }}">
-          <input type="hidden" name="role" value="{{ request('role') }}">
-          <input type="hidden" name="sort" value="{{ request('sort') }}">
-          <input type="hidden" name="direction" value="{{ request('direction') }}">
-          <input type="hidden" name="department" value="{{ $department->id }}">
-          <button type="submit" class="btn btn-sm btn-outline-primary{{ request('department') == $department->id ? ' active' : '' }}" style="border-color: #558EC1; color: #558EC1;">
-            {{ $department->name }}
-          </button>
-        </form>
-      @endforeach
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        @if(request('department'))
+          @php
+            $selectedDepartment = $departments->where('id', request('department'))->first();
+          @endphp
+          {{ $selectedDepartment ? $selectedDepartment->name : 'Tất cả' }}
+        @else
+          Tất cả
+        @endif
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="departmentDropdown">
+        <li>
+          <form method="GET" action="{{ route('users.index') }}" class="d-inline">
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <input type="hidden" name="role" value="{{ request('role') }}">
+            <input type="hidden" name="sort" value="{{ request('sort') }}">
+            <input type="hidden" name="direction" value="{{ request('direction') }}">
+            <button type="submit" class="dropdown-item{{ !request('department') ? ' active' : '' }}">
+              <i class="bi bi-list-ul me-2"></i>Tất cả
+            </button>
+          </form>
+        </li>
+        @foreach($departments as $department)
+          <li>
+            <form method="GET" action="{{ route('users.index') }}" class="d-inline">
+              <input type="hidden" name="search" value="{{ request('search') }}">
+              <input type="hidden" name="role" value="{{ request('role') }}">
+              <input type="hidden" name="sort" value="{{ request('sort') }}">
+              <input type="hidden" name="direction" value="{{ request('direction') }}">
+              <input type="hidden" name="department" value="{{ $department->id }}">
+              <button type="submit" class="dropdown-item{{ request('department') == $department->id ? ' active' : '' }}">
+                <i class="bi bi-building me-2"></i>{{ $department->name }}
+              </button>
+            </form>
+          </li>
+        @endforeach
+      </ul>
     </div>
   </div>
 

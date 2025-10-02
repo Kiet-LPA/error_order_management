@@ -12,18 +12,18 @@ use Carbon\Carbon;
 class RentalCarController extends Controller
 {
     /**
-     * Employee/User Dashboard - Xem xe có sẵn và thuê xe
+     * Employee/User Dashboard - Xem xe có sẵn và mượn xe
      */
     public function index()
     {
         $user = auth()->user();
-        $availableCars = Car::available()->get();
+        // Lấy tất cả xe với thông tin người mượn hiện tại
+        $allCars = Car::with(['activeRental.user'])->get();
         $activeRental = $user->activeRental;
         $pendingExtension = $user->activeRental ? $user->activeRental->pendingExtension : null;
         $recentRentals = $user->rentals()->with('car')->latest()->take(5)->get();
 
-
-        return view('rental.index', compact('availableCars', 'activeRental', 'pendingExtension', 'recentRentals'));
+        return view('rental.index', compact('allCars', 'activeRental', 'pendingExtension', 'recentRentals'));
     }
 
     /**
@@ -42,7 +42,6 @@ class RentalCarController extends Controller
             'available_cars' => Car::available()->count(),
             'rented_cars' => Car::rented()->count(),
             'total_users' => User::count(),
-            'active_rentals' => Rental::active()->count(),
             'pending_extensions' => RentalExtension::pending()->count(),
         ];
 
@@ -54,7 +53,7 @@ class RentalCarController extends Controller
     }
 
     /**
-     * Thuê xe
+     * Mượn xe
      */
     public function rentCar(Request $request)
     {
@@ -62,10 +61,10 @@ class RentalCarController extends Controller
         
         $user = auth()->user();
         
-        // Kiểm tra user đã có thuê xe active chưa
+        // Kiểm tra user đã có mượn xe active chưa
         if ($user->hasActiveRental()) {
             \Log::info('User already has active rental');
-            return back()->with('error', 'Bạn đang có thuê xe chưa trả. Vui lòng trả xe trước khi thuê xe mới.');
+            return back()->with('error', 'Bạn đang có mượn xe chưa trả. Vui lòng trả xe trước khi mượn xe mới.');
         }
 
         try {
@@ -115,20 +114,20 @@ class RentalCarController extends Controller
                         'rental_start' => Carbon::parse($request->rental_start)->format('d/m/Y H:i'),
                         'rental_end' => Carbon::parse($request->rental_end)->format('d/m/Y H:i')
                     ],
-                    'title' => 'Có thuê xe mới',
-                    'message' => "Nhân viên " . auth()->user()->name . " đã thuê xe " . $car->license_plate . " từ " . Carbon::parse($request->rental_start)->format('d/m/Y H:i') . " đến " . Carbon::parse($request->rental_end)->format('d/m/Y H:i')
+                    'title' => 'Có mượn xe mới',
+                    'message' => "Nhân viên " . auth()->user()->name . " đã mượn xe " . $car->license_plate . " từ " . Carbon::parse($request->rental_start)->format('d/m/Y H:i') . " đến " . Carbon::parse($request->rental_end)->format('d/m/Y H:i')
                 ]);
             }
 
-            return redirect()->route('rental.my-rentals')->with('success', 'Thuê xe thành công!');
+            return redirect()->route('rental.my-rentals')->with('success', 'Mượn xe thành công!');
         } catch (\Exception $e) {
             \Log::error('Error creating rental', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Có lỗi xảy ra khi thuê xe: ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra khi mượn xe: ' . $e->getMessage());
         }
     }
 
     /**
-     * Xem lịch sử thuê xe của user
+     * Xem lịch sử mượn xe của user
      */
     public function myRentals()
     {
@@ -139,13 +138,13 @@ class RentalCarController extends Controller
     }
 
     /**
-     * Chi tiết thuê xe
+     * Chi tiết mượn xe
      */
     public function showRental(Rental $rental)
     {
         // Kiểm tra quyền xem
         if ($rental->user_id !== auth()->id() && !auth()->user()->canManageCars()) {
-            abort(403, 'Không có quyền xem thuê xe này');
+            abort(403, 'Không có quyền xem mượn xe này');
         }
 
         $rental->load(['user', 'car', 'extensions.approvedBy']);
@@ -160,12 +159,12 @@ class RentalCarController extends Controller
     {
         // Kiểm tra quyền
         if ($rental->user_id !== auth()->id()) {
-            abort(403, 'Không có quyền gia hạn thuê xe này');
+            abort(403, 'Không có quyền gia hạn mượn xe này');
         }
 
         // Kiểm tra có thể yêu cầu gia hạn không
         if (!$rental->canRequestExtension()) {
-            return back()->with('error', 'Không thể yêu cầu gia hạn thuê xe này.');
+            return back()->with('error', 'Không thể yêu cầu gia hạn mượn xe này.');
         }
 
         $request->validate([
@@ -192,64 +191,14 @@ class RentalCarController extends Controller
                     'reason' => $request->reason,
                     'new_rental_end' => Carbon::parse($request->new_rental_end)->format('d/m/Y H:i')
                 ],
-                'title' => 'Yêu cầu gia hạn thuê xe',
-                'message' => "Nhân viên " . auth()->user()->name . " yêu cầu gia hạn thuê xe " . $rental->car->license_plate . " đến " . Carbon::parse($request->new_rental_end)->format('d/m/Y H:i')
+                'title' => 'Yêu cầu gia hạn mượn xe',
+                'message' => "Nhân viên " . auth()->user()->name . " yêu cầu gia hạn mượn xe " . $rental->car->license_plate . " đến " . Carbon::parse($request->new_rental_end)->format('d/m/Y H:i')
             ]);
         }
 
         return back()->with('success', 'Đã gửi yêu cầu gia hạn thành công!');
     }
 
-    /**
-     * Admin/Manager: Cancel rental
-     */
-    public function cancelRental(Request $request, Rental $rental)
-    {
-        $user = auth()->user();
-        
-        if (!$user->canManageCars()) {
-            abort(403, 'Không có quyền hủy thuê xe');
-        }
-
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-
-        try {
-            // Cancel rental
-            $rental->cancel();
-            
-            // Set car back to available
-            $rental->car->setAvailable();
-            
-
-            \Log::info('Rental cancelled by admin', [
-                'rental_id' => $rental->id,
-                'car_id' => $rental->car_id,
-                'user_id' => $rental->user_id,
-                'cancelled_by' => $user->id,
-                'reason' => $request->reason
-            ]);
-
-            // Create notification for rental user
-            $rental->user->notifications()->create([
-                'type' => 'rental_cancelled',
-                'data' => [
-                    'rental_id' => $rental->id,
-                    'car_license' => $rental->car->license_plate,
-                    'cancelled_by' => $user->name,
-                    'reason' => $request->reason
-                ],
-                'title' => 'Thuê xe bị hủy',
-                'message' => "Quản lý " . $user->name . " đã hủy thuê xe " . $rental->car->license_plate . " của bạn. Lý do: " . $request->reason
-            ]);
-
-            return redirect()->route('rental.admin')->with('success', 'Đã hủy thuê xe thành công!');
-        } catch (\Exception $e) {
-            \Log::error('Error cancelling rental', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Có lỗi xảy ra khi hủy thuê xe: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Admin/Manager: Complete rental early
@@ -259,7 +208,7 @@ class RentalCarController extends Controller
         $user = auth()->user();
         
         if (!$user->canManageCars()) {
-            abort(403, 'Không có quyền kết thúc thuê xe');
+            abort(403, 'Không có quyền kết thúc mượn xe');
         }
 
         $request->validate([
@@ -294,14 +243,14 @@ class RentalCarController extends Controller
                     'actual_end_time' => Carbon::parse($request->actual_end_time)->format('d/m/Y H:i'),
                     'reason' => $request->reason
                 ],
-                'title' => 'Thuê xe kết thúc sớm',
-                'message' => "Quản lý " . $user->name . " đã kết thúc thuê xe " . $rental->car->license_plate . " của bạn sớm. Lý do: " . $request->reason
+                'title' => 'Mượn xe kết thúc sớm',
+                'message' => "Quản lý " . $user->name . " đã kết thúc mượn xe " . $rental->car->license_plate . " của bạn sớm. Lý do: " . $request->reason
             ]);
 
-            return redirect()->route('rental.admin')->with('success', 'Đã kết thúc thuê xe sớm thành công!');
+            return redirect()->route('rental.admin')->with('success', 'Đã kết thúc mượn xe sớm thành công!');
         } catch (\Exception $e) {
             \Log::error('Error completing rental early', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Có lỗi xảy ra khi kết thúc thuê xe: ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra khi kết thúc mượn xe: ' . $e->getMessage());
         }
     }
 

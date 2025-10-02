@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Chi tiết thuê xe - HPFoods')
+@section('title', 'Chi tiết mượn xe - HP Foods')
 
 @section('content')
 <style>
@@ -27,7 +27,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="bi bi-eye me-2"></i>Chi tiết thuê xe
+                    <i class="bi bi-eye me-2"></i>Chi tiết mượn xe
                 </h2>
                 <div>
                     <a href="{{ route('rental.my-rentals') }}" class="btn btn-outline-secondary">
@@ -47,7 +47,7 @@
                     <div class="card detail-card">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">
-                                <i class="bi bi-info-circle me-2"></i>Thông tin thuê xe
+                                <i class="bi bi-info-circle me-2"></i>Thông tin mượn xe
                             </h5>
                         </div>
                         <div class="card-body">
@@ -72,7 +72,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="info-row">
-                                        <strong>Người thuê:</strong><br>
+                                        <strong>Người mượn:</strong><br>
                                         <span class="text-muted">{{ $rental->user->name }}</span>
                                     </div>
                                     <div class="info-row">
@@ -95,7 +95,7 @@
                                             @endif">
                                             @if($rental->status === 'active')
                                                 @if($rental->is_overdue) Quá hạn
-                                                @else Đang thuê
+                                                @else Đang mượn
                                                 @endif
                                             @elseif($rental->status === 'completed') Hoàn thành
                                             @else Đã hủy
@@ -108,7 +108,7 @@
                             <!-- Rental Period -->
                             <div class="mt-4 p-3 bg-light rounded">
                                 <h6 class="mb-3">
-                                    <i class="bi bi-calendar-range me-2"></i>Thời gian thuê xe
+                                    <i class="bi bi-calendar-range me-2"></i>Thời gian mượn xe
                                 </h6>
                                 <div class="row">
                                     <div class="col-md-6">
@@ -186,16 +186,6 @@
                                 </button>
                             @endif
 
-                            @if($rental->status === 'active' && auth()->user()->canManageCars())
-                                <form action="{{ route('rental.rentals.cancel', $rental) }}" method="POST" class="d-inline w-100">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger w-100" 
-                                            onclick="return confirm('Bạn có chắc chắn muốn hủy thuê xe này?')">
-                                        <i class="bi bi-x-circle me-1"></i>Hủy thuê xe
-                                    </button>
-                                </form>
-                            @endif
 
                             <a href="{{ route('rental.my-rentals') }}" class="btn btn-outline-secondary w-100 mt-2">
                                 <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách

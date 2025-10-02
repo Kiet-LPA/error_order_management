@@ -98,7 +98,7 @@ include '../includes/header.php';
 
 <div class="row">
     <div class="col-12">
-        <h2><i class="fas fa-clock"></i> Duyệt gia hạn thuê xe</h2>
+        <h2><i class="fas fa-clock"></i> Duyệt gia hạn mượn xe</h2>
         <hr>
     </div>
 </div>
@@ -150,7 +150,7 @@ include '../includes/header.php';
                                 </p>
                             </div>
                             <div class="col-md-6">
-                                <h6>Thời gian thuê xe</h6>
+                                <h6>Thời gian mượn xe</h6>
                                 <p>
                                     <strong>Bắt đầu:</strong> <?php echo formatDateTime($extension['rental_start']); ?><br>
                                     <strong>Kết thúc hiện tại:</strong> <?php echo formatDateTime($extension['current_end']); ?><br>

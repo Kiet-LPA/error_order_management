@@ -121,6 +121,22 @@ class TaskSubtask extends Model
     // Check if user can complete this subtask
     public function canBeCompletedBy(User $user): bool
     {
-        return $this->assignee_id === $user->id;
+        // Kiểm tra user có được assign trực tiếp vào subtask không
+        if ($this->assignee_id === $user->id) {
+            return true;
+        }
+        
+        // Kiểm tra user có phải là assignee của task chính không
+        $task = $this->task;
+        if ($task->assignee_id === $user->id) {
+            return true;
+        }
+        
+        // Kiểm tra user có trong danh sách multi-assignees của task không
+        if ($task->assignees->contains('id', $user->id)) {
+            return true;
+        }
+        
+        return false;
     }
 }

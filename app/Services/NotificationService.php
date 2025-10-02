@@ -14,31 +14,179 @@ class NotificationService
     /**
      * Gửi thông báo cho tất cả admin và director
      */
-    private static function notifyAdminsAndDirectors($type, $title, $message, $data = [])
+    private static function notifyAdminsAndDirectors($type, $title, $message, $data = [], $excludeUserIds = [])
     {
         // Gửi cho tất cả admin
         $admins = User::where('role', 'admin')->get();
         foreach ($admins as $admin) {
-            Notification::create([
-                'user_id' => $admin->id,
-                'type' => $type,
-                'title' => $title,
-                'message' => $message,
-                'data' => $data
-            ]);
+            if (!in_array($admin->id, $excludeUserIds)) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => $type,
+                    'title' => $title,
+                    'message' => $message,
+                    'data' => $data
+                ]);
+            }
         }
 
         // Gửi cho tất cả director
         $directors = User::where('role', 'director')->get();
         foreach ($directors as $director) {
-            Notification::create([
-                'user_id' => $director->id,
-                'type' => $type,
-                'title' => $title,
-                'message' => $message,
-                'data' => $data
-            ]);
+            if (!in_array($director->id, $excludeUserIds)) {
+                Notification::create([
+                    'user_id' => $director->id,
+                    'type' => $type,
+                    'title' => $title,
+                    'message' => $message,
+                    'data' => $data
+                ]);
+            }
         }
+    }
+
+    /**
+     * Gửi thông báo cho admin và director có liên quan
+     */
+    private static function notifyRelevantAdminsAndDirectors($type, $title, $message, $data = [], $excludeUserIds = [], $relatedObject = null)
+    {
+        // Gửi cho tất cả admin
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            if (!in_array($admin->id, $excludeUserIds)) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => $type,
+                    'title' => $title,
+                    'message' => $message,
+                    'data' => $data
+                ]);
+            }
+        }
+
+        // Gửi cho director có liên quan
+        $directors = User::where('role', 'director')->get();
+        foreach ($directors as $director) {
+            if (!in_array($director->id, $excludeUserIds) && self::isDirectorRelevant($director, $relatedObject, $data)) {
+                Notification::create([
+                    'user_id' => $director->id,
+                    'type' => $type,
+                    'title' => $title,
+                    'message' => $message,
+                    'data' => $data
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Kiểm tra director có liên quan đến object không
+     */
+    private static function isDirectorRelevant(User $director, $relatedObject = null, $data = [])
+    {
+        // Nếu không có object liên quan, không gửi notification cho director
+        if (!$relatedObject && empty($data)) {
+            return false;
+        }
+
+        // Kiểm tra theo loại object
+        if ($relatedObject instanceof Task) {
+            return self::isDirectorRelevantToTask($director, $relatedObject);
+        } elseif ($relatedObject instanceof SupportRequest) {
+            return self::isDirectorRelevantToSupportRequest($director, $relatedObject);
+        } elseif ($relatedObject instanceof \App\Models\ApprovalRequest) {
+            return self::isDirectorRelevantToApprovalRequest($director, $relatedObject);
+        }
+
+        // Nếu có data chứa thông tin liên quan
+        if (!empty($data)) {
+            return self::isDirectorRelevantToData($director, $data);
+        }
+
+        return false;
+    }
+
+    /**
+     * Kiểm tra director có liên quan đến task không
+     */
+    private static function isDirectorRelevantToTask(User $director, Task $task)
+    {
+        // Director liên quan nếu:
+        // 1. Là creator của task
+        // 2. Là assignee của task
+        // 3. Là follower của task
+        // 4. Task thuộc phòng ban mà director quản lý
+        return $task->creator_id == $director->id ||
+               $task->assignee_id == $director->id ||
+               $task->followers()->where('user_id', $director->id)->exists() ||
+               $task->assignees()->where('user_id', $director->id)->exists() ||
+               self::isDirectorOfTaskDepartment($director, $task);
+    }
+
+    /**
+     * Kiểm tra director có liên quan đến support request không
+     */
+    private static function isDirectorRelevantToSupportRequest(User $director, SupportRequest $supportRequest)
+    {
+        // Director liên quan nếu:
+        // 1. Là requester
+        // 2. Là approver
+        // 3. Là follower
+        // 4. Là recipient
+        return $supportRequest->requester_id == $director->id ||
+               $supportRequest->approver_id == $director->id ||
+               $supportRequest->followers()->where('user_id', $director->id)->exists() ||
+               $supportRequest->isRecipient($director);
+    }
+
+    /**
+     * Kiểm tra director có liên quan đến approval request không
+     */
+    private static function isDirectorRelevantToApprovalRequest(User $director, \App\Models\ApprovalRequest $approvalRequest)
+    {
+        // Director liên quan nếu:
+        // 1. Là creator
+        // 2. Là current approver
+        // 3. Là approved by
+        return $approvalRequest->created_by_id == $director->id ||
+               $approvalRequest->current_approver_id == $director->id ||
+               $approvalRequest->approved_by_id == $director->id;
+    }
+
+    /**
+     * Kiểm tra director có liên quan đến data không
+     */
+    private static function isDirectorRelevantToData(User $director, array $data)
+    {
+        // Kiểm tra các trường thông thường trong data
+        $relevantFields = ['creator_id', 'assigner_id', 'approver_id', 'requester_id', 'current_approver_id'];
+        
+        foreach ($relevantFields as $field) {
+            if (isset($data[$field]) && $data[$field] == $director->id) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Kiểm tra director có phải là director của phòng ban task không
+     */
+    private static function isDirectorOfTaskDepartment(User $director, Task $task)
+    {
+        // Kiểm tra phòng ban chính
+        if ($task->department_id && $director->department_id == $task->department_id) {
+            return true;
+        }
+
+        // Kiểm tra các phòng ban multi-department
+        if ($task->is_multi_department) {
+            $taskDepartmentIds = $task->departments()->pluck('departments.id')->toArray();
+            return in_array($director->department_id, $taskDepartmentIds);
+        }
+
+        return false;
     }
     /**
      * Gửi thông báo task được giao
@@ -58,8 +206,8 @@ class NotificationService
             ]
         ]);
 
-        // Thông báo cho admin và director
-        self::notifyAdminsAndDirectors(
+        // Thông báo cho admin và director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
             'task_assigned',
             'Công việc mới được giao',
             "{$assigner->name} đã giao công việc '{$task->title}' cho {$assignee->name}",
@@ -69,7 +217,9 @@ class NotificationService
                 'assigner_name' => $assigner->name,
                 'assignee_id' => $assignee->id,
                 'assignee_name' => $assignee->name
-            ]
+            ],
+            [],
+            $task
         );
     }
 
@@ -114,8 +264,8 @@ class NotificationService
             }
         }
 
-        // Thông báo cho admin và director
-        self::notifyAdminsAndDirectors(
+        // Thông báo cho admin và director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
             'task_updated',
             'Công việc được cập nhật',
             "{$updater->name} đã cập nhật công việc '{$task->title}'",
@@ -123,7 +273,9 @@ class NotificationService
                 'task_id' => $task->id,
                 'updater_id' => $updater->id,
                 'updater_name' => $updater->name
-            ]
+            ],
+            [],
+            $task
         );
     }
 
@@ -132,21 +284,17 @@ class NotificationService
      */
     public static function workReportSubmitted(WorkReport $report, User $submitter)
     {
-        // Thông báo cho Admin và Director
-        $admins = User::whereIn('role', ['admin', 'director'])->get();
-        foreach ($admins as $admin) {
-            Notification::create([
-                'user_id' => $admin->id,
-                'type' => 'work_report_submitted',
-                'title' => 'Báo cáo công việc mới',
-                'message' => "Bạn nhận được thông báo mời từ {$submitter->name} gửi báo cáo công việc",
-                'data' => [
-                    'report_id' => $report->id,
-                    'submitter_id' => $submitter->id,
-                    'submitter_name' => $submitter->name
-                ]
-            ]);
-        }
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
+            'work_report_submitted',
+            'Báo cáo công việc mới',
+            "Bạn nhận được thông báo mời từ {$submitter->name} gửi báo cáo công việc",
+            [
+                'report_id' => $report->id,
+                'submitter_id' => $submitter->id,
+                'submitter_name' => $submitter->name
+            ]
+        );
 
         // Thông báo cho Manager của phòng ban
         if ($submitter->department && $submitter->department->manager) {
@@ -228,45 +376,21 @@ class NotificationService
             }
         }
 
-        // Thông báo cho Admin
-        $admins = User::where('role', 'admin')->get();
-        foreach ($admins as $admin) {
-            if ($admin->id !== $requester->id) {
-                Notification::create([
-                    'user_id' => $admin->id,
-                    'type' => 'support_request_created',
-                    'title' => 'Yêu cầu hỗ trợ mới',
-                    'message' => "Có yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
-                    'data' => [
-                        'support_request_id' => $supportRequest->id,
-                        'requester_id' => $requester->id,
-                        'requester_name' => $requester->name,
-                        'priority' => $supportRequest->priority,
-                        'is_urgent' => $supportRequest->is_urgent
-                    ]
-                ]);
-            }
-        }
-
-        // Thông báo cho Director
-        $directors = User::where('role', 'director')->get();
-        foreach ($directors as $director) {
-            if ($director->id !== $requester->id) {
-                Notification::create([
-                    'user_id' => $director->id,
-                    'type' => 'support_request_created',
-                    'title' => 'Yêu cầu hỗ trợ mới',
-                    'message' => "Có yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
-                    'data' => [
-                        'support_request_id' => $supportRequest->id,
-                        'requester_id' => $requester->id,
-                        'requester_name' => $requester->name,
-                        'priority' => $supportRequest->priority,
-                        'is_urgent' => $supportRequest->is_urgent
-                    ]
-                ]);
-            }
-        }
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
+            'support_request_created',
+            'Yêu cầu hỗ trợ mới',
+            "Có yêu cầu hỗ trợ mới từ {$requester->name}: {$supportRequest->title}",
+            [
+                'support_request_id' => $supportRequest->id,
+                'requester_id' => $requester->id,
+                'requester_name' => $requester->name,
+                'priority' => $supportRequest->priority,
+                'is_urgent' => $supportRequest->is_urgent
+            ],
+            [$requester->id],
+            $supportRequest
+        );
     }
 
     /**
@@ -697,6 +821,13 @@ class NotificationService
      */
     public static function approvalRequestCreatedNew($approvalRequest, User $creator)
     {
+        $notificationData = [
+            'approval_request_id' => $approvalRequest->id,
+            'creator_id' => $creator->id,
+            'creator_name' => $creator->name,
+            'form_type' => $approvalRequest->form_type
+        ];
+
         // Thông báo cho current approver (nếu có)
         if ($approvalRequest->current_approver_id && $approvalRequest->current_approver_id !== $creator->id) {
             $approver = User::find($approvalRequest->current_approver_id);
@@ -706,40 +837,24 @@ class NotificationService
                     'type' => 'approval_request_created',
                     'title' => 'Có đề xuất phê duyệt mới',
                     'message' => "Bạn có đề xuất phê duyệt mới từ {$creator->name} cần xử lý",
-                    'data' => [
-                        'approval_request_id' => $approvalRequest->id,
-                        'creator_id' => $creator->id,
-                        'creator_name' => $creator->name,
-                        'form_type' => $approvalRequest->form_type
-                    ]
+                    'data' => $notificationData
                 ]);
             }
-        } else {
-            // Nếu không có current approver, mặc định gửi cho admin/director
-            self::notifyAdminsAndDirectors(
-                'approval_request_created',
-                'Có đề xuất phê duyệt mới',
-                "Có đề xuất phê duyệt mới từ {$creator->name} cần xử lý",
-                [
-                    'approval_request_id' => $approvalRequest->id,
-                    'creator_id' => $creator->id,
-                    'creator_name' => $creator->name,
-                    'form_type' => $approvalRequest->form_type
-                ]
-            );
         }
 
-        // Thông báo cho Admin và Director (luôn gửi)
-        self::notifyAdminsAndDirectors(
+        // Thông báo cho Admin và Director có liên quan (trừ current approver đã được thông báo)
+        $excludeUserIds = [];
+        if ($approvalRequest->current_approver_id) {
+            $excludeUserIds[] = $approvalRequest->current_approver_id;
+        }
+        
+        self::notifyRelevantAdminsAndDirectors(
             'approval_request_created',
             'Có đề xuất phê duyệt mới',
             "Có đề xuất phê duyệt mới từ {$creator->name} cần xử lý",
-            [
-                'approval_request_id' => $approvalRequest->id,
-                'creator_id' => $creator->id,
-                'creator_name' => $creator->name,
-                'form_type' => $approvalRequest->form_type
-            ]
+            $notificationData,
+            $excludeUserIds,
+            $approvalRequest
         );
     }
 
@@ -783,24 +898,20 @@ class NotificationService
             }
         }
 
-        // Thông báo cho Director
-        $directors = User::where('role', 'director')->get();
-        foreach ($directors as $director) {
-            if ($director->id !== $canceller->id) {
-                Notification::create([
-                    'user_id' => $director->id,
-                    'type' => 'approval_request_cancelled',
-                    'title' => 'Đề xuất phê duyệt đã bị hủy',
-                    'message' => "Đề xuất phê duyệt đã được {$canceller->name} hủy",
-                    'data' => [
-                        'approval_request_id' => $approvalRequest->id,
-                        'canceller_id' => $canceller->id,
-                        'canceller_name' => $canceller->name,
-                        'form_type' => $approvalRequest->form_type
-                    ]
-                ]);
-            }
-        }
+        // Thông báo cho Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
+            'approval_request_cancelled',
+            'Đề xuất phê duyệt đã bị hủy',
+            "Đề xuất phê duyệt đã được {$canceller->name} hủy",
+            [
+                'approval_request_id' => $approvalRequest->id,
+                'canceller_id' => $canceller->id,
+                'canceller_name' => $canceller->name,
+                'form_type' => $approvalRequest->form_type
+            ],
+            [$canceller->id],
+            $approvalRequest
+        );
     }
 
     /**
@@ -824,8 +935,8 @@ class NotificationService
             ]);
         }
 
-        // Thông báo cho Admin và Director
-        self::notifyAdminsAndDirectors(
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
             'approval_request_approved',
             'Đề xuất đã được phê duyệt',
             "Đề xuất đã được {$approver->name} phê duyệt",
@@ -834,7 +945,9 @@ class NotificationService
                 'approver_id' => $approver->id,
                 'approver_name' => $approver->name,
                 'form_type' => $approvalRequest->form_type
-            ]
+            ],
+            [],
+            $approvalRequest
         );
     }
 
@@ -859,8 +972,8 @@ class NotificationService
             ]);
         }
 
-        // Thông báo cho Admin và Director
-        self::notifyAdminsAndDirectors(
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
             'approval_request_rejected',
             'Đề xuất bị từ chối',
             "Đề xuất đã bị {$approver->name} từ chối",
@@ -869,7 +982,9 @@ class NotificationService
                 'approver_id' => $approver->id,
                 'approver_name' => $approver->name,
                 'form_type' => $approvalRequest->form_type
-            ]
+            ],
+            [],
+            $approvalRequest
         );
     }
 }

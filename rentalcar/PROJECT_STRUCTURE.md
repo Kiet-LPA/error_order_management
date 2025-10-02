@@ -8,14 +8,14 @@ remaining_order_management/
 │   ├── cars.php                   # Quản lý xe
 │   ├── dashboard.php              # Dashboard manager
 │   ├── extensions.php             # Duyệt gia hạn
-│   ├── my_rentals.php             # Lịch sử thuê xe của manager
-│   ├── rent_car.php               # Thuê xe (cho manager)
-│   ├── rentals.php                # Quản lý thuê xe
+│   ├── my_rentals.php             # Lịch sử mượn xe của manager
+│   ├── rent_car.php               # Mượn xe (cho manager)
+│   ├── rentals.php                # Quản lý mượn xe
 │   └── users.php                  # Quản lý người dùng
 ├── employee/                       # Trang cho Employee
-│   ├── cars.php                   # Thuê xe
+│   ├── cars.php                   # Mượn xe
 │   ├── dashboard.php              # Dashboard employee
-│   ├── rentals.php                # Lịch sử thuê xe
+│   ├── rentals.php                # Lịch sử mượn xe
 │   └── request_extension.php      # Yêu cầu gia hạn
 ├── includes/                       # File cấu hình và helper
 │   ├── config.php                 # Cấu hình database và functions
@@ -38,14 +38,14 @@ remaining_order_management/
 
 ### Manager:
 - ✅ **Dashboard** - Thống kê tổng quan
-- ✅ **Quản lý** - Xe, người dùng, thuê xe, duyệt gia hạn
-- ✅ **Thuê xe** - Thuê xe mới, lịch sử thuê xe của mình
+- ✅ **Quản lý** - Xe, người dùng, mượn xe, duyệt gia hạn
+- ✅ **Mượn xe** - Mượn xe mới, lịch sử mượn xe của mình
 - ✅ **Giao diện tối ưu** - Navigation dropdown, responsive
 
 ### Employee:
-- ✅ Thuê xe có sẵn
-- ✅ Xem lịch sử thuê xe
-- ✅ Yêu cầu gia hạn thuê xe
+- ✅ Mượn xe có sẵn
+- ✅ Xem lịch sử mượn xe
+- ✅ Yêu cầu gia hạn mượn xe
 - ✅ Dashboard cá nhân
 
 ## 🔧 Cấu hình:

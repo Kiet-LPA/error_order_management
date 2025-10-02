@@ -1399,16 +1399,48 @@ class TaskController extends Controller
             }
         }
         
+        // Lấy approval requests theo quyền
+        $approvalQuery = \App\Models\ApprovalRequest::with(['creator', 'currentApprover', 'approvedBy', 'rejectedBy']);
+        
+        if ($user->isAdmin() || $user->isDirector()) {
+            // Admin và Director thấy tất cả approval requests
+            $approvalRequests = $approvalQuery->orderBy('created_at', 'desc')->get();
+        } elseif ($user->isManager()) {
+            // Manager chỉ thấy approval requests của phòng ban mình hoặc được giao phê duyệt
+            $approvalRequests = $approvalQuery->where(function($q) use ($user) {
+                $q->where('created_by_id', $user->id)
+                  ->orWhere('current_approver_id', $user->id)
+                  ->orWhereHas('creator', function($subQ) use ($user) {
+                      $subQ->where('department_id', $user->department_id);
+                  });
+            })->orderBy('created_at', 'desc')->get();
+        } else {
+            // Employee chỉ thấy approval requests của mình
+            $approvalRequests = $approvalQuery->where('created_by_id', $user->id)
+                                            ->orderBy('created_at', 'desc')->get();
+        }
+        
         // Nhóm tasks theo status (sau khi đã cập nhật)
         $kanbanData = [
             'in_progress' => $tasks->where('status', 'in_progress'),
-            'pending_approval' => $tasks->where('status', 'pending_approval'),
             'rejected' => $tasks->where('status', 'rejected'),
             'overdue' => $tasks->where('status', 'overdue'),
             'finished' => $tasks->where('status', 'finished'),
         ];
         
-        return view('tasks.kanban', compact('kanbanData'));
+        // Chỉ thêm pending_approval nếu không phải Director
+        if (!$user->isDirector()) {
+            $kanbanData['pending_approval'] = $tasks->where('status', 'pending_approval');
+        }
+        
+        // Nhóm approval requests theo status
+        $approvalKanbanData = [
+            'pending_approval_requests' => $approvalRequests->where('approval_status', 'pending'),
+            'approved_requests' => $approvalRequests->where('approval_status', 'approved'),
+            'rejected_requests' => $approvalRequests->where('approval_status', 'rejected'),
+        ];
+        
+        return view('tasks.kanban', compact('kanbanData', 'approvalKanbanData'));
     }
 
     /**

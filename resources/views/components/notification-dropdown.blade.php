@@ -5,12 +5,12 @@
             0
         </span>
     </button>
-    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 350px; max-height: 400px; overflow-y: auto;">
+    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="margin-left: 45px; width: 350px; max-height: 400px; overflow-y: auto;">
         <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
             <h6 class="mb-0">Thông báo</h6>
             <div class="d-flex align-items-center">
                 <span class="badge bg-primary me-2" id="notificationCount">0 Mới</span>
-                <i class="bi bi-envelope"></i>
+                <!-- <i class="bi bi-envelope"></i> -->
             </div>
         </div>
         <div class="p-2 border-bottom">
@@ -726,14 +726,14 @@ function formatTime(timestamp) {
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
     
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1) return 'Vừa xong';
+    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
     
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    if (diffInHours < 24) return `${diffInHours} tiếng trước`;
     
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 7) return `${diffInDays} ngày trước`;
     
     return date.toLocaleDateString();
 }

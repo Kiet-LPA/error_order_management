@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Điểm danh - HPFoods</title>
+    <title>Điểm danh - HP Foods</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -163,7 +163,7 @@
 <body>
     <div class="header">
         <div class="container">
-            <div class="logo">🏢 HPFoods - Điểm danh</div>
+            <div class="logo">🏢 HP Foods - Điểm danh</div>
             <div class="user-info">
                 <span>Xin chào, {{ $user->name }}</span>
                 <a href="{{ route('kanban') }}" class="logout-btn">← Quay lại</a>

@@ -87,7 +87,7 @@
                     </div>
                   </div>
                   <div>
-                    <div class="fw-bold">Thuê xe</div>
+                    <div class="fw-bold">Mượn xe</div>
                     <small class="text-muted">Đặt xe công ty</small>
                   </div>
                 </div>

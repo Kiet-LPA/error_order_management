@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Lịch sử thuê xe của tôi - HPFoods')
+@section('title', 'Lịch sử mượn xe của tôi - HP Foods')
 
 @section('content')
 <style>
@@ -19,9 +19,6 @@
 .status-completed {
     border-left: 4px solid #6c757d;
 }
-.status-cancelled {
-    border-left: 4px solid #dc3545;
-}
 </style>
 
 <div class="container-fluid">
@@ -29,10 +26,10 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
-                    <i class="bi bi-clock-history me-2"></i>Lịch sử thuê xe của tôi
+                    <i class="bi bi-clock-history me-2"></i>Lịch sử mượn xe của tôi
                 </h2>
                 <a href="{{ route('rental.index') }}" class="btn btn-primary">
-                    <i class="bi bi-car-front me-1"></i>Thuê xe mới
+                    <i class="bi bi-car-front me-1"></i>Mượn xe mới
                 </a>
             </div>
 
@@ -43,7 +40,6 @@
                             <div class="card rental-card 
                                 @if($rental->status === 'active') status-active
                                 @elseif($rental->status === 'completed') status-completed
-                                @else status-cancelled
                                 @endif">
                                 <div class="card-header bg-white">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -60,7 +56,7 @@
                                             @endif">
                                             @if($rental->status === 'active')
                                                 @if($rental->is_overdue) Quá hạn
-                                                @else Đang thuê
+                                                @else Đang mượn
                                                 @endif
                                             @elseif($rental->status === 'completed') Hoàn thành
                                             @else Đã hủy
@@ -82,7 +78,7 @@
                                     
                                     <div class="row mb-3">
                                         <div class="col-12">
-                                            <strong>Thời gian thuê:</strong><br>
+                                            <strong>Thời gian mượn:</strong><br>
                                             <small class="text-muted">
                                                 {{ $rental->rental_start->format('d/m/Y H:i') }} - 
                                                 {{ $rental->rental_end->format('d/m/Y H:i') }}
@@ -233,10 +229,10 @@
             @else
                 <div class="text-center py-5">
                     <i class="bi bi-clock-history display-1 text-muted"></i>
-                    <h4 class="text-muted mt-3">Chưa có lịch sử thuê xe</h4>
-                    <p class="text-muted">Bạn chưa thuê xe nào. Hãy bắt đầu thuê xe đầu tiên của bạn!</p>
+                    <h4 class="text-muted mt-3">Chưa có lịch sử mượn xe</h4>
+                    <p class="text-muted">Bạn chưa mượn xe nào. Hãy bắt đầu mượn xe đầu tiên của bạn!</p>
                     <a href="{{ route('rental.index') }}" class="btn btn-primary">
-                        <i class="bi bi-car-front me-1"></i>Thuê xe ngay
+                        <i class="bi bi-car-front me-1"></i>Mượn xe ngay
                     </a>
                 </div>
             @endif

@@ -155,7 +155,7 @@
                                                {{ old('can_manage_cars', $user->can_manage_cars) ? 'checked' : '' }}>
                                         <label class="form-check-label" for="can_manage_cars" style="margin-left: 10px;">
                                             <strong>Quyền quản lý xe</strong>
-                                            <small class="text-muted d-block">Cho phép quản lý hệ thống thuê xe (quản lý xe, duyệt gia hạn, v.v.)</small>
+                                            <small class="text-muted d-block">Cho phép quản lý hệ thống mượn xe (quản lý xe, duyệt gia hạn, v.v.)</small>
                                         </label>
                                     </div>
                                 </div>
