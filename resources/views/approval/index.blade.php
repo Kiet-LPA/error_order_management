@@ -823,7 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
         left: 0 !important;
         background-color: white !important;
         z-index: 15;
-        border-right: 3px solid #007bff !important;
+        border-right: 3px solid #e9ecef !important;
     }
 }
 
@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', function() {
     left: 0 !important;
     background-color: white !important;
     z-index: 15;
-    border-right: 3px solid #007bff !important;
+    border-right: 3px solid #e9ecef !important;
 }
 
 /* Table cells */
@@ -873,13 +873,13 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .table-responsive::-webkit-scrollbar-thumb {
-    background: #007bff;
+    background: #c1c1c1;
     border-radius: 6px;
     border: 2px solid #f1f1f1;
 }
 
 .table-responsive::-webkit-scrollbar-thumb:hover {
-    background: #0056b3;
+    background: #a8a8a8;
 }
 
 /* Hover effects for better UX */

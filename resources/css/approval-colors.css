@@ -1,0 +1,165 @@
+/* Approval Status Colors - 3 màu chủ đạo cho hệ thống phê duyệt */
+
+/* Màu cam cho "Chờ phê duyệt" */
+:root {
+    --approval-pending-color: #ed8712;
+    --approval-pending-bg: #ed8712;
+    --approval-pending-text: #ffffff;
+}
+
+/* Màu xanh lá cho "Đã phê duyệt" */
+:root {
+    --approval-approved-color: #50a344;
+    --approval-approved-bg: #50a344;
+    --approval-approved-text: #ffffff;
+}
+
+/* Màu đỏ cho "Bị từ chối" */
+:root {
+    --approval-rejected-color: #F23005;
+    --approval-rejected-bg: #F23005;
+    --approval-rejected-text: #ffffff;
+}
+
+/* Override Bootstrap badge colors for approval status */
+.badge.bg-success {
+    background-color: var(--approval-approved-bg) !important;
+    color: var(--approval-approved-text) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--approval-rejected-bg) !important;
+    color: var(--approval-rejected-text) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--approval-pending-bg) !important;
+    color: var(--approval-pending-text) !important;
+}
+
+/* Custom approval status classes */
+.badge-approval-pending {
+    background-color: var(--approval-pending-bg) !important;
+    color: var(--approval-pending-text) !important;
+}
+
+.badge-approval-approved {
+    background-color: var(--approval-approved-bg) !important;
+    color: var(--approval-approved-text) !important;
+}
+
+.badge-approval-rejected {
+    background-color: var(--approval-rejected-bg) !important;
+    color: var(--approval-rejected-text) !important;
+}
+
+/* Status cards with approval colors */
+.card-approval-pending {
+    background-color: var(--approval-pending-bg) !important;
+    color: var(--approval-pending-text) !important;
+}
+
+.card-approval-approved {
+    background-color: var(--approval-approved-bg) !important;
+    color: var(--approval-approved-text) !important;
+}
+
+.card-approval-rejected {
+    background-color: var(--approval-rejected-bg) !important;
+    color: var(--approval-rejected-text) !important;
+}
+
+/* Button colors for approval actions */
+.btn-approval-approve {
+    background-color: var(--approval-approved-bg) !important;
+    border-color: var(--approval-approved-bg) !important;
+    color: var(--approval-approved-text) !important;
+}
+
+.btn-approval-approve:hover {
+    background-color: #3d7a32 !important;
+    border-color: #3d7a32 !important;
+    color: var(--approval-approved-text) !important;
+}
+
+.btn-approval-reject {
+    background-color: var(--approval-rejected-bg) !important;
+    border-color: var(--approval-rejected-bg) !important;
+    color: var(--approval-rejected-text) !important;
+}
+
+.btn-approval-reject:hover {
+    background-color: #d42a04 !important;
+    border-color: #d42a04 !important;
+    color: var(--approval-rejected-text) !important;
+}
+
+.btn-approval-pending {
+    background-color: var(--approval-pending-bg) !important;
+    border-color: var(--approval-pending-bg) !important;
+    color: var(--approval-pending-text) !important;
+}
+
+.btn-approval-pending:hover {
+    background-color: #d17a0f !important;
+    border-color: #d17a0f !important;
+    color: var(--approval-pending-text) !important;
+}
+
+/* Alert colors for approval status */
+.alert-approval-pending {
+    background-color: rgba(237, 135, 18, 0.1) !important;
+    border-color: var(--approval-pending-bg) !important;
+    color: var(--approval-pending-color) !important;
+}
+
+.alert-approval-approved {
+    background-color: rgba(80, 163, 68, 0.1) !important;
+    border-color: var(--approval-approved-bg) !important;
+    color: var(--approval-approved-color) !important;
+}
+
+.alert-approval-rejected {
+    background-color: rgba(242, 48, 5, 0.1) !important;
+    border-color: var(--approval-rejected-bg) !important;
+    color: var(--approval-rejected-color) !important;
+}
+
+/* Progress bar colors */
+.progress-bar-approval-pending {
+    background-color: var(--approval-pending-bg) !important;
+}
+
+.progress-bar-approval-approved {
+    background-color: var(--approval-approved-bg) !important;
+}
+
+.progress-bar-approval-rejected {
+    background-color: var(--approval-rejected-bg) !important;
+}
+
+/* Border colors for cards and elements */
+.border-approval-pending {
+    border-color: var(--approval-pending-bg) !important;
+}
+
+.border-approval-approved {
+    border-color: var(--approval-approved-bg) !important;
+}
+
+.border-approval-rejected {
+    border-color: var(--approval-rejected-bg) !important;
+}
+
+/* Text colors */
+.text-approval-pending {
+    color: var(--approval-pending-color) !important;
+}
+
+.text-approval-approved {
+    color: var(--approval-approved-color) !important;
+}
+
+.text-approval-rejected {
+    color: var(--approval-rejected-color) !important;
+}

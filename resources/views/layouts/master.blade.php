@@ -17,6 +17,34 @@
   <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('css/work-reports.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('css/custom.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/approval-colors.css') }}?v={{ time() }}">
+    
+    <style>
+    /* CSS chung cho dropdown có scroll */
+    .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    /* Custom scrollbar cho dropdown */
+    .dropdown-menu::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .dropdown-menu::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .dropdown-menu::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+    
+    .dropdown-menu::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    </style>
   <style>
     /* Dark mode variables */
     :root {

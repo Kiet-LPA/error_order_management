@@ -403,85 +403,85 @@
     transform: scale(1.05);
 }
 
-/* Status specific colors with gradients */
+/* Status specific colors - màu đơn sắc như approval system */
 .kanban-column.in-progress {
-    border-top: 4px solid #3b82f6;
+    border-top: 4px solid #4A90E2;
 }
 
 .kanban-column.in-progress .kanban-header {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    background: #4A90E2;
 }
 
 .kanban-column.in-progress .kanban-title {
-    color: #1e40af;
+    color: #ffffff;
 }
 
 .kanban-column.in-progress .kanban-count {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #4A90E2;
 }
 
 .kanban-column.pending-approval {
-    border-top: 4px solid #8b5cf6;
+    border-top: 4px solid #ed8712;
 }
 
 .kanban-column.pending-approval .kanban-header {
-    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    background: #ed8712;
 }
 
 .kanban-column.pending-approval .kanban-title {
-    color: #6d28d9;
+    color: #ffffff;
 }
 
 .kanban-column.pending-approval .kanban-count {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: #ed8712;
 }
 
 .kanban-column.rejected {
-    border-top: 4px solid #ef4444;
+    border-top: 4px solid #F23005;
 }
 
 .kanban-column.rejected .kanban-header {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    background: #F23005;
 }
 
 .kanban-column.rejected .kanban-title {
-    color: #b91c1c;
+    color: #ffffff;
 }
 
 .kanban-column.rejected .kanban-count {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: #F23005;
 }
 
 .kanban-column.overdue {
-    border-top: 4px solid #f97316;
+    border-top: 4px solid #ed8712;
 }
 
 .kanban-column.overdue .kanban-header {
-    background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+    background: #ed8712;
 }
 
 .kanban-column.overdue .kanban-title {
-    color: #c2410c;
+    color: #ffffff;
 }
 
 .kanban-column.overdue .kanban-count {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    background: #ed8712;
 }
 
 .kanban-column.finished {
-    border-top: 4px solid #10b981;
+    border-top: 4px solid #50a344;
 }
 
 .kanban-column.finished .kanban-header {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    background: #50a344;
 }
 
 .kanban-column.finished .kanban-title {
-    color: #047857;
+    color: #ffffff;
 }
 
 .kanban-column.finished .kanban-count {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: #50a344;
 }
 
 /* Approval Request Column Colors */
@@ -533,36 +533,36 @@
     background: #F23005;
 }
 
-/* Task border colors by status */
+/* Task border colors by status - màu đơn sắc như approval system */
 .kanban-task.in-progress {
-    border-left-color: #3b82f6;
-    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    border-left-color: #4A90E2;
+    background: #ffffff;
 }
 
 .kanban-task.pending-approval {
-    border-left-color: #8b5cf6;
-    background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+    border-left-color: #ed8712;
+    background: #ffffff;
 }
 
 .kanban-task.rejected {
-    border-left-color: #ef4444;
-    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    border-left-color: #F23005;
+    background: #ffffff;
 }
 
 .kanban-task.overdue {
-    border-left-color: #f97316;
-    background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+    border-left-color: #ed8712;
+    background: #ffffff;
 }
 
 .kanban-task.finished {
-    border-left-color: #10b981;
-    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-    opacity: 0.85;
+    border-left-color: #50a344;
+    background: #ffffff;
+    opacity: 0.9;
 }
 
 /* Approval Request Card Styling */
 .kanban-approval-request {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    background: #ffffff;
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 14px;

@@ -33,7 +33,7 @@
               <a class="dropdown-item" href="{{ route('checkin.index') }}">
                 <div class="d-flex align-items-center">
                   <div class="me-3">
-                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: #2E7D32;">
                       <i class="bi bi-geo-alt"></i>
                     </div>
                   </div>
@@ -49,7 +49,7 @@
               <a class="dropdown-item" href="{{ route('admin.checkin.index') }}">
                 <div class="d-flex align-items-center">
                   <div class="me-3">
-                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: #4CAF50;">
                       <i class="bi bi-gear"></i>
                     </div>
                   </div>
@@ -66,7 +66,7 @@
               <a class="dropdown-item" href="{{ route('rental.admin') }}">
                 <div class="d-flex align-items-center">
                   <div class="me-3">
-                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: #1976D2;">
                       <i class="bi bi-tools"></i>
                     </div>
                   </div>
@@ -82,7 +82,7 @@
               <a class="dropdown-item" href="{{ route('rental.index') }}">
                 <div class="d-flex align-items-center">
                   <div class="me-3">
-                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <div class="text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: #42A5F5;">
                       <i class="bi bi-car-front"></i>
                     </div>
                   </div>

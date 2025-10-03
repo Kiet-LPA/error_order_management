@@ -95,7 +95,7 @@ include '../includes/header.php';
         </div>
     <?php else: ?>
         <?php foreach ($cars as $car): ?>
-            <div class="col-md-6 col-lg-4 mb-4">
+            <div class="col-md-6 col-lg-4 mb-4" style="margin-bottom: 1.5rem !important; padding: 0 0.5rem; max-width: 30%; flex: 0 0 30%;">
                 <div class="card h-100">
                     <div class="card-body">
                         <h5 class="card-title"><?php echo sanitize($car['car_type']); ?></h5>

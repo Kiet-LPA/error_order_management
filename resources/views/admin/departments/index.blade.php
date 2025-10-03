@@ -5,12 +5,12 @@
 <style>
 /* Department status styling */
 .text-success {
-    color: #198754 !important;
+    color: var(--approval-approved-color) !important;
     font-weight: 600;
 }
 
 .text-danger {
-    color: #dc3545 !important;
+    color: var(--approval-rejected-color) !important;
     font-weight: 600;
 }
 
@@ -26,11 +26,11 @@
 }
 
 .bg-success {
-    background-color: #198754 !important;
+    background-color: var(--approval-approved-bg) !important;
 }
 
 .bg-danger {
-    background-color: #dc3545 !important;
+    background-color: var(--approval-rejected-bg) !important;
 }
 
 .bg-primary {

@@ -78,7 +78,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         @csrf
         <div class="row g-4">
           {{-- Cột bên trái --}}
-          <div class="col-lg-6">
+          <div class="col-lg-5" style="padding-right: 1rem;">
             <div class="mb-4">
               <label class="form-label fw-bold text-dark">
                 Tiêu đề <span class="text-danger">*</span>
@@ -200,8 +200,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
           </div>
 
+          {{-- Cột trống để tạo khoảng cách --}}
+          <div class="col-lg-1" style="max-width: 4%; flex: 0 0 4%;"></div>
+
           {{-- Cột bên phải --}}
-          <div class="col-lg-6">
+          <div class="col-lg-5" style="padding-left: 1rem;">
             <div class="mb-4">
               <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="is_multi_user" name="is_multi_user" value="1" {{ old('is_multi_user') ? 'checked' : '' }}>

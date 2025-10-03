@@ -533,7 +533,7 @@ input[type="datetime-local"]::-webkit-outer-spin-button {
                                 <span class="selected-text">Chọn phòng ban...</span>
                                 <i class="bi bi-chevron-down"></i>
                             </div>
-                            <div class="dropdown-menu" id="department_dropdown_menu">
+                            <div class="dropdown-menu" id="department_dropdown_menu" style="max-height: 300px; overflow-y: auto;">
                                 @foreach($departments as $department)
                                     <div class="dropdown-item">
                                         <div class="form-check">

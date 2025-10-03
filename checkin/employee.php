@@ -251,7 +251,7 @@ foreach ($todayCheckins as $checkin) {
             }
         }
         .btn-primary {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: #2E7D32;
             color: white;
         }
         .btn-primary:hover {
@@ -270,9 +270,9 @@ foreach ($todayCheckins as $checkin) {
             margin-bottom: 1rem;
         }
         .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(46, 125, 50, 0.1);
+            color: #2E7D32;
+            border: 1px solid #2E7D32;
         }
         .alert-error {
             background: #f8d7da;
@@ -291,8 +291,8 @@ foreach ($todayCheckins as $checkin) {
             font-weight: 600;
         }
         .status-success {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(46, 125, 50, 0.1);
+            color: #2E7D32;
         }
         .status-failed {
             background: #f8d7da;

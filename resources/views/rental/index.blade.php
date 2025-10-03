@@ -8,10 +8,37 @@
     transition: transform 0.2s ease-in-out;
     border: none;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    border-radius: 12px;
 }
 .rental-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+/* Tạo khoảng cách rõ ràng giữa các card xe */
+.row .col-12.col-sm-6.col-lg-4 {
+    margin-bottom: 1.5rem !important;
+    padding: 0 0.5rem;
+    max-width: 30%;
+    flex: 0 0 30%;
+}
+
+/* Đảm bảo card có khoảng cách đều */
+.card {
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+/* Tạo khoảng cách giữa các card-body */
+.card-body {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Tạo khoảng cách giữa các card trong cùng một hàng */
+.row .col-12.col-sm-6.col-lg-4:not(:last-child) {
+    margin-right: 0.75rem;
 }
 .car-card {
     border-left: 4px solid #007bff;
@@ -19,25 +46,25 @@
 .car-card.disabled {
     opacity: 0.7;
     background-color: #f8f9fa;
-    border-left: 4px solid #dc3545;
+    border-left: 4px solid #F23005;
 }
 .car-card.disabled .card-body {
     color: #6c757d;
 }
 .status-active {
-    background: #198754;
+    background: #1976D2;
     color: white;
 }
 .status-pending {
-    background: #ffc107;
+    background: #42A5F5;
     color: white;
 }
 .status-overdue {
-    background: #dc3545;
+    background: #F23005;
     color: white;
 }
 .btn-rent {
-    background: #007bff;
+    background: #1976D2;
     border: none;
     color: white;
     transition: all 0.3s ease;
@@ -46,6 +73,17 @@
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0,123,255,0.3);
     color: white;
+}
+
+/* Custom colors for rental system */
+.badge.bg-success {
+    background-color: #1976D2 !important;
+}
+.badge.bg-danger {
+    background-color: #F23005 !important;
+}
+.badge.bg-warning {
+    background-color: #42A5F5 !important;
 }
 </style>
 
@@ -124,7 +162,7 @@
                             @if($allCars->count() > 0)
                                 <div class="row">
                                     @foreach($allCars as $car)
-                                        <div class="col-12 col-sm-6 col-lg-4 mb-3">
+                                        <div class="col-12 col-sm-6 col-lg-4 mb-4" style="margin-bottom: 1.5rem !important;">
                                             <div class="card car-card rental-card {{ $car->activeRental ? 'disabled' : '' }}">
                                                 <div class="card-body">
                                                     <h6 class="card-title">

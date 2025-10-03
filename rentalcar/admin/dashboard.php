@@ -78,7 +78,7 @@ include '../includes/header.php';
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
-    <div class="col-md-2">
+    <div class="col-md-2 mb-3" style="margin-bottom: 2rem !important; padding: 0 1rem; margin-right: 1rem;">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-primary"><?php echo $stats['total_cars']; ?></h5>
@@ -86,7 +86,7 @@ include '../includes/header.php';
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-2 mb-3" style="margin-bottom: 2rem !important; padding: 0 1rem; margin-right: 1rem;">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-success"><?php echo $stats['available_cars']; ?></h5>
@@ -94,7 +94,7 @@ include '../includes/header.php';
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-2 mb-3" style="margin-bottom: 2rem !important; padding: 0 1rem; margin-right: 1rem;">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-warning"><?php echo $stats['rented_cars']; ?></h5>
@@ -102,7 +102,7 @@ include '../includes/header.php';
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-2 mb-3" style="margin-bottom: 2rem !important; padding: 0 1rem; margin-right: 1rem;">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-info"><?php echo $stats['total_users']; ?></h5>
@@ -110,7 +110,7 @@ include '../includes/header.php';
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-2 mb-3" style="margin-bottom: 2rem !important; padding: 0 1rem; margin-right: 1rem;">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-primary"><?php echo $stats['active_rentals']; ?></h5>
@@ -118,7 +118,7 @@ include '../includes/header.php';
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-2 mb-3" style="margin-bottom: 2rem !important; padding: 0 1rem; margin-right: 1rem;">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-danger"><?php echo $stats['pending_extensions']; ?></h5>

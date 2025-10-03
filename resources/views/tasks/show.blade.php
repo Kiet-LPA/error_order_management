@@ -172,7 +172,7 @@
             @if($task->status == 'in_progress') background:#3b82f6; color:#fff;
             @elseif($task->status == 'completed') background:#f59e0b; color:#fff;
             @elseif($task->status == 'rejected') background:#ef4444; color:#fff;
-            @elseif($task->status == 'overdue') background:#dc2626; color:#fff;
+            @elseif($task->status == 'overdue') background:#ed8712; color:#fff;
             @elseif($task->status == 'finished') background:#059669; color:#fff;
             @elseif($task->status == 'pending_approval') background:#8b5cf6; color:#fff;
             @else background:#6b7280; color:#fff; @endif">

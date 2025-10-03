@@ -206,10 +206,10 @@ html, body {
 }
 
 /* ========== Badge màu (khớp status) ========== */
-.badge.bg-warning { background-color: #f59f00 !important; }   /* todo */
-.badge.bg-primary { background-color: #1c7ed6 !important; }   /* in_progress */
-.badge.bg-success { background-color: #2f9e44 !important; }   /* done */
-.badge.bg-danger  { background-color: #e03131 !important; }   /* overdue */
+.badge.bg-warning { background-color: #ed8712 !important; }   /* todo */
+.badge.bg-primary { background-color: #4A90E2 !important; }   /* in_progress */
+.badge.bg-success { background-color: #50a344 !important; }   /* done */
+.badge.bg-danger  { background-color: #F23005 !important; }   /* overdue */
 
 /* ========== Nút hành động nhỏ ========== */
 .btn.btn-sm {

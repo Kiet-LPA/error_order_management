@@ -9,6 +9,14 @@
     color: white;
     border-radius: 15px;
     transition: transform 0.2s ease-in-out;
+    margin-bottom: 1.5rem;
+}
+
+/* Tạo khoảng cách giữa các card trạng thái */
+.row .col-6.col-lg-2.col-md-4.col-sm-6 {
+    margin-bottom: 2rem !important;
+    padding: 0 1rem;
+    margin-right: 1rem;
 }
 
 .stat-card.card-1 {

@@ -8,10 +8,37 @@
     transition: transform 0.2s ease-in-out;
     border: none;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    border-radius: 12px;
 }
 .car-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+/* Tạo khoảng cách rõ ràng giữa các card */
+.row .col-12.col-sm-6.col-lg-4 {
+    margin-bottom: 1.5rem !important;
+    padding: 0 0.5rem;
+    max-width: 30%;
+    flex: 0 0 30%;
+}
+
+/* Đảm bảo card có khoảng cách đều */
+.card {
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+/* Tạo khoảng cách giữa các card-body */
+.card-body {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Tạo khoảng cách giữa các card trong cùng một hàng */
+.row .col-12.col-sm-6.col-lg-4:not(:last-child) {
+    margin-right: 0.75rem;
 }
 .status-active {
     border-left: 4px solid #28a745;
@@ -62,7 +89,7 @@
             @if($cars->count() > 0)
                 <div class="row">
                     @foreach($cars as $car)
-                        <div class="col-12 col-sm-6 col-lg-4 mb-4">
+                        <div class="col-12 col-sm-6 col-lg-4 mb-4" style="margin-bottom: 1.5rem !important;">
                             <div class="card car-card 
                                 @if($car->status === 'active') status-active
                                 @elseif($car->status === 'inactive') status-inactive

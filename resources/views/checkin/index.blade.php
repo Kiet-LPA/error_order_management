@@ -71,14 +71,14 @@
             border: 2px solid #e9ecef;
         }
         .status-card.success {
-            background: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
+            background: rgba(46, 125, 50, 0.1);
+            border-color: #2E7D32;
+            color: #1B5E20;
         }
         .status-card.warning {
-            background: #fff3cd;
-            border-color: #ffeaa7;
-            color: #856404;
+            background: rgba(76, 175, 80, 0.1);
+            border-color: #4CAF50;
+            color: #2E7D32;
         }
         .status-card.info {
             background: #d1ecf1;
@@ -86,7 +86,7 @@
             color: #0c5460;
         }
         .checkin-btn {
-            background: #198754;
+            background: #2E7D32;
             color: white;
             border: none;
             padding: 1rem 2rem;
@@ -122,9 +122,9 @@
             color: #856404;
         }
         .alert-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
+            background: rgba(46, 125, 50, 0.1);
+            border: 1px solid #2E7D32;
+            color: #1B5E20;
         }
         .region-info {
             background: #f8f9fa;

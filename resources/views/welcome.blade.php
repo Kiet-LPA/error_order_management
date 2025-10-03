@@ -630,21 +630,21 @@
   <!-- Hàng trên: 3 card -->
   <div class="col-4 col-md-4">
     <div class="card card-stat p-2 text-center">
-      <h5 class="text-primary mb-1">{{ $stats['doing'] }}</h5>
+      <h5 class="mb-1" style="color: #4A90E2;">{{ $stats['doing'] }}</h5>
       <p class="mb-0">Đang làm</p>
     </div>
   </div>
 
   <div class="col-4 col-md-4">
     <div class="card card-stat p-2 text-center">
-      <h5 class="text-warning mb-1">{{ $stats['completed'] ?? 0 }}</h5>
+      <h5 class="mb-1" style="color: #ed8712;">{{ $stats['completed'] ?? 0 }}</h5>
       <p class="mb-0">Chờ duyệt</p>
     </div>
   </div>
 
   <div class="col-4 col-md-4">
     <div class="card card-stat p-2 text-center">
-      <h5 class="text-danger mb-1">{{ $stats['overdue'] }}</h5>
+      <h5 class="mb-1" style="color: #ed8712;">{{ $stats['overdue'] }}</h5>
       <p class="mb-0">Trễ hạn</p>
     </div>
   </div>
@@ -652,14 +652,14 @@
   <!-- Hàng dưới: 2 card lớn hơn -->
   <div class="col-6 col-md-6">
     <div class="card card-stat card-stat-large p-3 text-center">
-      <h5 class="text-danger mb-1">{{ $stats['rejected'] ?? 0 }}</h5>
+      <h5 class="mb-1" style="color: #F23005;">{{ $stats['rejected'] ?? 0 }}</h5>
       <p class="mb-0">Từ chối</p>
     </div>
   </div>
   
   <div class="col-6 col-md-6">
     <div class="card card-stat card-stat-large p-3 text-center">
-      <h5 class="text-success mb-1">{{ $stats['finished'] ?? 0 }}</h5>
+      <h5 class="mb-1" style="color: #50a344;">{{ $stats['finished'] ?? 0 }}</h5>
       <p class="mb-0">Hoàn thành</p>
     </div>
   </div>
@@ -728,19 +728,19 @@
         
         <div class="d-flex flex-wrap align-items-center gap-1">
           <input type="checkbox" class="btn-check" id="st_doing" autocomplete="off" name="statuses[]" value="in_progress" {{ $selected->contains('in_progress') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-primary" for="st_doing">Đang làm</label>
+          <label class="btn btn-sm btn-outline-primary" for="st_doing" style="border-color: #4A90E2; color: #4A90E2;">Đang làm</label>
 
           <input type="checkbox" class="btn-check" id="st_pending_approval" autocomplete="off" name="statuses[]" value="pending_approval" {{ $selected->contains('pending_approval') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-secondary" for="st_pending_approval">Chờ phê duyệt</label>
+          <label class="btn btn-sm btn-outline-warning" for="st_pending_approval" style="border-color: #ed8712; color: #ed8712;">Chờ phê duyệt</label>
 
           <input type="checkbox" class="btn-check" id="st_finished" autocomplete="off" name="statuses[]" value="finished" {{ $selected->contains('finished') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-success" for="st_finished">Hoàn thành</label>
+          <label class="btn btn-sm btn-outline-success" for="st_finished" style="border-color: #50a344; color: #50a344;">Hoàn thành</label>
 
           <input type="checkbox" class="btn-check" id="st_rejected" autocomplete="off" name="statuses[]" value="rejected" {{ $selected->contains('rejected') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-danger" for="st_rejected">Từ chối</label>
+          <label class="btn btn-sm btn-outline-danger" for="st_rejected" style="border-color: #F23005; color: #F23005;">Từ chối</label>
 
           <input type="checkbox" class="btn-check" id="st_overdue" autocomplete="off" name="statuses[]" value="overdue" {{ $selected->contains('overdue') ? 'checked' : '' }}>
-          <label class="btn btn-sm btn-outline-danger" for="st_overdue">Trễ hạn</label>
+          <label class="btn btn-sm btn-outline-danger" for="st_overdue" style="border-color: #ed8712; color: #ed8712;">Trễ hạn</label>
         </div>
         
         <button type="submit" class="btn btn-sm btn-primary">Áp dụng</button>
@@ -822,7 +822,7 @@
         <i class="bi bi-building me-1"></i>Lọc theo phòng ban:
       </small>
       <div class="dropdown">
-        <button class="btn btn-sm btn-secondary dropdown-toggle w-100" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
           @if(request('department_filter'))
             @php
               $selectedDept = $departments->firstWhere('id', request('department_filter'));
@@ -832,10 +832,10 @@
             Tất cả phòng ban
           @endif
         </button>
-        <ul class="dropdown-menu w-100" aria-labelledby="departmentDropdown">
+        <ul class="dropdown-menu w-100" aria-labelledby="departmentDropdown" style="max-height: 300px; overflow-y: auto;">
           <li><h6 class="dropdown-header">Chọn phòng ban:</h6></li>
           <li>
-            <form method="GET" action="{{ route('dashboard') }}" class="px-3 py-2">
+            <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
               <input type="hidden" name="status" value="{{ request('status') }}">
               <input type="hidden" name="sort" value="{{ request('sort') }}">
               <input type="hidden" name="date_from" value="{{ request('date_from') }}">
@@ -845,14 +845,14 @@
                   <input type="hidden" name="statuses[]" value="{{ $status }}">
                 @endforeach
               @endif
-              <button type="submit" class="btn btn-sm btn-outline-secondary w-100 mb-2">
-                <i class="bi bi-x-circle me-1"></i>Xóa
+              <button type="submit" class="dropdown-item{{ !request('department_filter') ? ' active' : '' }}">
+                <i class="bi bi-list-ul me-2"></i>Tất cả
               </button>
             </form>
           </li>
           @foreach($departments as $department)
             <li>
-              <form method="GET" action="{{ route('dashboard') }}" class="px-3 py-1">
+              <form method="GET" action="{{ route('dashboard') }}" class="d-inline">
                 <input type="hidden" name="status" value="{{ request('status') }}">
                 <input type="hidden" name="sort" value="{{ request('sort') }}">
                 <input type="hidden" name="date_from" value="{{ request('date_from') }}">
@@ -863,8 +863,8 @@
                     <input type="hidden" name="statuses[]" value="{{ $status }}">
                   @endforeach
                 @endif
-                <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-1">
-                  {{ $department->name }}
+                <button type="submit" class="dropdown-item{{ request('department_filter') == $department->id ? ' active' : '' }}">
+                  <i class="bi bi-building me-2"></i>{{ $department->name }}
                 </button>
               </form>
             </li>

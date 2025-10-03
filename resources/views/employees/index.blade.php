@@ -357,7 +357,7 @@
           Tất cả
         @endif
       </button>
-      <ul class="dropdown-menu" aria-labelledby="departmentDropdown">
+      <ul class="dropdown-menu" aria-labelledby="departmentDropdown" style="max-height: 300px; overflow-y: auto;">
         <li>
           <form method="GET" action="{{ route('users.index') }}" class="d-inline">
             <input type="hidden" name="search" value="{{ request('search') }}">
