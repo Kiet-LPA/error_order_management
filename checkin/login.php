@@ -46,8 +46,8 @@ if ($_POST) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập - Checkin HP Foods</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.png" type="image/png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -218,7 +218,7 @@ if ($_POST) {
 <body>
     <div class="login-container">
         <div class="logo">
-            <img src="favicon.ico" alt="HP Foods Logo" style="width: 64px; height: 64px; margin-bottom: 1rem; border-radius: 8px;">
+            <img src="favicon.png" alt="HP Foods Logo" style="width: 64px; height: 64px; margin-bottom: 1rem; border-radius: 8px;">
             <h1>Checkin HP Foods</h1>
             <p>Hệ thống điểm danh GPS</p>
         </div>

@@ -1,7 +1,7 @@
 <div class="d-flex align-items-center">
     {{-- Logo Icon --}}
     <div class="me-3">
-        <img src="{{ asset('favicon.ico') }}" alt="HP FOODS Logo" width="50" height="50" class="img-fluid">
+        <img src="{{ asset('favicon.png') }}" alt="HP FOODS Logo" width="50" height="50" class="img-fluid">
     </div>
     
     {{-- Text --}}

@@ -2,7 +2,7 @@
 <nav class="navbar navbar-light bg-white shadow-sm" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; width: 100%;">
   <div class="container-fluid">
     <a class="navbar-brand fw-bold text-primary" href="{{ route('kanban') }}">
-      <i class="bi bi-clipboard-data me-2"></i>📋 Quản lý công việc
+      <i class="bi bi-clipboard-data me-2"></i>Quản lý công việc
     </a>
     
     <div class="d-flex align-items-center">

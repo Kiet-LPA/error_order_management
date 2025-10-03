@@ -90,8 +90,8 @@ if ($_POST && isset($_POST['action'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo cáo hệ thống - Checkin HP Foods</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="responsive.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
