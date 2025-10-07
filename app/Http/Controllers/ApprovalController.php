@@ -37,6 +37,7 @@ class ApprovalController extends Controller
             $pendingApprovalsQuery = ApprovalRequest::where('approval_status', 'pending')
                 ->where(function($q) use ($userId) {
                     $q->where('current_approver_id', $userId)
+                      ->orWhereJsonContains('approvers', $userId)
                       ->orWhere(function($sub) use ($userId) {
                           // Trường hợp không chỉ định cụ thể (current_approver_id null)
                           $user = Auth::user();
@@ -146,6 +147,13 @@ class ApprovalController extends Controller
 
     public function create($formType = null)
     {
+        // Debug logging
+        \Log::info('Approval create method called', [
+            'formType' => $formType,
+            'user_id' => Auth::id(),
+            'user_role' => Auth::user()->role ?? 'unknown'
+        ]);
+        
         // Lấy tất cả approval forms để hiển thị trong dropdown
         $approvalForms = ApprovalForm::where('is_active', true)->get();
         
@@ -159,24 +167,32 @@ class ApprovalController extends Controller
             $formConfig = ApprovalForm::where('is_active', true)->first();
         }
         
-        if ($formConfig) {
-            // Lọc phòng ban theo user hiện tại
-            $currentUser = Auth::user();
-            $userDepartments = $currentUser->departments()->pluck('departments.id')->toArray();
-            
-            // Convert form_fields to array và cập nhật options phòng ban
-            $formFields = $formConfig->form_fields;
-            foreach ($formFields as $key => $field) {
-                if ($field['name'] === 'department' && isset($field['options'])) {
-                    $formFields[$key]['options'] = array_filter($field['options'], function($option) use ($userDepartments) {
-                        return in_array($option['value'], $userDepartments);
-                    });
-                }
-            }
-            
-            // Cập nhật lại form_fields
-            $formConfig->form_fields = $formFields;
+        \Log::info('Form config found', [
+            'formConfig' => $formConfig ? $formConfig->toArray() : null,
+            'approvalForms_count' => $approvalForms->count()
+        ]);
+        
+        if (!$formConfig) {
+            return redirect()->route('approval.index')
+                ->with('error', 'Không tìm thấy form phê duyệt phù hợp.');
         }
+        
+        // Lọc phòng ban theo user hiện tại
+        $currentUser = Auth::user();
+        $userDepartments = $currentUser->departments()->pluck('departments.id')->toArray();
+        
+        // Convert form_fields to array và cập nhật options phòng ban
+        $formFields = $formConfig->form_fields;
+        foreach ($formFields as $key => $field) {
+            if ($field['name'] === 'department' && isset($field['options'])) {
+                $formFields[$key]['options'] = array_filter($field['options'], function($option) use ($userDepartments) {
+                    return in_array($option['value'], $userDepartments);
+                });
+            }
+        }
+        
+        // Cập nhật lại form_fields
+        $formConfig->form_fields = $formFields;
             
         return view('approval.create', compact('approvalForms', 'formConfig'));
     }
@@ -194,30 +210,16 @@ class ApprovalController extends Controller
             'form_data.description' => 'nullable|string|max:1000',
             'form_data.amount' => 'nullable|numeric|min:0',
             'form_data.department' => 'nullable|exists:departments,id',
-            // Người phê duyệt được gửi trực tiếp qua field current_approver_id ở form
-            'current_approver_id' => 'nullable|exists:users,id'
+            'approvers' => 'required|array|min:1',
+            'approvers.*' => 'exists:users,id'
         ]);
 
-        // Xác định người phê duyệt hiện tại:
-        // - Nếu form đã chọn cụ thể (current_approver_id) thì dùng giá trị đó
-        // - Nếu KHÔNG chọn phòng ban và KHÔNG chọn người phê duyệt => mặc định gửi cho Director bất kỳ
-        // - Các trường hợp còn lại mà không chọn người phê duyệt, tiếp tục fallback theo role hiện tại
-        $selectedApproverId = $request->input('current_approver_id');
+        // Lấy danh sách người phê duyệt được chọn
+        $selectedApprovers = $request->input('approvers', []);
         $selectedDepartmentId = data_get($request->input('form_data'), 'department');
-
-        if ($selectedApproverId) {
-            $currentApproverId = $selectedApproverId;
-        } else {
-            // Không chọn người phê duyệt cụ thể
-            if (empty($selectedDepartmentId)) {
-                // Không chọn phòng ban -> gửi cho tất cả Director
-                $currentApproverId = null;
-            } else {
-                // ĐÃ chọn phòng ban nhưng KHÔNG chọn người phê duyệt -> gửi cho TẤT CẢ managers của phòng ban đó
-                // (để null và dùng rule ở phần duyệt + danh sách chờ xử lý)
-                $currentApproverId = null;
-            }
-        }
+        
+        // Lấy người phê duyệt đầu tiên làm current_approver_id
+        $currentApproverId = !empty($selectedApprovers) ? $selectedApprovers[0] : null;
 
         $approvalRequest = ApprovalRequest::create([
             'form_type' => $formType,
@@ -225,7 +227,16 @@ class ApprovalController extends Controller
             'status' => 'submitted',
             'approval_status' => 'pending',
             'created_by_id' => Auth::id(),
-            'current_approver_id' => $currentApproverId
+            'current_approver_id' => $currentApproverId,
+            'approvers' => json_encode($selectedApprovers) // Lưu tất cả approvers
+        ]);
+
+        // Debug logging
+        \Log::info('ApprovalRequest created', [
+            'id' => $approvalRequest->id,
+            'current_approver_id' => $currentApproverId,
+            'approvers' => $selectedApprovers,
+            'created_by' => Auth::id()
         ]);
 
         // Gửi thông báo khi tạo approval request mới

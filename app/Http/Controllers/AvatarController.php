@@ -16,7 +16,7 @@ class AvatarController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240'
         ]);
 
         $user = Auth::user();
@@ -45,7 +45,7 @@ class AvatarController extends Controller
     public function uploadForUser(Request $request, $userId)
     {
         $request->validate([
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240'
         ]);
 
         $currentUser = Auth::user();

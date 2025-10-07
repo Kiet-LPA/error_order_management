@@ -22,6 +22,7 @@ class ApprovalRequest extends Model
         'approved_by_id',
         'rejected_by_id',
         'approval_signatures',
+        'approvers',
         'approved_at',
         'rejected_at'
     ];
@@ -29,6 +30,7 @@ class ApprovalRequest extends Model
     protected $casts = [
         'form_data' => 'array',
         'approval_signatures' => 'array',
+        'approvers' => 'array',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime'
     ];

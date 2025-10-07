@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Tạo đề xuất mới' . ($formConfig ? ' - ' . $formConfig->form_name : ''))
+@section('title', 'Tạo đề xuất mới' . (isset($formConfig) && $formConfig ? ' - ' . $formConfig->form_name : ''))
 
 @push('styles')
 <style>
@@ -12,7 +12,7 @@
 }
 
 .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #4A90E2;
     color: white;
     border-radius: 0.5rem 0.5rem 0 0 !important;
     border: none;
@@ -164,13 +164,16 @@
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    background: #4A90E2;
+    border-color: #4A90E2;
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
 }
 
 .btn-primary:hover {
+    background: #357ABD;
+    border-color: #357ABD;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
 }
 
 .btn-secondary {
@@ -329,16 +332,10 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    @if($formConfig->description)
-                        <div class="alert alert-info mb-4">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>{{ $formConfig->description }}</strong>
-                        </div>
-                    @endif
 
                     <form method="POST" action="{{ route('approval.store') }}" id="approvalForm">
                         @csrf
-                        <input type="hidden" name="form_type" value="{{ $formConfig->form_type }}">
+                        <input type="hidden" name="form_type" value="{{ $formConfig->form_type ?? '' }}">
                         
                         <!-- Hàng 1: Tiêu đề đề xuất và Phòng ban -->
                         <div class="row g-4">
@@ -375,7 +372,7 @@
                                                 $userDepartments = auth()->user()->departments;
                                                 $userDepartmentIds = $userDepartments->pluck('id')->toArray();
                                             @endphp
-                                            @foreach($formConfig->form_fields as $field)
+                                            @foreach(($formConfig->form_fields ?? []) as $field)
                                                 @if($field['name'] === 'department')
                                                     @foreach($field['options'] as $option)
                                                         @if(in_array($option['value'], $userDepartmentIds))
@@ -388,7 +385,7 @@
                                                 @endif
                                             @endforeach
                                         @else
-                                            @foreach($formConfig->form_fields as $field)
+                                            @foreach(($formConfig->form_fields ?? []) as $field)
                                                 @if($field['name'] === 'department')
                                                     @foreach($field['options'] as $option)
                                                         <option value="{{ $option['value'] }}" 
@@ -444,7 +441,7 @@
                                         </div>
                                     </div>
                                     <small class="form-text text-muted">
-                                        <i class="bi bi-info-circle me-1"></i>Chỉ hiển thị Manager. Admin/Director tự động tham gia
+                                        <i class="bi bi-info-circle me-1"></i>Hiển thị Manager và Director. Admin tự động tham gia
                                     </small>
                                     @error('approvers')
                                         <div class="text-danger">{{ $message }}</div>
@@ -463,7 +460,7 @@
                                         </div>
                                     </div>
                                     <small class="form-text text-muted">
-                                        <i class="bi bi-info-circle me-1"></i>Chỉ hiển thị Manager. Admin/Director tự động tham gia
+                                        <i class="bi bi-info-circle me-1"></i>Hiển thị Manager và Director. Admin tự động tham gia
                                     </small>
                                     @error('followers')
                                         <div class="text-danger">{{ $message }}</div>
@@ -581,7 +578,7 @@
                         <!-- Các trường khác -->
                         <div class="row">
                             @if($formConfig && $formConfig->form_fields)
-                                @foreach($formConfig->form_fields as $field)
+                                @foreach(($formConfig->form_fields ?? []) as $field)
                                 {{-- Debug: Uncomment to see what fields are being processed --}}
                                 {{-- <div class="alert alert-info">Processing field: {{ $field['name'] }} ({{ $field['label'] }})</div> --}}
                                 
@@ -792,13 +789,18 @@ function loadUsersForApproval() {
             }
             
             users.forEach(user => {
-                // Only show managers (admin/director auto-see all)
-                if (user.role !== 'manager') {
+                // Show managers and directors (admin auto-see all)
+                if (!['manager', 'director'].includes(user.role)) {
                     return;
                 }
                 
                 // Display role in name
-                let roleText = ' (Quản lý)';
+                let roleText = '';
+                if (user.role === 'manager') {
+                    roleText = ' (Quản lý)';
+                } else if (user.role === 'director') {
+                    roleText = ' (Giám đốc)';
+                }
                 
                 const displayName = user.name + roleText;
                 
@@ -1040,7 +1042,7 @@ function addTableRow(fieldName) {
     const row = document.createElement('tr');
     
     // Get field configuration from PHP
-    const fieldConfig = @json($formConfig->form_fields ?? []);
+    const fieldConfig = @json(($formConfig->form_fields ?? []));
     console.log('Field config:', fieldConfig);
     const field = fieldConfig.find(f => f.name === fieldName);
     console.log('Field found:', field);

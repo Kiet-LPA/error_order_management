@@ -64,10 +64,17 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager có thể sửa task của phòng ban mình hoặc task mà họ follow
+        // Manager chỉ có thể sửa task thuộc thẩm quyền của họ
         if ($user->isManager()) {
+            // ❌ KHÔNG được sửa task được giao bởi Director hoặc Admin
+            $creator = $task->creator;
+            if ($creator && ($creator->isAdmin() || $creator->isDirector())) {
+                return false; // Manager không thể sửa task được giao bởi cấp cao hơn
+            }
+            
+            // ✅ Chỉ có thể sửa task được giao bởi Manager khác hoặc Employee
+            // và task phải thuộc phòng ban của họ
             return self::isTaskInManagerDepartment($user, $task) ||
-                   $task->followers->contains('id', $user->id) ||
                    $task->forwarded_to === $user->id;
         }
 
@@ -77,6 +84,40 @@ class TaskPermissionService
                    $task->creator_id === $user->id;
         }
 
+        return false;
+    }
+
+    /**
+     * Kiểm tra user có thể submit task (gửi duyệt) không
+     * LOGIC: Manager nhận việc = Employee, Manager giao việc = Director
+     */
+    public static function canSubmitTask(User $user, Task $task): bool
+    {
+        // Admin và Director có thể submit bất kỳ task nào
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+        
+        // Employee có thể submit task được assign cho họ
+        if ($user->isEmployee()) {
+            return self::isTaskAssignedToUser($user, $task);
+        }
+        
+        // Manager: 
+        // - Nếu được assign (nhận việc) -> có thể submit như Employee
+        // - Nếu là creator (giao việc) -> có toàn quyền như Director
+        if ($user->isManager()) {
+            // Manager nhận việc: có thể submit
+            if (self::isTaskAssignedToUser($user, $task)) {
+                return true;
+            }
+            
+            // Manager giao việc: có toàn quyền
+            if ($task->creator_id === $user->id) {
+                return true;
+            }
+        }
+        
         return false;
     }
 
@@ -100,10 +141,17 @@ class TaskPermissionService
             return true;
         }
 
-        // Manager có thể xóa task của phòng ban mình hoặc task mà họ follow
+        // Manager chỉ có thể xóa task thuộc thẩm quyền của họ
         if ($user->isManager()) {
+            // ❌ KHÔNG được xóa task được giao bởi Director hoặc Admin
+            $creator = $task->creator;
+            if ($creator && ($creator->isAdmin() || $creator->isDirector())) {
+                return false; // Manager không thể xóa task được giao bởi cấp cao hơn
+            }
+            
+            // ✅ Chỉ có thể xóa task được giao bởi Manager khác hoặc Employee
+            // và task phải thuộc phòng ban của họ
             return self::isTaskInManagerDepartment($user, $task) ||
-                   $task->followers->contains('id', $user->id) ||
                    $task->forwarded_to === $user->id;
         }
 
@@ -214,32 +262,40 @@ class TaskPermissionService
             }
         }
         
-        // Admin và Director có thể approve tất cả
-        if ($user->isAdmin() || $user->isDirector()) {
+        // Admin có thể approve tất cả
+        if ($user->isAdmin()) {
+            return true;
+        }
+        
+        // Director có thể approve tất cả (trừ task của Admin)
+        if ($user->isDirector()) {
+            $creator = $task->creator;
+            if ($creator && $creator->isAdmin()) {
+                return false; // Director không thể approve task của Admin
+            }
             return true;
         }
 
-        // Manager có thể approve task của phòng ban mình hoặc task mà họ follow
+        // Manager: 
+        // - Nếu là creator (giao việc) -> có toàn quyền approve
+        // - Nếu được assign (nhận việc) -> KHÔNG thể approve
         if ($user->isManager()) {
-            // Kiểm tra task thuộc phòng ban của manager
+            // Manager giao việc: có toàn quyền approve
+            if ($task->creator_id === $user->id) {
+                return true;
+            }
+            
+            // Manager nhận việc: KHÔNG thể approve
+            if (self::isTaskAssignedToUser($user, $task)) {
+                return false;
+            }
+            
+            // Manager approve task khác (thuộc thẩm quyền)
             if (self::isTaskInManagerDepartment($user, $task)) {
                 return true;
             }
             
-            // Kiểm tra task là multi-department và có phòng ban của manager
-            if ($task->is_multi_department) {
-                $managerDepartmentIds = $user->departments->pluck('id')->toArray();
-                if ($task->departments->whereIn('id', $managerDepartmentIds)->count() > 0) {
-                    return true;
-                }
-            }
-            
-            // Kiểm tra manager là follower
-            if ($task->followers->contains('id', $user->id)) {
-                return true;
-            }
-            
-            // Kiểm tra task được forward đến manager
+            // Task được forward đến manager này
             if ($task->forwarded_to === $user->id) {
                 return true;
             }

@@ -227,23 +227,6 @@
                                 </span>
                             </a>
                         </th>
-                        <th>
-                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'email', 'direction' => request('sort') == 'email' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
-                               class="text-decoration-none text-dark">
-                                Email
-                                <span class="sort-indicator {{ request('sort') == 'email' ? 'active' : '' }}">
-                                    @if(request('sort') == 'email')
-                                        @if(request('direction') == 'asc')
-                                            <i class="bi bi-arrow-up"></i>
-                                        @else
-                                            <i class="bi bi-arrow-down"></i>
-                                        @endif
-                                    @else
-                                        <i class="bi bi-arrow-down-up"></i>
-                                    @endif
-                                </span>
-                            </a>
-                        </th>
                         <th>Số điện thoại</th>
                         <th>
                             <a href="{{ request()->fullUrlWithQuery(['sort' => 'role', 'direction' => request('sort') == 'role' && request('direction') == 'asc' ? 'desc' : 'asc']) }}" 
@@ -305,21 +288,14 @@
                             <td>{{ $user->id }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ $user->avatar_url }}" 
-                                         alt="{{ $user->name }}" 
-                                         class="rounded-circle me-2" 
-                                         style="width: 40px; height: 40px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <img src="{{ $user->avatar_url }}"
+                                         alt="{{ $user->name }}"
+                                         class="rounded-circle me-2"
+                                         width="40" height="40"
+                                         loading="lazy"
+                                         style="object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                                     <div class="fw-semibold">{{ $user->name }}</div>
                                 </div>
-                            </td>
-                            <td>
-                                @if($user->email)
-                                    <a href="mailto:{{ $user->email }}" class="text-decoration-none">
-                                        {{ $user->email }}
-                                    </a>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
                             </td>
                             <td>
                                 @if($user->phone)
@@ -398,10 +374,11 @@
                                     @endif
                                     @if($canDelete)
                                         <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" 
-                                              onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên này?');">
+                                              onsubmit="console.log('Form submit for user {{ $user->id }}'); return confirm('Bạn có chắc muốn xóa nhân viên này?');">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa" 
+                                                    onclick="console.log('Delete button clicked for user {{ $user->id }}');">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>

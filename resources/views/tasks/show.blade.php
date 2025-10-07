@@ -714,14 +714,14 @@ function deleteAttachment(attachmentId, fileName) {
                           <div class="comment-attachments">
                             <div class="attachment-section">
                               <h6 class="attachment-title mb-2">
-                                <i class="bi bi-paperclip me-1"></i>📎 File đính kèm
+                                <i class="bi bi-paperclip me-1"></i> File đính kèm
                               </h6>
                               <div class="attachment-list">
                                 @foreach($comment->attachments as $attachment)
                                   <div class="attachment-item" data-attachment-id="{{ $attachment->id }}">
                                     @if($attachment->isImage())
-                                      <div class="attachment-thumbnail" onclick="openImageModal('{{ $attachment->file_url }}', '{{ $attachment->original_name }}')" title="Click để xem ảnh">
-                                        <img src="{{ $attachment->file_url }}" alt="{{ $attachment->original_name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                      <div class="attachment-thumbnail" onclick="openImageModal('{{ route('comment.attachments.view', $attachment) }}', '{{ $attachment->original_name }}')" title="Click để xem ảnh">
+                                        <img src="{{ route('comment.attachments.view', $attachment) }}" alt="{{ $attachment->original_name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                         <div class="fallback-icon d-none">
                                           <i class="bi bi-image"></i>
                                         </div>
@@ -741,11 +741,11 @@ function deleteAttachment(attachmentId, fileName) {
                                     @endif
                                     <div class="attachment-details">
                                       @if($attachment->isImage())
-                                        <a href="{{ $attachment->file_url }}" target="_blank" class="file-name" title="{{ $attachment->original_name }}">
+                                        <a href="{{ route('comment.attachments.view', $attachment) }}" target="_blank" class="file-name" title="{{ $attachment->original_name }}">
                                           {{ $attachment->original_name }}
                                         </a>
                                       @else
-                                        <a href="{{ $attachment->file_url }}" download="{{ $attachment->original_name }}" class="file-name" title="{{ $attachment->original_name }}">
+                                        <a href="{{ route('comment.attachments.download', $attachment) }}" class="file-name" title="{{ $attachment->original_name }}">
                                           {{ $attachment->original_name }}
                                         </a>
                                       @endif
@@ -766,19 +766,19 @@ function deleteAttachment(attachmentId, fileName) {
     </div>
     
     <!-- Image Preview Modal -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header" style="background: #007bff; color: white;">
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true" style="z-index: 100000 !important;">
+      <div class="modal-dialog modal-lg modal-dialog-centered" style="z-index: 100001 !important;">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+          <div class="modal-header" style="background: #007bff; color: white; border-bottom: none;">
             <h5 class="modal-title" id="imageModalLabel">
               <i class="bi bi-image me-2"></i>Xem hình ảnh
             </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body text-center p-0">
-            <img id="modalImage" src="" alt="" class="img-fluid" style="max-height: 70vh; object-fit: contain;">
+          <div class="modal-body text-center p-0" style="background: #f8f9fa;">
+            <img id="modalImage" src="" alt="" class="img-fluid" style="max-height: 70vh; width: 100%; object-fit: contain; display: block;">
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer" style="background: #f8f9fa; border-top: 1px solid #dee2e6;">
             <a id="downloadLink" href="" download="" class="btn btn-primary">
               <i class="bi bi-download me-1"></i>Tải xuống
             </a>
@@ -930,32 +930,64 @@ function deleteAttachment(attachmentId, fileName) {
             
             {{-- Hiển thị nút theo trạng thái và role --}}
             @if($task->status == 'in_progress')
-                @if($task->assignee_id == auth()->id())
-                    <button onclick="handleTaskStatusUpdate('pending_approval')" class="btn action-btn action-btn-green w-100 mb-2">✅ Hoàn thành & gửi duyệt</button>
+                @if(auth()->user()->canSubmitTask($task))
+                    @php
+                        $progress = $task->getSubmissionProgress();
+                        $hasSubmitted = $task->hasUserSubmitted(auth()->user());
+                    @endphp
+                    
+                    @if($hasSubmitted)
+                        <button class="btn action-btn action-btn-green w-100 mb-2" disabled>
+                            ✅ Đã gửi báo cáo hoàn thành
+                            @if($progress['total'] > 1)
+                                ({{ $progress['submitted'] }}/{{ $progress['total'] }} người)
+                            @endif
+                        </button>
+                    @else
+                        <button onclick="handleTaskStatusUpdate('pending_approval')" class="btn action-btn action-btn-green w-100 mb-2">
+                            ✅ Hoàn thành & gửi duyệt
+                            @if($progress['total'] > 1)
+                                ({{ $progress['submitted'] }}/{{ $progress['total'] }} người)
+                            @endif
+                        </button>
+                    @endif
                 @endif
-                @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+                @if(auth()->user()->canEditTask($task) && !auth()->user()->canSubmitTask($task))
                     <button onclick="handleTaskStatusUpdate('pending_approval')" class="btn action-btn action-btn-green w-100 mb-2">✅ Chuyển sang chờ duyệt</button>
                 @endif
             @endif
             
             @if($task->status == 'completed' || $task->status == 'pending_approval')
-                @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+                @if(auth()->user()->canApproveTask($task))
                     <button type="button" class="btn action-btn action-btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#finishModal">🏁 Hoàn thành</button>
                     <button type="button" class="btn action-btn action-btn-red w-100 mb-2" data-bs-toggle="modal" data-bs-target="#rejectModal">❌ Từ chối</button>
                 @endif
             @endif
             
-            @if($task->status === 'rejected' && auth()->user()->role === 'employee')
+            @if($task->status === 'rejected' && auth()->user()->canSubmitTask($task))
+                <form action="{{ route('tasks.update-status', $task->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <input type="hidden" name="status" value="pending_approval">
+                    <button type="submit" class="btn action-btn action-btn-green w-100 mb-2">
+                        🔄 Đã làm lại & gửi duyệt
+                    </button>
+                </form>
+            @endif
+            
+            {{-- Nút hoàn tác submission --}}
+            @if(auth()->user()->canSubmitTask($task) && $task->status === 'in_progress')
                 @php
-                    $isAssignedToUser = $task->assignee_id == auth()->id() || 
-                                       $task->assignees->contains('id', auth()->id());
+                    $userSubmission = $task->getUserSubmission(auth()->user());
+                    $progress = $task->getSubmissionProgress();
                 @endphp
-                @if($isAssignedToUser)
-                    <form action="{{ route('tasks.update-status', $task->id) }}" method="POST" style="display:inline;">
+                @if($userSubmission && $userSubmission->canUndo())
+                    <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn rút lại báo cáo hoàn thành này?')">
                         @csrf
-                        <input type="hidden" name="status" value="pending_approval">
-                        <button type="submit" class="btn action-btn action-btn-green w-100 mb-2">
-                            🔄 Đã làm lại & gửi duyệt
+                        <button type="submit" class="btn action-btn action-btn-warning w-100 mb-2">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>Rút lại báo cáo hoàn thành
+                            @if($progress['total'] > 1)
+                                ({{ $progress['submitted'] }}/{{ $progress['total'] }} người)
+                            @endif
                         </button>
                     </form>
                 @endif
@@ -973,7 +1005,7 @@ function deleteAttachment(attachmentId, fileName) {
                 @endphp
                 @if($canForward)
                     <a href="{{ route('tasks.forward.form', $task) }}" class="btn action-btn action-btn-warning w-100 mb-2">
-                        <i class="bi bi-arrow-right-circle me-2"></i>Forward Task
+                        <i class="bi bi-arrow-right-circle me-2"></i>Chuyển tiếp
                     </a>
                 @endif
             @endif
@@ -981,14 +1013,14 @@ function deleteAttachment(attachmentId, fileName) {
             @if($task->status == 'overdue')
                 @if($task->deadline && $task->deadline->isFuture())
                     {{-- Chỉ hiển thị nút khi deadline đã được cập nhật thành tương lai --}}
-                    @if($task->assignee_id == auth()->id())
+                    @if(auth()->user()->canSubmitTask($task))
                         <form action="{{ route('tasks.update-status', $task) }}" method="POST" style="display:inline;">
                             @csrf
                             <input type="hidden" name="status" value="in_progress">
                             <button type="submit" class="btn action-btn action-btn-blue w-100 mb-2">🚀 Bắt đầu làm</button>
                         </form>
                     @endif
-                    @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+                    @if(auth()->user()->canEditTask($task))
                         <form action="{{ route('tasks.update-status', $task) }}" method="POST" style="display:inline;">
                             @csrf
                             <input type="hidden" name="status" value="in_progress">
@@ -1004,22 +1036,17 @@ function deleteAttachment(attachmentId, fileName) {
                 @endif
             @endif
             
-            {{-- Chỉ hiển thị cho admin/director/manager --}}
-            @if(auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager())
+            {{-- Nút chỉnh sửa (chỉ khi có quyền) --}}
+            @if(auth()->user()->canEditTask($task))
                 <a href="{{ route('tasks.edit', $task) }}" class="btn action-btn action-btn-yellow w-100 mb-2">✏️ Chỉnh sửa</a>
             @endif
             
-            <a href="{{ route('tasks.history',$task) }}" class="btn action-btn action-btn-outline w-100">👁 Xem lịch sử</a>
-            
-            {{-- Nút hoàn tác chỉ hiển thị khi có thể hoàn tác và cho người được giao việc --}}
-            @if($task->canUndo() && $task->assignee_id == auth()->id())
-                <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn hoàn tác công việc này?')">
-                    @csrf
-                    <button type="submit" class="btn btn-undo w-100">
-                        <i class="bi bi-arrow-counterclockwise me-2"></i>Hoàn tác
-                    </button>
-                </form>
+            {{-- Nút xem lịch sử (chỉ khi có quyền xem task) --}}
+            @if(auth()->user()->canViewTask($task))
+                <a href="{{ route('tasks.history',$task) }}" class="btn action-btn action-btn-outline w-100">👁 Xem lịch sử</a>
             @endif
+            
+            {{-- Nút rút lại yêu cầu duyệt cũ (đã được thay thế bởi nút mới ở trên) --}}
         </div>
         
         {{-- Modal kết thúc --}}
@@ -1204,6 +1231,20 @@ function validateModalTextarea(textarea, counter, maxLength, modalId) {
                 return false;
             }
         }
+        
+        // Debug: Log form data before submit
+        console.log('Form submitting with files:', selectedFiles.length);
+        console.log('File input files:', fileInput.files.length);
+        console.log('Form action:', this.action);
+        console.log('Form method:', this.method);
+        
+        // Ensure files are properly attached
+        if (selectedFiles.length > 0) {
+            console.log('Files should be attached:', selectedFiles.map(f => f.name));
+        }
+        
+        // Test if form is actually submitting
+        console.log('Form is about to submit...');
     });
     
     // Initialize counter
@@ -1856,6 +1897,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dt = new DataTransfer();
         selectedFiles.forEach(file => dt.items.add(file));
         fileInput.files = dt.files;
+        
+        // Debug: Log file input
+        console.log('File input updated:', fileInput.files.length, 'files');
+        console.log('Selected files:', selectedFiles.length);
     }
     
     function updateFilePreviewVisibility() {
@@ -1882,14 +1927,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalImage = document.getElementById('modalImage');
         const downloadLink = document.getElementById('downloadLink');
         
+        // Reset image để tránh hiển thị ảnh cũ
+        modalImage.src = '';
+        modalImage.alt = '';
+        
+        // Set new image
         modalImage.src = imageUrl;
         modalImage.alt = fileName;
         downloadLink.href = imageUrl;
         downloadLink.download = fileName;
         
-        // Show modal
+        // Show modal với options
         const modal = document.getElementById('imageModal');
-        const bootstrapModal = new bootstrap.Modal(modal);
+        const bootstrapModal = new bootstrap.Modal(modal, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        
+        // Đảm bảo modal hiển thị đúng
+        modal.addEventListener('shown.bs.modal', function() {
+            // Center image trong modal
+            const modalBody = modal.querySelector('.modal-body');
+            if (modalBody) {
+                modalBody.style.display = 'flex';
+                modalBody.style.alignItems = 'center';
+                modalBody.style.justifyContent = 'center';
+            }
+        });
+        
         bootstrapModal.show();
     }
     
@@ -2033,5 +2099,43 @@ document.addEventListener('DOMContentLoaded', function() {
     window.completeSubtask = completeSubtask;
     window.updateSubtaskStatus = updateSubtaskStatus;
 });
+
+// CSS để sửa modal image alignment
+const style = document.createElement('style');
+style.textContent = `
+    #imageModal .modal-backdrop {
+        z-index: 99999 !important;
+    }
+    
+    #imageModal.modal {
+        z-index: 100000 !important;
+    }
+    
+    #imageModal .modal-dialog {
+        z-index: 100001 !important;
+    }
+    
+    #imageModal .modal-content {
+        border-radius: 0.5rem !important;
+        overflow: hidden !important;
+    }
+    
+    #imageModal #modalImage {
+        max-width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto !important;
+    }
+    
+    #imageModal .modal-body {
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 400px !important;
+    }
+`;
+document.head.appendChild(style);
 </script>
 @endsection

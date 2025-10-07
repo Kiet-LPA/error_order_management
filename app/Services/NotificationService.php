@@ -50,10 +50,10 @@ class NotificationService
      */
     private static function notifyRelevantAdminsAndDirectors($type, $title, $message, $data = [], $excludeUserIds = [], $relatedObject = null)
     {
-        // Gửi cho tất cả admin
+        // Gửi cho admin có liên quan
         $admins = User::where('role', 'admin')->get();
         foreach ($admins as $admin) {
-            if (!in_array($admin->id, $excludeUserIds)) {
+            if (!in_array($admin->id, $excludeUserIds) && self::isAdminRelevant($admin, $relatedObject, $data)) {
                 Notification::create([
                     'user_id' => $admin->id,
                     'type' => $type,
@@ -77,6 +77,37 @@ class NotificationService
                 ]);
             }
         }
+    }
+
+    /**
+     * Kiểm tra admin có liên quan đến object không
+     */
+    private static function isAdminRelevant(User $admin, $relatedObject = null, $data = [])
+    {
+        // Admin liên quan nếu:
+        // 1. Là creator/assigner của task
+        // 2. Là assignee của task  
+        // 3. Là follower của task
+        // 4. Hoặc có liên quan đến data
+        
+        if ($relatedObject instanceof Task) {
+            return $relatedObject->creator_id == $admin->id ||
+                   $relatedObject->assignee_id == $admin->id ||
+                   $relatedObject->followers()->where('user_id', $admin->id)->exists() ||
+                   $relatedObject->assignees()->where('user_id', $admin->id)->exists();
+        }
+        
+        // Kiểm tra data
+        if (!empty($data)) {
+            $relevantFields = ['creator_id', 'assigner_id', 'assignee_id', 'requester_id'];
+            foreach ($relevantFields as $field) {
+                if (isset($data[$field]) && $data[$field] == $admin->id) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -189,7 +220,48 @@ class NotificationService
         return false;
     }
     /**
-     * Gửi thông báo task được giao
+     * Gửi thông báo task được giao cho nhiều người
+     */
+    public static function taskAssignedToMultiple(Task $task, User $assigner, $assignees)
+    {
+        $assigneeNames = [];
+        
+        // Thông báo cho từng người được giao
+        foreach ($assignees as $assignee) {
+            Notification::create([
+                'user_id' => $assignee->id,
+                'type' => 'task_assigned',
+                'title' => 'Công việc mới được giao',
+                'message' => "Bạn nhận được thông báo mời từ {$assigner->name} giao công việc: {$task->title}",
+                'data' => [
+                    'task_id' => $task->id,
+                    'assigner_id' => $assigner->id,
+                    'assigner_name' => $assigner->name
+                ]
+            ]);
+            
+            $assigneeNames[] = $assignee->name;
+        }
+
+        // Chỉ gửi 1 thông báo tổng hợp cho admin và director có liên quan
+        $assigneeList = implode(', ', $assigneeNames);
+        self::notifyRelevantAdminsAndDirectors(
+            'task_assigned',
+            'Công việc mới được giao',
+            "{$assigner->name} đã giao công việc '{$task->title}' cho {$assigneeList}",
+            [
+                'task_id' => $task->id,
+                'assigner_id' => $assigner->id,
+                'assigner_name' => $assigner->name,
+                'assignee_count' => count($assignees)
+            ],
+            [],
+            $task
+        );
+    }
+
+    /**
+     * Gửi thông báo task được giao (cho 1 người)
      */
     public static function taskAssigned(Task $task, User $assigner, User $assignee)
     {
@@ -376,7 +448,24 @@ class NotificationService
             }
         }
 
-        // Thông báo cho Admin và Director có liên quan
+        // Thông báo cho Admin và Director có liên quan (tránh duplicate)
+        $excludeUserIds = [$requester->id];
+        
+        // Thêm recipients vào exclude list
+        if ($supportRequest->recipients) {
+            $recipientIds = is_string($supportRequest->recipients) 
+                ? json_decode($supportRequest->recipients, true) 
+                : $supportRequest->recipients;
+            if (is_array($recipientIds)) {
+                $excludeUserIds = array_merge($excludeUserIds, $recipientIds);
+            }
+        }
+        
+        // Thêm approver vào exclude list
+        if ($supportRequest->approver) {
+            $excludeUserIds[] = $supportRequest->approver->id;
+        }
+        
         self::notifyRelevantAdminsAndDirectors(
             'support_request_created',
             'Yêu cầu hỗ trợ mới',
@@ -388,7 +477,7 @@ class NotificationService
                 'priority' => $supportRequest->priority,
                 'is_urgent' => $supportRequest->is_urgent
             ],
-            [$requester->id],
+            $excludeUserIds,
             $supportRequest
         );
     }

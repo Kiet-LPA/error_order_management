@@ -126,6 +126,16 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     // Kanban Board - tất cả role có thể xem (nhưng chỉ Admin/Director/Manager có thể drag & drop)
     Route::get('/kanban', [TaskController::class, 'kanban'])->name('kanban');
     
+    // Test route for user deletion
+    Route::get('/test-delete/{user}', function($user) {
+        return response()->json([
+            'message' => 'Test route works',
+            'user_id' => $user,
+            'method' => request()->method(),
+            'user_agent' => request()->userAgent()
+        ]);
+    });
+    
     // Task Followers routes (Admin/Director/Manager only)
     Route::middleware('role:admin,director,manager')->group(function () {
         Route::post('/tasks/{task}/followers/add', [TaskFollowerController::class, 'add'])->name('tasks.followers.add');
@@ -220,11 +230,13 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
 
     // Comment routes
     Route::middleware(['auth', 'employee.type'])->group(function () {
-        Route::post('/tasks/{task}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
+        Route::post('/tasks/{task}/comments', [App\Http\Controllers\TaskController::class, 'comment'])->name('comments.store');
         Route::put('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'update'])->name('comments.update');
         Route::delete('/comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
         Route::post('/comments/{comment}/reactions', [App\Http\Controllers\CommentController::class, 'addReaction'])->name('comments.reactions');
         Route::delete('/comment-attachments/{attachment}', [App\Http\Controllers\CommentController::class, 'deleteAttachment'])->name('comment.attachments.delete');
+        Route::get('/comment-attachments/{attachment}/view', [App\Http\Controllers\CommentController::class, 'viewAttachment'])->name('comment.attachments.view');
+        Route::get('/comment-attachments/{attachment}/download', [App\Http\Controllers\CommentController::class, 'downloadAttachment'])->name('comment.attachments.download');
     });
 
     // Báo cáo tổng quan (thường cho manager & admin & director)
@@ -312,7 +324,7 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     
     // API routes for approval system
     Route::get('/api/users/approval-eligible', function() {
-        $users = \App\Models\User::where('role', 'manager')
+        $users = \App\Models\User::whereIn('role', ['manager', 'director'])
             ->select('id', 'name', 'role')
             ->get();
         
@@ -360,7 +372,7 @@ Route::post('/approval/bulk-reject', [App\Http\Controllers\ApprovalController::c
 Route::patch('/approval-requests/{id}/update-status', [App\Http\Controllers\ApprovalController::class, 'updateStatus'])->name('approval-requests.update-status');
 });
 
-// Checkin routes
+// Checkin routes (old system - keep for backward compatibility)
 Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::get('/checkin', [CheckinController::class, 'index'])->name('checkin.index');
     Route::post('/checkin', [CheckinController::class, 'checkin'])->name('checkin.checkin');
@@ -370,26 +382,31 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     })->name('checkin.gps-help');
 });
 
+
 // Admin/Director/Manager Checkin Management routes
 Route::middleware(['auth', 'role:admin,director,manager'])->prefix('admin/checkin')->name('admin.checkin.')->group(function () {
     Route::get('/', [\App\Http\Controllers\AdminCheckinController::class, 'index'])->name('index');
     Route::get('/manage', [\App\Http\Controllers\AdminCheckinController::class, 'manage'])->name('manage');
     Route::get('/gps-requests', [\App\Http\Controllers\AdminCheckinController::class, 'gpsRequests'])->name('gps-requests');
     Route::post('/gps-requests/{gpsRequest}/approve', [\App\Http\Controllers\AdminCheckinController::class, 'approveGpsRequest'])->name('approve-gps');
+    Route::get('/gps-requests/{gpsRequest}/test', [\App\Http\Controllers\AdminCheckinController::class, 'testGpsApproval'])->name('test-gps');
+    Route::get('/debug-database', [\App\Http\Controllers\AdminCheckinController::class, 'debugDatabaseStructure'])->name('debug-database');
     Route::post('/fix-attendance', [\App\Http\Controllers\AdminCheckinController::class, 'fixAttendance'])->name('fix-attendance');
     Route::delete('/{checkin}', [\App\Http\Controllers\AdminCheckinController::class, 'deleteCheckin'])->name('delete');
     Route::get('/reports', [\App\Http\Controllers\AdminCheckinController::class, 'reports'])->name('reports');
 });
 
 // Rental Car routes
-Route::middleware(['auth', 'employee.type'])->prefix('rental')->name('rental.')->group(function () {
+Route::middleware(['auth', 'employee.type', 'debug.session'])->prefix('rental')->name('rental.')->group(function () {
     // Public routes (all users can rent cars)
     Route::get('/', [\App\Http\Controllers\RentalCarController::class, 'index'])->name('index');
     Route::post('/rent', [\App\Http\Controllers\RentalCarController::class, 'rentCar'])->name('rent');
     Route::get('/my-rentals', [\App\Http\Controllers\RentalCarController::class, 'myRentals'])->name('my-rentals');
     Route::get('/rentals/{rental}', [\App\Http\Controllers\RentalCarController::class, 'showRental'])->name('show');
     Route::post('/rentals/{rental}/request-extension', [\App\Http\Controllers\RentalCarController::class, 'requestExtension'])->name('request-extension');
-    Route::post('/rentals/{rental}/return-car', [\App\Http\Controllers\RentalCarController::class, 'returnCar'])->name('return-car');
+    Route::post('/rentals/{rentalId}/return-car', [\App\Http\Controllers\RentalCarController::class, 'returnCar'])->name('return-car');
+    Route::get('/debug-auth', [\App\Http\Controllers\RentalCarController::class, 'debugAuth'])->name('debug-auth');
+    Route::get('/test-session', [\App\Http\Controllers\RentalCarController::class, 'testSession'])->name('test-session');
     
     // Admin/Manager routes (users with can_manage_cars = true)
     Route::middleware(['auth'])->group(function () {

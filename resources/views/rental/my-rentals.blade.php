@@ -150,13 +150,23 @@
                                             <i class="bi bi-eye me-1"></i>Chi tiết
                                         </a>
                                         
-                                        @if($rental->status === 'active' && $rental->canRequestExtension())
-                                            <button class="btn btn-warning btn-sm" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#extensionModal{{ $rental->id }}">
-                                                <i class="bi bi-clock-history me-1"></i>Gia hạn
-                                            </button>
-                                        @endif
+                                        <div class="d-flex gap-2">
+                                            @if($rental->status === 'active')
+                                                <button class="btn btn-danger btn-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#returnModal{{ $rental->id }}">
+                                                    <i class="bi bi-arrow-return-left me-1"></i>Trả xe
+                                                </button>
+                                            @endif
+                                            
+                                            @if($rental->status === 'active' && $rental->canRequestExtension())
+                                                <button class="btn btn-warning btn-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#extensionModal{{ $rental->id }}">
+                                                    <i class="bi bi-clock-history me-1"></i>Gia hạn
+                                                </button>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -219,6 +229,90 @@
                             </div>
                         </div>
                         @endif
+
+                        <!-- Return Modal for each rental -->
+                        @if($rental->status === 'active')
+                        <div class="modal fade" id="returnModal{{ $rental->id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            <i class="bi bi-arrow-return-left me-2"></i>Trả xe sớm
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form action="{{ route('rental.return-car', $rental->id) }}" method="POST">
+                                        @csrf
+                                        @method('POST')
+                                        <div class="modal-body">
+                                            <div class="alert alert-info">
+                                                <i class="bi bi-info-circle me-2"></i>
+                                                Bạn đang yêu cầu trả xe sớm hơn thời hạn đã đăng ký.
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Xe hiện tại</label>
+                                                <input type="text" class="form-control" 
+                                                       value="{{ $rental->car->license_plate }} - {{ $rental->car->car_type }}" readonly>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Thời gian trả theo đăng ký</label>
+                                                <input type="text" class="form-control" 
+                                                       value="{{ $rental->rental_end->format('d/m/Y H:i') }}" readonly>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="actual_return_time{{ $rental->id }}" class="form-label">Thời gian trả thực tế</label>
+                                                <input type="datetime-local" class="form-control @error('actual_return_time') is-invalid @enderror" 
+                                                       name="actual_return_time" id="actual_return_time{{ $rental->id }}" 
+                                                       max="{{ now()->format('Y-m-d\TH:i') }}" required>
+                                                @error('actual_return_time')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="refueled" id="refueled{{ $rental->id }}" 
+                                                           onchange="toggleFuelAmount({{ $rental->id }})">
+                                                    <label class="form-check-label" for="refueled{{ $rental->id }}">
+                                                        Đổ đầy nhiên liệu
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3" id="fuelAmountDiv{{ $rental->id }}" style="display: none;">
+                                                <label for="fuel_amount{{ $rental->id }}" class="form-label">Số tiền đã dùng để đổ nhiên liệu (VNĐ)</label>
+                                                <input type="number" class="form-control @error('fuel_amount') is-invalid @enderror" 
+                                                       name="fuel_amount" id="fuel_amount{{ $rental->id }}" 
+                                                       placeholder="Nhập số tiền đã đổ nhiên liệu..." min="0" step="1000">
+                                                @error('fuel_amount')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="return_notes{{ $rental->id }}" class="form-label">Ghi chú (tùy chọn)</label>
+                                                <textarea class="form-control @error('return_notes') is-invalid @enderror" 
+                                                          name="return_notes" id="return_notes{{ $rental->id }}" rows="3" 
+                                                          placeholder="Ghi chú về việc trả xe...">{{ old('return_notes') }}</textarea>
+                                                @error('return_notes')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="bi bi-check-circle me-1"></i>Xác nhận trả xe
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                     @endforeach
                 </div>
 
@@ -239,4 +333,19 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleFuelAmount(rentalId) {
+    const checkbox = document.getElementById('refueled' + rentalId);
+    const fuelAmountDiv = document.getElementById('fuelAmountDiv' + rentalId);
+    
+    if (checkbox.checked) {
+        fuelAmountDiv.style.display = 'block';
+    } else {
+        fuelAmountDiv.style.display = 'none';
+        // Clear the fuel amount input when unchecked
+        document.getElementById('fuel_amount' + rentalId).value = '';
+    }
+}
+</script>
 @endsection

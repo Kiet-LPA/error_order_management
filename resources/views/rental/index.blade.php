@@ -406,7 +406,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('rental.return-car', $activeRental) }}" method="POST">
+            <form action="{{ route('rental.return-car', $activeRental->id) }}" method="POST">
                 @csrf
                 @method('POST')
                 <div class="modal-body">

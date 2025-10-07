@@ -97,6 +97,7 @@
                             <th>Phòng ban</th>
                             <th>Ngày yêu cầu</th>
                             <th>Khoảng cách</th>
+                            <th>Vị trí GPS</th>
                             <th>Mã GPS</th>
                             <th>Trạng thái</th>
                             <th>Thời gian tạo</th>
@@ -115,6 +116,23 @@
                             <td>{{ \Carbon\Carbon::parse($gpsRequest->request_date)->format('d/m/Y') }}</td>
                             <td>
                                 <span class="badge bg-info">{{ round($gpsRequest->distance_meters) }}m</span>
+                            </td>
+                            <td>
+                                @if($gpsRequest->latitude && $gpsRequest->longitude)
+                                    <div class="d-flex flex-column">
+                                        <small class="text-muted mb-1">
+                                            <i class="bi bi-geo-alt me-1"></i>
+                                            {{ number_format($gpsRequest->latitude, 6) }}, {{ number_format($gpsRequest->longitude, 6) }}
+                                        </small>
+                                        <a href="{{ $gpsRequest->google_maps_url }}" 
+                                           target="_blank" 
+                                           class="btn btn-sm btn-outline-primary btn-sm">
+                                            <i class="bi bi-map me-1"></i>Xem bản đồ
+                                        </a>
+                                    </div>
+                                @else
+                                    <span class="text-muted">Không có dữ liệu</span>
+                                @endif
                             </td>
                             <td>
                                 <code class="bg-light p-1 rounded">{{ $gpsRequest->gps_code }}</code>
@@ -283,6 +301,13 @@ function showGpsRequestDetails(gpsRequestId) {
                         <p><strong>Khoảng cách:</strong> ${Math.round(data.distance_meters)}m</p>
                         <p><strong>Mã GPS:</strong> <code>${data.gps_code}</code></p>
                         <p><strong>Trạng thái:</strong> <span class="badge bg-${data.status === 'pending' ? 'warning' : data.status === 'approved' ? 'success' : 'danger'}">${data.status}</span></p>
+                        ${data.latitude && data.longitude ? `
+                        <p><strong>Vị trí GPS:</strong> 
+                            <br><small class="text-muted">${parseFloat(data.latitude).toFixed(6)}, ${parseFloat(data.longitude).toFixed(6)}</small>
+                            <br><a href="https://www.google.com/maps?q=${data.latitude},${data.longitude}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+                                <i class="bi bi-map me-1"></i>Xem trên Google Maps
+                            </a>
+                        </p>` : ''}
                     </div>
                 </div>
                 ${data.admin_notes ? `<div class="mt-3"><h6>Ghi chú Admin:</h6><p class="bg-light p-2 rounded">${data.admin_notes}</p></div>` : ''}

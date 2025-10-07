@@ -11,7 +11,9 @@
   
   {{-- Favicon --}}
   <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('favicon.png') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ time() }}">
@@ -959,6 +961,7 @@
              data-title="Phê duyệt đề xuất">
             <i class="bi bi-clipboard-check me-2"></i> <span>Phê duyệt đề xuất</span>
           </a>
+
           @endauth
         </div>
       </aside>

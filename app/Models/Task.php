@@ -104,6 +104,12 @@ class Task extends Model
         return $this->hasMany(TaskAssignee::class);
     }
 
+    // Task submissions relationship
+    public function submissions()
+    {
+        return $this->hasMany(TaskSubmission::class);
+    }
+
     // Multi-department assignments
     public function departments()
     {
@@ -296,7 +302,8 @@ class Task extends Model
      */
     public function canUndo(): bool
     {
-        if ($this->status !== 'completed' || !$this->completed_at) {
+        // Có thể hoàn tác khi task đã gửi duyệt (pending_approval) và có completed_at
+        if ($this->status !== 'pending_approval' || !$this->completed_at) {
             return false;
         }
         
@@ -306,7 +313,7 @@ class Task extends Model
     }
     
     /**
-     * Chuyển status từ 'completed' về 'in_progress'
+     * Chuyển status từ 'pending_approval' về 'in_progress' (rút lại yêu cầu duyệt)
      */
     public function undoCompletion(): bool
     {
@@ -314,7 +321,7 @@ class Task extends Model
             return false;
         }
         
-        // Chuyển status về 'in_progress'
+        // Chuyển status về 'in_progress' (rút lại yêu cầu duyệt)
         $this->status = 'in_progress';
         
         // Xóa completed_at
@@ -324,6 +331,122 @@ class Task extends Model
         $this->finish_note = null;
         
         return $this->save();
+    }
+
+    /**
+     * Lấy danh sách users được assign cho task này
+     */
+    public function getAssignedUsers()
+    {
+        $users = collect();
+        
+        // Thêm assignee chính
+        if ($this->assignee) {
+            $users->push($this->assignee);
+        }
+        
+        // Thêm multi-assignees
+        $users = $users->merge($this->assignees);
+        
+        return $users->unique('id');
+    }
+
+    /**
+     * Kiểm tra user đã submit task chưa
+     */
+    public function hasUserSubmitted(User $user): bool
+    {
+        $submission = $this->submissions()->where('user_id', $user->id)->first();
+        return $submission && $submission->isSubmitted();
+    }
+
+    /**
+     * Lấy submission của user
+     */
+    public function getUserSubmission(User $user): ?TaskSubmission
+    {
+        return $this->submissions()->where('user_id', $user->id)->first();
+    }
+
+    /**
+     * Submit task cho user
+     */
+    public function submitByUser(User $user): bool
+    {
+        // Tạo hoặc cập nhật submission
+        $submission = $this->submissions()->firstOrCreate(
+            ['user_id' => $user->id],
+            ['status' => 'pending']
+        );
+        
+        $submission->update([
+            'status' => 'submitted',
+            'submitted_at' => now(),
+            'undone_at' => null
+        ]);
+        
+        // Kiểm tra xem tất cả users đã submit chưa
+        $this->checkAllUsersSubmitted();
+        
+        return true;
+    }
+
+    /**
+     * Undo submission của user
+     */
+    public function undoSubmissionByUser(User $user): bool
+    {
+        $submission = $this->getUserSubmission($user);
+        
+        if (!$submission || !$submission->canUndo()) {
+            return false;
+        }
+        
+        $submission->update([
+            'status' => 'undone',
+            'undone_at' => now()
+        ]);
+        
+        // Nếu task đang pending_approval, chuyển về in_progress
+        if ($this->status === 'pending_approval') {
+            $this->status = 'in_progress';
+            $this->completed_at = null;
+            $this->save();
+        }
+        
+        return true;
+    }
+
+    /**
+     * Kiểm tra xem tất cả users đã submit chưa
+     */
+    public function checkAllUsersSubmitted(): void
+    {
+        $assignedUsers = $this->getAssignedUsers();
+        $submittedCount = $this->submissions()->submitted()->count();
+        
+        // Nếu tất cả users đã submit, chuyển task sang pending_approval
+        if ($submittedCount >= $assignedUsers->count() && $this->status === 'in_progress') {
+            $this->status = 'pending_approval';
+            $this->completed_at = now();
+            $this->save();
+        }
+    }
+
+    /**
+     * Lấy thông tin submission progress (3/4 người đã submit)
+     */
+    public function getSubmissionProgress(): array
+    {
+        $assignedUsers = $this->getAssignedUsers();
+        $submittedCount = $this->submissions()->submitted()->count();
+        
+        return [
+            'total' => $assignedUsers->count(),
+            'submitted' => $submittedCount,
+            'progress' => $assignedUsers->count() > 0 ? round(($submittedCount / $assignedUsers->count()) * 100) : 0,
+            'all_submitted' => $submittedCount >= $assignedUsers->count()
+        ];
     }
 
     /**

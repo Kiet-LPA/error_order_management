@@ -146,49 +146,110 @@ class AdminCheckinController extends Controller
      */
     public function approveGpsRequest(Request $request, GpsRequest $gpsRequest)
     {
-        $user = Auth::user();
-        
-        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
-            abort(403, 'Bạn không có quyền thực hiện thao tác này.');
-        }
-
-        // Kiểm tra quyền Manager
-        if ($user->isManager()) {
-            if ($gpsRequest->user->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể duyệt GPS request của nhân viên trong phòng ban.');
-            }
-        }
-
-        $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'admin_notes' => 'nullable|string|max:500'
-        ]);
-
-        $gpsRequest->update([
-            'status' => $request->status,
-            'admin_notes' => $request->admin_notes,
-            'approved_by' => $user->id,
-            'approved_at' => now()
-        ]);
-
-        // Nếu approved, tạo checkin record
-        if ($request->status === 'approved') {
-            Checkin::create([
+        try {
+            \Log::info('GPS Request approval attempt', [
+                'gps_request_id' => $gpsRequest->id,
                 'user_id' => $gpsRequest->user_id,
-                'department_id' => $gpsRequest->department_id,
-                'checkin_date' => $gpsRequest->request_date,
-                'session' => $this->getSessionFromTime($gpsRequest->request_date),
-                'checkin_time' => now(),
-                'latitude' => 0, // Manual approval
-                'longitude' => 0,
-                'distance_meters' => $gpsRequest->distance_meters,
-                'ip_address' => request()->ip(),
-                'status' => 'success',
-                'notes' => 'Được duyệt bởi ' . $user->name . ($request->admin_notes ? ' - ' . $request->admin_notes : '')
+                'request_status' => $request->status ?? 'not_provided',
+                'admin_notes' => $request->admin_notes ?? 'not_provided'
             ]);
-        }
 
-        return redirect()->back()->with('success', 'Đã cập nhật trạng thái GPS request thành công.');
+            $user = Auth::user();
+            
+            if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+                \Log::warning('Unauthorized GPS approval attempt', [
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'gps_request_id' => $gpsRequest->id
+                ]);
+                abort(403, 'Bạn không có quyền thực hiện thao tác này.');
+            }
+
+            // Kiểm tra quyền Manager
+            if ($user->isManager()) {
+                if ($gpsRequest->user->department_id !== $user->department_id) {
+                    \Log::warning('Manager trying to approve GPS from different department', [
+                        'manager_id' => $user->id,
+                        'manager_department' => $user->department_id,
+                        'gps_user_department' => $gpsRequest->user->department_id,
+                        'gps_request_id' => $gpsRequest->id
+                    ]);
+                    abort(403, 'Bạn chỉ có thể duyệt GPS request của nhân viên trong phòng ban.');
+                }
+            }
+
+            $request->validate([
+                'status' => 'required|in:approved,rejected',
+                'admin_notes' => 'nullable|string|max:500'
+            ], [
+                'status.required' => 'Vui lòng chọn trạng thái duyệt!',
+                'status.in' => 'Trạng thái không hợp lệ!',
+                'admin_notes.max' => 'Ghi chú không được quá 500 ký tự!'
+            ]);
+
+            \Log::info('GPS Request validation passed', [
+                'gps_request_id' => $gpsRequest->id,
+                'status' => $request->status
+            ]);
+
+            $gpsRequest->update([
+                'status' => $request->status,
+                'admin_notes' => $request->admin_notes,
+                'approved_by' => $user->id,
+                'approved_at' => now()
+            ]);
+
+            \Log::info('GPS Request updated successfully', [
+                'gps_request_id' => $gpsRequest->id,
+                'new_status' => $request->status
+            ]);
+
+            // Nếu approved, tạo checkin record
+            if ($request->status === 'approved') {
+                try {
+                    $checkin = Checkin::create([
+                        'user_id' => $gpsRequest->user_id,
+                        'department_id' => $gpsRequest->department_id,
+                        'checkin_date' => $gpsRequest->request_date,
+                        'session' => $this->getSessionFromTime($gpsRequest->request_date),
+                        'checkin_time' => now(),
+                        'latitude' => 0, // Manual approval
+                        'longitude' => 0,
+                        'distance_meters' => $gpsRequest->distance_meters,
+                        'ip_address' => request()->ip(),
+                        'status' => 'success',
+                        'notes' => 'Được duyệt bởi ' . $user->name . ($request->admin_notes ? ' - ' . $request->admin_notes : '')
+                    ]);
+
+                    \Log::info('Checkin record created successfully', [
+                        'checkin_id' => $checkin->id,
+                        'gps_request_id' => $gpsRequest->id
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Error creating checkin record', [
+                        'gps_request_id' => $gpsRequest->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    return redirect()->back()->with('error', 'Đã cập nhật GPS request nhưng có lỗi khi tạo bản ghi điểm danh: ' . $e->getMessage());
+                }
+            }
+
+            return redirect()->back()->with('success', 'Đã cập nhật trạng thái GPS request thành công.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('GPS Request validation failed', [
+                'gps_request_id' => $gpsRequest->id,
+                'errors' => $e->errors()
+            ]);
+            return redirect()->back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            \Log::error('GPS Request approval error', [
+                'gps_request_id' => $gpsRequest->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Có lỗi xảy ra khi duyệt GPS request: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -405,5 +466,126 @@ class AdminCheckinController extends Controller
                 'total_users' => $checkins->pluck('user.name')->unique()->count()
             ]
         ];
+    }
+
+    /**
+     * Test GPS approval without creating checkin
+     */
+    public function testGpsApproval(Request $request, GpsRequest $gpsRequest)
+    {
+        try {
+            \Log::info('GPS Test approval attempt', [
+                'gps_request_id' => $gpsRequest->id,
+                'user_id' => $gpsRequest->user_id,
+                'department_id' => $gpsRequest->department_id,
+                'request_date' => $gpsRequest->request_date,
+                'distance_meters' => $gpsRequest->distance_meters
+            ]);
+
+            $user = Auth::user();
+            
+            // Test data validation
+            $testData = [
+                'user_id' => $gpsRequest->user_id,
+                'department_id' => $gpsRequest->department_id,
+                'checkin_date' => $gpsRequest->request_date,
+                'session' => $this->getSessionFromTime($gpsRequest->request_date),
+                'checkin_time' => now(),
+                'latitude' => 0,
+                'longitude' => 0,
+                'distance_meters' => $gpsRequest->distance_meters,
+                'ip_address' => request()->ip(),
+                'status' => 'success',
+                'notes' => 'Test approval by ' . $user->name
+            ];
+
+            \Log::info('GPS Test data prepared', $testData);
+
+            // Test if Checkin model can be created (without actually creating)
+            $checkin = new Checkin($testData);
+            $checkin->save();
+
+            \Log::info('GPS Test checkin created successfully', [
+                'checkin_id' => $checkin->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'GPS approval test successful',
+                'checkin_id' => $checkin->id,
+                'test_data' => $testData
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('GPS Test approval error', [
+                'gps_request_id' => $gpsRequest->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Debug database structure
+     */
+    public function debugDatabaseStructure()
+    {
+        try {
+            // Kiểm tra cấu trúc bảng checkins
+            $checkinsColumns = \DB::select("DESCRIBE checkins");
+            $checkinsColumnsArray = array_map(function($column) {
+                return [
+                    'field' => $column->Field,
+                    'type' => $column->Type,
+                    'null' => $column->Null,
+                    'key' => $column->Key,
+                    'default' => $column->Default,
+                    'extra' => $column->Extra
+                ];
+            }, $checkinsColumns);
+
+            // Kiểm tra model fillable
+            $checkinModel = new Checkin();
+            $fillableFields = $checkinModel->getFillable();
+
+            // Test tạo checkin với dữ liệu mẫu
+            $testData = [
+                'user_id' => 1,
+                'department_id' => 1,
+                'checkin_date' => now()->toDateString(),
+                'session' => 'morning',
+                'checkin_time' => now(),
+                'latitude' => 0,
+                'longitude' => 0,
+                'distance_meters' => 0,
+                'ip_address' => '127.0.0.1',
+                'status' => 'success',
+                'notes' => 'Debug test'
+            ];
+
+            $checkin = new Checkin($testData);
+            $checkin->save();
+
+            return response()->json([
+                'success' => true,
+                'checkins_columns' => $checkinsColumnsArray,
+                'model_fillable' => $fillableFields,
+                'test_checkin_id' => $checkin->id,
+                'test_data' => $testData
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 }

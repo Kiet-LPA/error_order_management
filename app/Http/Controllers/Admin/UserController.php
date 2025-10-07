@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -17,7 +20,7 @@ class UserController extends Controller
             abort(403, 'Bạn không có quyền xem danh sách người dùng.');
         }
         
-        // Base query
+        // Base query - thêm with('departments') để tránh N+1 query
         $query = User::with(['department', 'departments'])->where('employee_type', 'official');
         
         // Manager chỉ có thể xem users cùng phòng ban
@@ -557,7 +560,75 @@ class UserController extends Controller
             abort(403, 'Bạn không thể xóa tài khoản của chính mình.');
         }
         
-        $user->delete();
-        return back()->with('success','Đã xóa.');
+        try {
+            DB::beginTransaction();
+            
+            // Xóa các bản ghi liên quan trước (theo thứ tự để tránh foreign key constraint)
+            
+            // 1. Xóa work reports
+            DB::table('work_reports')->where('user_id', $user->id)->delete();
+            
+            // 2. Xóa comments
+            DB::table('comments')->where('user_id', $user->id)->delete();
+            
+            // 3. Xóa tasks (creator)
+            DB::table('tasks')->where('creator_id', $user->id)->delete();
+            
+            // 4. Xóa task assignees
+            DB::table('task_assignees')->where('user_id', $user->id)->delete();
+            
+            // 5. Xóa task followers
+            DB::table('task_followers')->where('user_id', $user->id)->delete();
+            
+            // 6. Xóa task forwards
+            DB::table('task_forwards')->where('user_id', $user->id)->delete();
+            
+            // 7. Xóa support requests
+            DB::table('support_requests')->where('user_id', $user->id)->delete();
+            
+            // 8. Xóa forward requests
+            DB::table('forward_requests')->where('user_id', $user->id)->delete();
+            
+            // 9. Xóa approval requests
+            DB::table('approval_requests')->where('user_id', $user->id)->delete();
+            
+            // 10. Xóa approval actions
+            DB::table('approval_actions')->where('user_id', $user->id)->delete();
+            
+            // 11. Xóa notifications
+            DB::table('notifications')->where('user_id', $user->id)->delete();
+            
+            // 12. Xóa gps requests
+            DB::table('gps_requests')->where('user_id', $user->id)->delete();
+            
+            // 13. Xóa checkins
+            DB::table('checkins')->where('user_id', $user->id)->delete();
+            
+            // 14. Xóa rentals
+            DB::table('rentals')->where('user_id', $user->id)->delete();
+            
+            // 15. Xóa user departments
+            $user->departments()->detach();
+            
+            // 16. Xóa contracts và salaries
+            $user->contracts()->delete();
+            $user->salaries()->delete();
+            
+            // 17. Xóa avatar nếu có
+            if ($user->avatar && Storage::exists('public/' . $user->avatar)) {
+                Storage::delete('public/' . $user->avatar);
+            }
+            
+            // 18. Cuối cùng mới xóa user
+            $user->delete();
+            
+            DB::commit();
+            return back()->with('success','Đã xóa thành công.');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting user: ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra khi xóa người dùng: ' . $e->getMessage());
+        }
     }
 }

@@ -356,8 +356,24 @@ class TaskController extends Controller
         // Debug: Check if task was created with description
         \Log::info('Task created with ID:', ['id' => $task->id]);
         \Log::info('Task description after creation:', ['description' => $task->description]);
+        
+        // Ghi log hoạt động tạo task
+        $task->activities()->create([
+            'user_id' => $user->id,
+            'action' => 'created',
+            'description' => "Đã tạo công việc: {$task->title}",
+            'meta' => json_encode([
+                'task_id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'priority' => $task->priority,
+                'deadline' => $task->deadline
+            ])
+        ]);
 
         // Xử lý user assignments
+        $newAssignees = [];
+        
         if ($r->boolean('is_multi_user') && $r->has('assignee_ids') && is_array($r->assignee_ids)) {
             // Multi-user assignment - loại bỏ duplicate
             $uniqueAssigneeIds = array_unique($r->assignee_ids);
@@ -365,10 +381,9 @@ class TaskController extends Controller
                 // Kiểm tra xem đã tồn tại chưa để tránh duplicate
                 if (!$task->assignees()->where('user_id', $assigneeId)->exists()) {
                     $task->assignees()->attach($assigneeId);
-                    // Gửi thông báo cho assignee
                     $assignee = User::find($assigneeId);
                     if ($assignee) {
-                        NotificationService::taskAssigned($task, $user, $assignee);
+                        $newAssignees[] = $assignee;
                     }
                 }
             }
@@ -376,11 +391,21 @@ class TaskController extends Controller
             // Single user assignment - cũng lưu vào pivot table để thống nhất
             if (!$task->assignees()->where('user_id', $r->assignee_id)->exists()) {
                 $task->assignees()->attach($r->assignee_id);
-                // Gửi thông báo cho assignee
                 $assignee = User::find($r->assignee_id);
                 if ($assignee) {
-                    NotificationService::taskAssigned($task, $user, $assignee);
+                    $newAssignees[] = $assignee;
                 }
+            }
+        }
+        
+        // Gửi thông báo cho tất cả assignees mới
+        if (!empty($newAssignees)) {
+            if (count($newAssignees) == 1) {
+                // Giao cho 1 người
+                NotificationService::taskAssigned($task, $user, $newAssignees[0]);
+            } else {
+                // Giao cho nhiều người
+                NotificationService::taskAssignedToMultiple($task, $user, $newAssignees);
             }
         }
 
@@ -839,20 +864,21 @@ class TaskController extends Controller
         // Xác định user có được giao task không (hỗ trợ cả single và multi-user)
         $isAssignedToUser = ($task->assignee_id === $user->id) || $task->assignees->contains('id', $user->id);
 
-        // ✅ Cho phép employee resubmit khi task bị rejected
-        $isEmployeeResubmitting = $user->isEmployee() &&
+        // ✅ Kiểm tra quyền submit task (Employee/Manager nhận việc)
+        $canSubmitTask = $user->canSubmitTask($task);
+        
+        // ✅ Cho phép employee/manager resubmit khi task bị rejected
+        $isUserResubmitting = $canSubmitTask &&
             $task->status === 'rejected' &&
-            $status === 'pending_approval' &&
-            $isAssignedToUser;
+            $status === 'pending_approval';
 
-        // ✅ Cho phép employee (được assign) gửi duyệt khi đang làm
-        $isEmployeeSubmittingForApproval = $user->isEmployee() &&
+        // ✅ Cho phép employee/manager gửi duyệt khi đang làm
+        $isUserSubmittingForApproval = $canSubmitTask &&
             in_array($task->status, ['in_progress']) &&
-            $status === 'pending_approval' &&
-            $isAssignedToUser;
+            $status === 'pending_approval';
 
-        // ✅ Gộp điều kiện cho employee
-        $allowEmployeeSubmit = $isEmployeeResubmitting || $isEmployeeSubmittingForApproval;
+        // ✅ Gộp điều kiện cho user submit
+        $allowUserSubmit = $isUserResubmitting || $isUserSubmittingForApproval;
 
         \Log::debug('UPDATE STATUS PERMISSION CHECK', [
             'task_id' => $task->id,
@@ -861,12 +887,13 @@ class TaskController extends Controller
             'requested_status' => $status,
             'current_status' => $task->status,
             'isAssignedToUser' => $isAssignedToUser,
-            'isEmployeeResubmitting' => $isEmployeeResubmitting,
-            'isEmployeeSubmittingForApproval' => $isEmployeeSubmittingForApproval,
-            'allowEmployeeSubmit' => $allowEmployeeSubmit,
+            'canSubmitTask' => $canSubmitTask,
+            'isUserResubmitting' => $isUserResubmitting,
+            'isUserSubmittingForApproval' => $isUserSubmittingForApproval,
+            'allowUserSubmit' => $allowUserSubmit,
         ]);
 
-        if (!$allowEmployeeSubmit && !$user->canApproveTask($task)) {
+        if (!$allowUserSubmit && !$user->canApproveTask($task)) {
             abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
         }
         
@@ -904,6 +931,28 @@ class TaskController extends Controller
             }
         }
 
+        // Xử lý multi-user submission
+        if ($status === 'pending_approval' && $allowUserSubmit) {
+            // User submit task (không thay đổi status task ngay)
+            $task->submitByUser($user);
+            
+            $progress = $task->getSubmissionProgress();
+            
+            if ($r->ajax() || $r->wantsJson()) {
+                return response()->json([
+                    'success' => true, 
+                    'message' => "Đã gửi báo cáo hoàn thành. Tiến độ: {$progress['submitted']}/{$progress['total']} người đã gửi.",
+                    'progress' => $progress
+                ]);
+            }
+            return back()->with('success', "Đã gửi báo cáo hoàn thành. Tiến độ: {$progress['submitted']}/{$progress['total']} người đã gửi.");
+        }
+        
+        // Xử lý các trường hợp khác (approve, reject, etc.)
+        if ($status === 'pending_approval' && !$task->completed_at) {
+            $task->completed_at = now();
+        }
+        
         $task->status = $status;
         $task->save();
         
@@ -953,7 +1002,10 @@ class TaskController extends Controller
             case 'pending_approval':
                 // Chỉ role cao mới có thể kết thúc hoặc từ chối task đang chờ phê duyệt
                 if (in_array($userRole, ['admin', 'director', 'manager'])) {
-                    return ['finished', 'rejected'];
+                    // Kiểm tra quyền approve task
+                    if ($user->canApproveTask($task)) {
+                        return ['finished', 'rejected'];
+                    }
                 }
                 break;
                 
@@ -1108,6 +1160,16 @@ class TaskController extends Controller
     // (Tuỳ bạn đã có hay chưa)
     public function comment(Task $task, Request $r)
     {
+        \Log::info('=== COMMENT METHOD CALLED ===', [
+            'task_id' => $task->id,
+            'user_id' => $r->user()->id,
+            'method' => $r->method(),
+            'has_content' => $r->has('content'),
+            'content' => $r->input('content'),
+            'has_files' => $r->hasFile('attachments'),
+            'all_input' => $r->all()
+        ]);
+        
         $user = $r->user();
         
         // Load assignees trước khi kiểm tra quyền
@@ -1132,6 +1194,14 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể comment trên task mà bạn được assign hoặc tạo.');
             }
         }
+        
+        // Debug: Log request data
+        \Log::info('Comment request data', [
+            'has_files' => $r->hasFile('attachments'),
+            'files_count' => $r->hasFile('attachments') ? count($r->file('attachments')) : 0,
+            'content' => $r->content,
+            'all_files' => $r->allFiles()
+        ]);
         
         $r->validate([
             'content' => 'required|string|max:1000',
@@ -1166,42 +1236,57 @@ class TaskController extends Controller
                     $counter++;
                 }
                 
-                $fileName = $safeName . '.' . $extension;
-                $filePath = $file->storeAs('public/task-comments', $fileName);
+                        $fileName = $safeName . '.' . $extension;
+                        
+                        // Sử dụng Laravel Storage để lưu file
+                        $storedPath = $file->storeAs('public/task-comments', $fileName);
+                        
+                        // Lưu thông tin file
+                        $fileSize = $file->getSize();
+                        $fileType = $file->getMimeType();
+                        
+                        \Log::info('File saved using Storage', [
+                            'fileName' => $fileName,
+                            'storedPath' => $storedPath,
+                            'fileExists' => \Storage::exists($storedPath),
+                            'fileSize' => $fileSize
+                        ]);
                 
-                // Đảm bảo thư mục public/storage/task-comments tồn tại
-                $publicPath = public_path('storage/task-comments');
-                if (!file_exists($publicPath)) {
-                    mkdir($publicPath, 0755, true);
-                }
-                
-                // Copy file từ storage sang public storage
-                $sourcePath = storage_path('app/public/task-comments/' . $fileName);
-                $destPath = $publicPath . '/' . $fileName;
-                if (file_exists($sourcePath)) {
-                    copy($sourcePath, $destPath);
-                }
+                $fileUrl = asset('storage/task-comments/' . $fileName);
+                \Log::info('File URL generated', [
+                    'fileName' => $fileName,
+                    'fileUrl' => $fileUrl,
+                    'storedPath' => $storedPath
+                ]);
                 
                 $attachments[] = [
                     'name' => $originalName,
-                    'url' => asset('storage/task-comments/' . $fileName),
-                    'size' => $file->getSize(),
-                    'type' => $file->getMimeType(),
+                    'path' => 'task-comments/' . $fileName,
+                    'url' => $fileUrl,
+                    'size' => $fileSize,
+                    'type' => $fileType,
                 ];
             }
         }
         
-        // Tạo comment với file đính kèm
-        $meta = [
-            'content' => $r->content,
-            'attachments' => $attachments
-        ];
-        
-        $task->activities()->create([
-            'user_id' => $user->id,
-            'action'  => 'comment',
-            'meta'    => json_encode($meta),
-        ]);
+                // Tạo comment với file đính kèm
+                $comment = $task->comments()->create([
+                    'user_id' => $user->id,
+                    'content' => $r->content,
+                ]);
+                
+                // Lưu attachments vào CommentAttachment table
+                foreach ($attachments as $attachment) {
+                    $comment->attachments()->create([
+                        'original_name' => $attachment['name'],
+                        'file_name' => basename($attachment['path']),
+                        'file_path' => $attachment['path'],
+                        'file_url' => $attachment['url'],
+                        'mime_type' => $attachment['type'],
+                        'file_size' => $attachment['size'],
+                        'file_extension' => pathinfo($attachment['name'], PATHINFO_EXTENSION),
+                    ]);
+                }
         
         return back()->with('success', 'Bình luận đã được gửi thành công!');
     }
@@ -1223,13 +1308,14 @@ class TaskController extends Controller
                 abort(403, 'Bạn chỉ có thể xem lịch sử task của phòng ban mình.');
             }
         } else {
-            // Employee chỉ có thể xem lịch sử task mà họ được assign hoặc tạo
+            // Employee chỉ có thể xem lịch sử task mà họ được assign, tạo, hoặc follow
             $isAssigned = $task->assignee_id === $user->id || 
                          $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
+                         $task->assignees->contains('id', $user->id) ||
+                         $task->followers()->where('user_id', $user->id)->exists();
             
             if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể xem lịch sử task mà bạn được assign hoặc tạo.');
+                abort(403, 'Bạn chỉ có thể xem lịch sử task mà bạn được assign, tạo, hoặc follow.');
             }
         }
         
@@ -1309,43 +1395,35 @@ class TaskController extends Controller
         $task->load('assignees');
         
         // Kiểm tra quyền hoàn tác
-        if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director có thể hoàn tác mọi task
-        } elseif ($user->isManager()) {
-            // Manager chỉ có thể hoàn tác task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                abort(403, 'Bạn chỉ có thể hoàn tác task của phòng ban mình.');
-            }
-        } else {
-            // Employee chỉ có thể hoàn tác task mà họ được assign hoặc tạo
-            $isAssigned = $task->assignee_id === $user->id || 
-                         $task->creator_id === $user->id ||
-                         $task->assignees->contains('id', $user->id);
-            
-            if (!$isAssigned) {
-                abort(403, 'Bạn chỉ có thể hoàn tác task mà bạn được assign hoặc tạo.');
-            }
+        if (!$user->canSubmitTask($task)) {
+            abort(403, 'Bạn không có quyền hoàn tác task này.');
         }
         
-        // Kiểm tra xem có thể hoàn tác không
-        if (!$task->canUndo()) {
-            return back()->withErrors(['undo' => 'Không thể hoàn tác công việc này. Chỉ có thể hoàn tác trong vòng 3 tiếng sau khi hoàn thành.']);
+        // Kiểm tra user đã submit chưa
+        if (!$task->hasUserSubmitted($user)) {
+            return back()->withErrors(['undo' => 'Bạn chưa gửi báo cáo hoàn thành cho task này.']);
         }
         
-        // Thực hiện hoàn tác
-        if ($task->undoCompletion()) {
+        // Kiểm tra submission có thể undo không
+        $submission = $task->getUserSubmission($user);
+        if (!$submission || !$submission->canUndo()) {
+            return back()->withErrors(['undo' => 'Không thể rút lại yêu cầu duyệt này. Chỉ có thể rút lại trong vòng 3 tiếng sau khi gửi duyệt.']);
+        }
+        
+        // Thực hiện hoàn tác submission của user
+        if ($task->undoSubmissionByUser($user)) {
+            $progress = $task->getSubmissionProgress();
             // Ghi log hoạt động
             $task->activities()->create([
                 'user_id' => $user->id,
                 'action'  => 'undo_completion',
-                'meta'    => 'Đã hoàn tác công việc hoàn thành',
+                'meta'    => 'Đã rút lại yêu cầu duyệt',
             ]);
             
-            return back()->with('ok', 'Đã hoàn tác công việc thành công. Công việc đã được chuyển về trạng thái "Đang làm".');
+            return back()->with('ok', "Đã rút lại báo cáo hoàn thành. Tiến độ: {$progress['submitted']}/{$progress['total']} người đã gửi.");
         }
         
-        return back()->withErrors(['undo' => 'Không thể hoàn tác công việc. Vui lòng thử lại.']);
+        return back()->withErrors(['undo' => 'Không thể rút lại yêu cầu duyệt. Vui lòng thử lại.']);
     }
 
     /**
@@ -1399,25 +1477,25 @@ class TaskController extends Controller
             }
         }
         
-        // Lấy approval requests theo quyền
-        $approvalQuery = \App\Models\ApprovalRequest::with(['creator', 'currentApprover', 'approvedBy', 'rejectedBy']);
+        // Lấy support requests theo quyền
+        $supportQuery = \App\Models\SupportRequest::with(['requester', 'approver', 'department', 'sourceDepartment']);
         
         if ($user->isAdmin() || $user->isDirector()) {
-            // Admin và Director thấy tất cả approval requests
-            $approvalRequests = $approvalQuery->orderBy('created_at', 'desc')->get();
+            // Admin và Director thấy tất cả support requests
+            $supportRequests = $supportQuery->orderBy('created_at', 'desc')->get();
         } elseif ($user->isManager()) {
-            // Manager chỉ thấy approval requests của phòng ban mình hoặc được giao phê duyệt
-            $approvalRequests = $approvalQuery->where(function($q) use ($user) {
-                $q->where('created_by_id', $user->id)
-                  ->orWhere('current_approver_id', $user->id)
-                  ->orWhereHas('creator', function($subQ) use ($user) {
-                      $subQ->where('department_id', $user->department_id);
-                  });
+            // Manager chỉ thấy support requests của phòng ban mình hoặc được giao phê duyệt
+            $supportRequests = $supportQuery->where(function($q) use ($user) {
+                $q->where('requester_id', $user->id)
+                  ->orWhere('approver_id', $user->id)
+                  ->orWhere('department_id', $user->department_id)
+                  ->orWhere('source_department_id', $user->department_id)
+                  ->orWhereJsonContains('recipients', $user->id);
             })->orderBy('created_at', 'desc')->get();
         } else {
-            // Employee chỉ thấy approval requests của mình
-            $approvalRequests = $approvalQuery->where('created_by_id', $user->id)
-                                            ->orderBy('created_at', 'desc')->get();
+            // Employee chỉ thấy support requests của mình
+            $supportRequests = $supportQuery->where('requester_id', $user->id)
+                                          ->orderBy('created_at', 'desc')->get();
         }
         
         // Nhóm tasks theo status (sau khi đã cập nhật)
@@ -1433,14 +1511,20 @@ class TaskController extends Controller
             $kanbanData['pending_approval'] = $tasks->where('status', 'pending_approval');
         }
         
-        // Nhóm approval requests theo status
-        $approvalKanbanData = [
-            'pending_approval_requests' => $approvalRequests->where('approval_status', 'pending'),
-            'approved_requests' => $approvalRequests->where('approval_status', 'approved'),
-            'rejected_requests' => $approvalRequests->where('approval_status', 'rejected'),
+        // Nhóm support requests theo status
+        $supportKanbanData = [
+            'pending_approval_requests' => $supportRequests->filter(function($req) {
+                return $req->status === 'pending';
+            }),
+            'approved_requests' => $supportRequests->filter(function($req) {
+                return $req->status === 'approved';
+            }),
+            'rejected_requests' => $supportRequests->filter(function($req) {
+                return $req->status === 'rejected';
+            }),
         ];
         
-        return view('tasks.kanban', compact('kanbanData', 'approvalKanbanData'));
+        return view('tasks.kanban', compact('kanbanData', 'supportKanbanData'));
     }
 
     /**
@@ -1478,12 +1562,16 @@ class TaskController extends Controller
             return response()->json(['success' => false, 'message' => 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện'], 403);
         }
         
-        // Kiểm tra quyền theo role
+        // Kiểm tra quyền theo role - sử dụng TaskPermissionService
         if ($user->isManager()) {
-            // Manager chỉ có thể cập nhật task của phòng ban mình
-            if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
-                $task->creator && $task->creator->department_id !== $user->department_id) {
-                return response()->json(['success' => false, 'message' => 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện'], 403);
+            // Manager chỉ có thể approve/reject task thuộc thẩm quyền của họ
+            if (in_array($newStatus, ['finished', 'rejected']) && !$user->canApproveTask($task)) {
+                return response()->json(['success' => false, 'message' => 'Bạn không có quyền phê duyệt/từ chối task này. Chỉ có thể xử lý task thuộc thẩm quyền của bạn.'], 403);
+            }
+            
+            // Manager chỉ có thể sửa task thuộc thẩm quyền của họ
+            if (in_array($newStatus, ['pending_approval', 'in_progress']) && !$user->canEditTask($task)) {
+                return response()->json(['success' => false, 'message' => 'Bạn không có quyền thay đổi trạng thái task này. Chỉ có thể xử lý task thuộc thẩm quyền của bạn.'], 403);
             }
         }
         
@@ -1529,8 +1617,8 @@ class TaskController extends Controller
             $updateData['completed_at'] = now();
         }
         
-        // Clear completed_at khi chuyển từ pending_approval sang status khác
-        if ($task->status === 'pending_approval' && $newStatus !== 'pending_approval') {
+        // Clear completed_at khi chuyển từ pending_approval sang status khác (trừ approved)
+        if ($task->status === 'pending_approval' && !in_array($newStatus, ['pending_approval', 'approved'])) {
             $updateData['completed_at'] = null;
         }
         

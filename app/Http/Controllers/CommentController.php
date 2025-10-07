@@ -123,6 +123,109 @@ class CommentController extends Controller
         ]);
     }
     
+    public function viewAttachment(CommentAttachment $attachment)
+    {
+        // Kiểm tra quyền xem attachment
+        $user = Auth::user();
+        $task = $attachment->comment->task;
+        
+        // Kiểm tra quyền xem task
+        if (!$user->isAdmin() && !$user->isDirector()) {
+            if ($user->isManager()) {
+                // Manager chỉ có thể xem task của phòng ban mình
+                if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
+                    $task->creator && $task->creator->department_id !== $user->department_id) {
+                    abort(403, 'Bạn không có quyền xem file này');
+                }
+            } else {
+                // Employee chỉ có thể xem task mà họ được assign hoặc tạo
+                $isAssigned = $task->assignee_id === $user->id || 
+                             $task->creator_id === $user->id ||
+                             $task->assignees->contains('id', $user->id);
+                
+                if (!$isAssigned) {
+                    abort(403, 'Bạn không có quyền xem file này');
+                }
+            }
+        }
+
+        // Thử nhiều đường dẫn storage có thể
+        $possibleStoragePaths = [
+            'public/' . $attachment->file_path,
+            'public/task-comments/' . $attachment->file_name,
+            'public/task-comments/' . $attachment->original_name,
+        ];
+        
+        $storagePath = null;
+        foreach ($possibleStoragePaths as $path) {
+            if (\Storage::exists($path)) {
+                $storagePath = $path;
+                break;
+            }
+        }
+        
+        if (!$storagePath) {
+            abort(404, 'File không tồn tại trong storage. Tried paths: ' . implode(', ', $possibleStoragePaths));
+        }
+
+        // Sử dụng Storage để lấy file content
+        $fileContent = \Storage::get($storagePath);
+        
+        return response($fileContent)
+            ->header('Content-Type', $attachment->mime_type)
+            ->header('Content-Disposition', 'inline; filename="' . $attachment->original_name . '"')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+    
+    public function downloadAttachment(CommentAttachment $attachment)
+    {
+        // Kiểm tra quyền download attachment
+        $user = Auth::user();
+        $task = $attachment->comment->task;
+        
+        // Kiểm tra quyền xem task
+        if (!$user->isAdmin() && !$user->isDirector()) {
+            if ($user->isManager()) {
+                // Manager chỉ có thể xem task của phòng ban mình
+                if ($task->assignee && $task->assignee->department_id !== $user->department_id &&
+                    $task->creator && $task->creator->department_id !== $user->department_id) {
+                    abort(403, 'Bạn không có quyền tải file này');
+                }
+            } else {
+                // Employee chỉ có thể xem task mà họ được assign hoặc tạo
+                $isAssigned = $task->assignee_id === $user->id || 
+                             $task->creator_id === $user->id ||
+                             $task->assignees->contains('id', $user->id);
+                
+                if (!$isAssigned) {
+                    abort(403, 'Bạn không có quyền tải file này');
+                }
+            }
+        }
+
+        // Thử nhiều đường dẫn storage có thể
+        $possibleStoragePaths = [
+            'public/' . $attachment->file_path,
+            'public/task-comments/' . $attachment->file_name,
+            'public/task-comments/' . $attachment->original_name,
+        ];
+        
+        $storagePath = null;
+        foreach ($possibleStoragePaths as $path) {
+            if (\Storage::exists($path)) {
+                $storagePath = $path;
+                break;
+            }
+        }
+        
+        if (!$storagePath) {
+            abort(404, 'File không tồn tại trong storage. Tried paths: ' . implode(', ', $possibleStoragePaths));
+        }
+
+        // Sử dụng Storage để download file
+        return \Storage::download($storagePath, $attachment->original_name);
+    }
+
     public function deleteAttachment(CommentAttachment $attachment)
     {
         // Kiểm tra quyền xóa attachment

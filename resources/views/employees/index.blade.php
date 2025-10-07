@@ -510,7 +510,6 @@
         <thead class="table-light">
           <tr>
             <th class="px-4 py-3 fw-semibold">Thông tin nhân viên</th>
-            <th class="px-4 py-3 fw-semibold">Email</th>
             <th class="px-4 py-3 fw-semibold">Số điện thoại</th>
             <th class="px-4 py-3 fw-semibold">Phòng ban</th>
             <th class="px-4 py-3 fw-semibold">Vai trò</th>
@@ -532,11 +531,6 @@
                     <small class="text-muted">ID: {{ $user->id }}</small>
                   </div>
                 </div>
-              </td>
-              <td class="px-4 py-3">
-                <a href="mailto:{{ $user->email }}" class="text-decoration-none">
-                  <i class="bi bi-envelope me-1"></i>{{ $user->email }}
-                </a>
               </td>
               <td class="px-4 py-3">
                 @if($user->phone)

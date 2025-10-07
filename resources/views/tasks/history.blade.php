@@ -56,6 +56,52 @@
                                 </div>
                             @endif
                             
+                            {{-- Hiển thị attachments nếu có (cho comment) --}}
+                            @if(isset($meta['attachments']) && is_array($meta['attachments']) && count($meta['attachments']) > 0)
+                                <div class="mt-2">
+                                    <strong>File đính kèm:</strong>
+                                    <div class="row mt-2">
+                                        @foreach($meta['attachments'] as $attachment)
+                                            <div class="col-md-4 mb-2">
+                                                <div class="card">
+                                                    @if(in_array(strtolower(pathinfo($attachment['name'], PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif', 'webp']))
+                                                        {{-- Hiển thị ảnh --}}
+                                                        <img src="{{ isset($attachment['url']) ? $attachment['url'] : asset('storage/' . $attachment['path']) }}" 
+                                                             class="card-img-top" 
+                                                             style="height: 150px; object-fit: cover;"
+                                                             alt="{{ $attachment['name'] }}">
+                                                    @elseif(in_array(strtolower(pathinfo($attachment['name'], PATHINFO_EXTENSION)), ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm']))
+                                                        {{-- Hiển thị video --}}
+                                                        <video class="card-img-top" 
+                                                               style="height: 150px; object-fit: cover;"
+                                                               controls>
+                                                            <source src="{{ isset($attachment['url']) ? $attachment['url'] : asset('storage/' . $attachment['path']) }}" 
+                                                                    type="video/{{ pathinfo($attachment['name'], PATHINFO_EXTENSION) }}">
+                                                            Trình duyệt không hỗ trợ video.
+                                                        </video>
+                                                    @else
+                                                        {{-- Hiển thị file khác --}}
+                                                        <div class="card-body text-center">
+                                                            <i class="fas fa-file fa-3x text-muted"></i>
+                                                        </div>
+                                                    @endif
+                                                    <div class="card-body">
+                                                        <h6 class="card-title text-truncate" title="{{ $attachment['name'] }}">
+                                                            {{ $attachment['name'] }}
+                                                        </h6>
+                                                        <a href="{{ isset($attachment['url']) ? $attachment['url'] : asset('storage/' . $attachment['path']) }}" 
+                                                           class="btn btn-sm btn-outline-primary" 
+                                                           target="_blank">
+                                                            <i class="fas fa-download"></i> Tải xuống
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                            
                             {{-- Hiển thị new_content nếu có (cho edit comment) --}}
                             @if(isset($meta['new_content']))
                                 <div class="mt-2 p-2 bg-light rounded">

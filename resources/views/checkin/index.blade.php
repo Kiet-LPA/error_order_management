@@ -172,14 +172,24 @@
     </div>
 
     <div class="container">
-        @if($session)
-            <div class="alert alert-info">
-                ⏰ Thời gian điểm danh ca {{ $session === 'morning' ? 'sáng' : 'chiều' }}: 
-                {{ $session === 'morning' ? '4:00 - 11:00' : '13:00 - 20:00' }}
+        <!-- Status Display -->
+        @if($hasCheckin && $hasCheckout)
+            <div class="alert alert-success">
+                <h4>✅ Hoàn thành ngày làm việc</h4>
+                <p><strong>Checkin:</strong> {{ $hasCheckin->checkin_time->format('H:i:s') }}</p>
+                <p><strong>Checkout:</strong> {{ $hasCheckout->checkin_time->format('H:i:s') }}</p>
+                <p><strong>Tổng giờ làm việc:</strong> {{ $totalWorkingHours }} giờ</p>
+            </div>
+        @elseif($hasCheckin && !$hasCheckout)
+            <div class="alert alert-warning">
+                <h4> Đã checkin - Chờ checkout</h4>
+                <p><strong>Checkin:</strong> {{ $hasCheckin->checkin_time->format('H:i:s') }}</p>
+                <p><strong>Thời gian làm việc hiện tại:</strong> <span id="current-working-time">--:--</span></p>
             </div>
         @else
-            <div class="alert alert-warning">
-                ⚠️ Hiện tại không trong thời gian điểm danh.
+            <div class="alert alert-info">
+                <h4> Chưa checkin</h4>
+                <p>Nhấn nút bên dưới để bắt đầu ngày làm việc.</p>
             </div>
         @endif
 
@@ -194,29 +204,33 @@
                 </div>
 
                 <div class="status-grid">
-                    @if($todayCheckins->where('session', 'morning')->first())
+                    <!-- Checkin Status -->
+                    @if($hasCheckin)
                         <div class="status-card success">
-                            <h4>✅ Ca sáng</h4>
+                            <h4>Bắt đầu làm việc</h4>
                             <p>Đã điểm danh</p>
-                            <small>{{ $todayCheckins->where('session', 'morning')->first()->checkin_time->format('H:i:s') }}</small>
+                            <small>{{ $hasCheckin->checkin_time->format('H:i:s') }}</small>
                         </div>
                     @else
-                        <div class="status-card {{ $session === 'morning' ? 'warning' : 'info' }}">
-                            <h4>🌅 Ca sáng</h4>
-                            <p>{{ $session === 'morning' ? 'Chưa điểm danh' : 'Chưa đến giờ' }}</p>
+                        <div class="status-card info">
+                            <h4> Bắt đầu làm việc</h4>
+                            <p>Chưa điểm danh </p>
+                            <small>Bắt đầu ngày làm việc</small>
                         </div>
                     @endif
 
-                    @if($todayCheckins->where('session', 'evening')->first())
+                    <!-- Checkout Status -->
+                    @if($hasCheckout)
                         <div class="status-card success">
-                            <h4>✅ Ca chiều</h4>
-                            <p>Đã điểm danh</p>
-                            <small>{{ $todayCheckins->where('session', 'evening')->first()->checkin_time->format('H:i:s') }}</small>
+                            <h4> Kết thúc ngày làm</h4>
+                            <p>Đã checkout</p>
+                            <small>{{ $hasCheckout->checkin_time->format('H:i:s') }}</small>
                         </div>
                     @else
-                        <div class="status-card {{ $session === 'evening' ? 'warning' : 'info' }}">
-                            <h4>🌆 Ca chiều</h4>
-                            <p>{{ $session === 'evening' ? 'Chưa điểm danh' : 'Chưa đến giờ' }}</p>
+                        <div class="status-card info">
+                            <h4> Kết thúc ngày làm</h4>
+                            <p>Chưa checkout</p>
+                            <small>Kết thúc ngày làm việc</small>
                         </div>
                     @endif
                 </div>
@@ -239,32 +253,38 @@
                     </div>
                 @endif
 
-                @if($session && !$currentSessionCheckin)
-                    <button id="checkinBtn" class="checkin-btn" onclick="getLocation()">
-                        📍 Điểm danh ca {{ $session === 'morning' ? 'sáng' : 'chiều' }}
+                <!-- Checkin/Checkout Buttons -->
+                @if(!$hasCheckin)
+                    <button id="checkinBtn" class="checkin-btn" onclick="getLocation('checkin')">
+                        📍 Checkin
                     </button>
-                    
-                    <!-- GPS Instructions -->
-                    <div id="gpsInstructions" class="alert alert-info" style="display: none;">
-                        <h6>🔄 Đang lấy vị trí GPS...</h6>
-                        <p>Vui lòng cho phép truy cập vị trí khi trình duyệt hỏi.</p>
-                        <p><strong>Lưu ý:</strong> Để có kết quả chính xác nhất, hãy:</p>
-                        <ul>
-                            <li>Di chuyển ra ngoài trời</li>
-                            <li>Bật GPS/WiFi trên thiết bị</li>
-                            <li>Chờ tín hiệu ổn định</li>
-                        </ul>
-                    </div>
-                    
-                    <!-- GPS Error Display -->
-                    <div id="gpsError" class="alert alert-danger" style="display: none;">
-                        <!-- Error content will be inserted here by JavaScript -->
-                    </div>
-                @elseif($currentSessionCheckin)
+                @elseif($hasCheckin && !$hasCheckout)
+                    <button id="checkoutBtn" class="checkin-btn" onclick="getLocation('checkout')" style="background: #dc3545;">
+                        📍 Checkout
+                    </button>
+                @else
                     <div class="alert alert-success">
-                        ✅ Bạn đã điểm danh ca {{ $session === 'morning' ? 'sáng' : 'chiều' }} hôm nay.
+                        <h4>✅ Hoàn thành ngày làm việc</h4>
+                        <p>Bạn đã hoàn thành checkin và checkout hôm nay.</p>
                     </div>
                 @endif
+                    
+                <!-- GPS Instructions -->
+                <div id="gpsInstructions" class="alert alert-info" style="display: none;">
+                    <h6>🔄 Đang lấy vị trí GPS...</h6>
+                    <p>Vui lòng cho phép truy cập vị trí khi trình duyệt hỏi.</p>
+                    <p><strong>Lưu ý:</strong> Để có kết quả chính xác nhất, hãy:</p>
+                    <ul>
+                        <li>Di chuyển ra ngoài trời</li>
+                        <li>Bật GPS/WiFi trên thiết bị</li>
+                        <li>Chờ tín hiệu ổn định</li>
+                    </ul>
+                </div>
+                
+                <!-- GPS Error Display -->
+                <div id="gpsError" class="alert alert-danger" style="display: none;">
+                    <!-- Error content will be inserted here by JavaScript -->
+                </div>
 
                 <div style="text-align: center;">
                     <a href="{{ route('checkin.history') }}" class="history-link">
@@ -279,13 +299,13 @@
     </div>
 
     <script>
-    function getLocation() {
+    function getLocation(action) {
         if (!navigator.geolocation) {
             showGpsError('Trình duyệt không hỗ trợ định vị GPS.');
             return;
         }
 
-        const btn = document.getElementById('checkinBtn');
+        const btn = document.getElementById(action === 'checkin' ? 'checkinBtn' : 'checkoutBtn');
         btn.disabled = true;
         btn.innerHTML = '⏳ Đang lấy vị trí...';
         
@@ -295,11 +315,11 @@
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 hideGpsInstructions();
-                checkin(position.coords.latitude, position.coords.longitude);
+                checkin(position.coords.latitude, position.coords.longitude, action);
             },
             function(error) {
                 btn.disabled = false;
-                btn.innerHTML = '📍 Điểm danh ca {{ $session === "morning" ? "sáng" : "chiều" }}';
+                btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout';
                 hideGpsInstructions();
                 
                 let message = 'Không thể lấy vị trí GPS. ';
@@ -387,8 +407,8 @@
         }
     }
 
-    function checkin(latitude, longitude) {
-        const btn = document.getElementById('checkinBtn');
+    function checkin(latitude, longitude, action) {
+        const btn = document.getElementById(action === 'checkin' ? 'checkinBtn' : 'checkoutBtn');
         btn.innerHTML = '⏳ Đang xử lý...';
         
         fetch('{{ route("checkin.checkin") }}', {
@@ -400,7 +420,8 @@
             },
             body: JSON.stringify({
                 latitude: latitude,
-                longitude: longitude
+                longitude: longitude,
+                action: action
             })
         })
         .then(response => response.json())
@@ -411,16 +432,36 @@
             } else {
                 alert(data.message);
                 btn.disabled = false;
-                btn.innerHTML = '📍 Điểm danh ca {{ $session === "morning" ? "sáng" : "chiều" }}';
+                btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout ';
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Có lỗi xảy ra khi điểm danh.');
             btn.disabled = false;
-            btn.innerHTML = '📍 Điểm danh ca {{ $session === "morning" ? "sáng" : "chiều" }}';
+            btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout ';
         });
     }
+
+    // Update current working time if checked in
+    @if($hasCheckin && !$hasCheckout)
+        function updateCurrentWorkingTime() {
+            const checkinTime = new Date('{{ $hasCheckin->checkin_time }}');
+            const now = new Date();
+            const diffMs = now - checkinTime;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            const timeElement = document.getElementById('current-working-time');
+            if (timeElement) {
+                timeElement.textContent = String(diffHours).padStart(2, '0') + ':' + String(diffMinutes).padStart(2, '0');
+            }
+        }
+
+        // Update every minute
+        updateCurrentWorkingTime();
+        setInterval(updateCurrentWorkingTime, 60000);
+    @endif
     </script>
 </body>
 </html>

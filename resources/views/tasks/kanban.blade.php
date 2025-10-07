@@ -285,6 +285,53 @@
     border-left-width: 6px;
 }
 
+/* Support Request Card Styling */
+.kanban-support-request {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: move;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 5px solid #6c757d;
+    min-height: 100px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    display: block;
+    width: 100%;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.kanban-support-request:last-child {
+    margin-bottom: 0;
+}
+
+.kanban-support-request .support-title {
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 10px;
+    line-height: 1.4;
+    font-size: 15px;
+}
+
+.kanban-support-request .support-requester,
+.kanban-support-request .support-approved,
+.kanban-support-request .support-rejected,
+.kanban-support-request .support-urgent {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.kanban-support-request .support-description {
+    font-size: 13px;
+    color: #4b5563;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
 .kanban-task.dragging {
     opacity: 0.5;
     transform: rotate(5deg);
@@ -1029,11 +1076,11 @@
                         <i class="fas fa-hourglass-half me-2"></i>
                         Yêu cầu chờ phê duyệt
                     </div>
-                    <div class="kanban-count">{{ $approvalKanbanData['pending_approval_requests']->count() }}</div>
+                    <div class="kanban-count">{{ $supportKanbanData['pending_approval_requests']->count() }}</div>
                 </div>
                 <div class="kanban-tasks" data-status="approval_pending">
-                    @forelse($approvalKanbanData['pending_approval_requests'] as $approvalRequest)
-                        @include('tasks.kanban-approval-request', ['approvalRequest' => $approvalRequest])
+                    @forelse($supportKanbanData['pending_approval_requests'] as $supportRequest)
+                        @include('tasks.kanban-support-request', ['supportRequest' => $supportRequest])
                     @empty
                         <div class="text-center text-muted py-4">
                             <i class="fas fa-inbox fa-2x mb-2"></i>
@@ -1050,11 +1097,11 @@
                         <i class="fas fa-check-circle me-2"></i>
                         Yêu cầu đã phê duyệt
                     </div>
-                    <div class="kanban-count">{{ $approvalKanbanData['approved_requests']->count() }}</div>
+                    <div class="kanban-count">{{ $supportKanbanData['approved_requests']->count() }}</div>
                 </div>
                 <div class="kanban-tasks" data-status="approval_approved">
-                    @forelse($approvalKanbanData['approved_requests'] as $approvalRequest)
-                        @include('tasks.kanban-approval-request', ['approvalRequest' => $approvalRequest])
+                    @forelse($supportKanbanData['approved_requests'] as $supportRequest)
+                        @include('tasks.kanban-support-request', ['supportRequest' => $supportRequest])
                     @empty
                         <div class="text-center text-muted py-4">
                             <i class="fas fa-inbox fa-2x mb-2"></i>
@@ -1071,11 +1118,11 @@
                         <i class="fas fa-times-circle me-2"></i>
                         Yêu cầu bị từ chối
                     </div>
-                    <div class="kanban-count">{{ $approvalKanbanData['rejected_requests']->count() }}</div>
+                    <div class="kanban-count">{{ $supportKanbanData['rejected_requests']->count() }}</div>
                 </div>
                 <div class="kanban-tasks" data-status="approval_rejected">
-                    @forelse($approvalKanbanData['rejected_requests'] as $approvalRequest)
-                        @include('tasks.kanban-approval-request', ['approvalRequest' => $approvalRequest])
+                    @forelse($supportKanbanData['rejected_requests'] as $supportRequest)
+                        @include('tasks.kanban-support-request', ['supportRequest' => $supportRequest])
                     @empty
                         <div class="text-center text-muted py-4">
                             <i class="fas fa-inbox fa-2x mb-2"></i>

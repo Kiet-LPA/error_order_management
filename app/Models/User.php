@@ -99,6 +99,7 @@ class User extends Authenticatable
         return $this->belongsToMany(Task::class, 'task_followers');
     }
 
+
     public function isFollowingTask(Task $task): bool
     {
         return $this->followedTasks()->where('task_id', $task->id)->exists();
@@ -222,6 +223,14 @@ class User extends Authenticatable
     public function canApproveTask(Task $task): bool
     {
         return \App\Services\TaskPermissionService::canApproveTask($this, $task);
+    }
+
+    /**
+     * Kiểm tra user có quyền submit task (gửi duyệt) không
+     */
+    public function canSubmitTask(Task $task): bool
+    {
+        return \App\Services\TaskPermissionService::canSubmitTask($this, $task);
     }
 
     /**
@@ -354,12 +363,32 @@ class User extends Authenticatable
     public function getAvatarUrlAttribute()
     {
         if ($this->avatar) {
-            // Kiểm tra file tồn tại trong storage
-            $storagePath = 'avatars/' . $this->avatar;
+            // Cache avatar URL để tránh kiểm tra file mỗi lần
+            $cacheKey = 'avatar_url_' . $this->id;
             
-            if (\Storage::disk('public')->exists($storagePath)) {
-                return asset('storage/avatars/' . $this->avatar);
-            }
+            return cache()->remember($cacheKey, 3600, function() {
+                // Kiểm tra file tồn tại trong storage - thử nhiều đường dẫn
+                $possiblePaths = [
+                    'avatars/' . $this->avatar,
+                    $this->avatar,
+                    'avatars/' . basename($this->avatar),
+                ];
+                
+                foreach ($possiblePaths as $storagePath) {
+                    if (\Storage::disk('public')->exists($storagePath)) {
+                        // Kiểm tra kích thước file - nếu quá lớn thì dùng default avatar
+                        $fileSize = \Storage::disk('public')->size($storagePath);
+                        if ($fileSize > 500000) { // Nếu > 500KB
+                            \Log::warning("Avatar too large ({$fileSize} bytes) for user {$this->id}, using default");
+                            return $this->generateDefaultAvatar();
+                        }
+                        return asset('storage/' . $storagePath);
+                    }
+                }
+                
+                // Nếu không tìm thấy file, tạo default avatar
+                return $this->generateDefaultAvatar();
+            });
         }
         
         // Tạo SVG avatar đẹp với chữ cái đầu
@@ -367,41 +396,35 @@ class User extends Authenticatable
     }
     
     /**
-     * Generate beautiful SVG avatar with user's initial
+     * Generate beautiful SVG avatar with user's initial (with caching)
      */
     private function generateDefaultAvatar()
     {
-        $name = $this->name ?? 'User';
-        $initial = strtoupper(mb_substr($name, 0, 1));
+        // Cache default avatar để tránh tạo lại mỗi lần
+        $cacheKey = 'default_avatar_' . $this->id;
         
-        // Tạo màu dựa trên ID để mỗi user có màu riêng
-        $colors = [
-            '#667eea', '#764ba2', '#f093fb', '#4facfe',
-            '#43e97b', '#fa709a', '#fee140', '#30cfd0',
-            '#a8edea', '#fed6e3', '#89f7fe', '#66a6ff',
-            '#f38181', '#aa076b', '#61045f', '#eecda3',
-            '#ef629f', '#42e695', '#3bb2b8', '#fa8231'
-        ];
-        
-        $colorIndex = $this->id % count($colors);
-        $color1 = $colors[$colorIndex];
-        $color2 = $colors[($colorIndex + 1) % count($colors)];
-        
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">' .
-               '<defs>' .
-               '<linearGradient id="grad-' . $this->id . '" x1="0%" y1="0%" x2="100%" y2="100%">' .
-               '<stop offset="0%" style="stop-color:' . $color1 . ';stop-opacity:1" />' .
-               '<stop offset="100%" style="stop-color:' . $color2 . ';stop-opacity:0.8" />' .
-               '</linearGradient>' .
-               '</defs>' .
-               '<rect width="120" height="120" fill="url(#grad-' . $this->id . ')"/>' .
-               '<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" ' .
-               'font-family="Arial, sans-serif" font-size="48" fill="white" font-weight="bold">' .
-               $initial .
-               '</text>' .
-               '</svg>';
-        
-        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        return cache()->remember($cacheKey, 86400, function() {
+            $name = $this->name ?? 'User';
+            $initial = strtoupper(mb_substr($name, 0, 1));
+            
+            // Tạo màu dựa trên ID để mỗi user có màu riêng (đơn giản hóa)
+            $colors = [
+                '#667eea', '#764ba2', '#f093fb', '#4facfe',
+                '#43e97b', '#fa709a', '#fee140', '#30cfd0'
+            ];
+            
+            $colorIndex = $this->id % count($colors);
+            $backgroundColor = $colors[$colorIndex];
+            
+            // Tạo SVG avatar đơn giản hơn để load nhanh
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' .
+                   '<circle cx="20" cy="20" r="20" fill="' . $backgroundColor . '"/>' .
+                   '<text x="20" y="26" text-anchor="middle" font-family="Arial" ' .
+                   'font-size="16" fill="white" font-weight="bold">' . $initial . '</text>' .
+                   '</svg>';
+            
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        });
     }
 
     // Checkin relationships

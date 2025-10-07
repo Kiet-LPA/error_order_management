@@ -12,6 +12,7 @@ class Checkin extends Model
 
     protected $fillable = [
         'user_id',
+        'department_id',
         'checkin_region_id',
         'checkin_date',
         'session',

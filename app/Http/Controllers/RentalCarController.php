@@ -59,12 +59,26 @@ class RentalCarController extends Controller
     {
         \Log::info('Rental request received', $request->all());
         
+        // Enhanced authentication check
+        if (!auth()->check()) {
+            \Log::warning('User not authenticated for car rental', [
+                'session_id' => session()->getId(),
+                'ip' => $request->ip()
+            ]);
+            return back()->with('error', 'Bạn cần đăng nhập để mượn xe!');
+        }
+        
         $user = auth()->user();
         
         // Kiểm tra user đã có mượn xe active chưa
         if ($user->hasActiveRental()) {
-            \Log::info('User already has active rental');
-            return back()->with('error', 'Bạn đang có mượn xe chưa trả. Vui lòng trả xe trước khi mượn xe mới.');
+            $activeRental = $user->activeRental;
+            \Log::info('User already has active rental', [
+                'user_id' => $user->id,
+                'active_rental_id' => $activeRental->id,
+                'car_license' => $activeRental->car->license_plate
+            ]);
+            return back()->with('error', 'Bạn đang có mượn xe chưa trả (Xe: ' . $activeRental->car->license_plate . '). Vui lòng trả xe trước khi mượn xe mới.');
         }
 
         try {
@@ -73,11 +87,21 @@ class RentalCarController extends Controller
                 'rental_start' => 'required|date|after_or_equal:now',
                 'rental_end' => 'required|date|after:rental_start',
                 'notes' => 'nullable|string|max:500',
+            ], [
+                'car_id.required' => 'Vui lòng chọn xe để mượn!',
+                'car_id.exists' => 'Xe được chọn không tồn tại!',
+                'rental_start.required' => 'Vui lòng chọn thời gian bắt đầu mượn xe!',
+                'rental_start.date' => 'Thời gian bắt đầu không hợp lệ!',
+                'rental_start.after_or_equal' => 'Thời gian bắt đầu phải từ bây giờ trở đi!',
+                'rental_end.required' => 'Vui lòng chọn thời gian trả xe!',
+                'rental_end.date' => 'Thời gian trả xe không hợp lệ!',
+                'rental_end.after' => 'Thời gian trả xe phải sau thời gian bắt đầu!',
+                'notes.max' => 'Ghi chú không được quá 500 ký tự!'
             ]);
             \Log::info('Validation passed');
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Validation failed', $e->errors());
-            return back()->withErrors($e->errors())->withInput();
+            return back()->withErrors($e->errors())->withInput()->with('error', 'Thông tin mượn xe không hợp lệ! Vui lòng kiểm tra lại.');
         }
 
         $car = Car::findOrFail($request->car_id);
@@ -255,14 +279,106 @@ class RentalCarController extends Controller
     }
 
     /**
+     * Debug method to check authentication
+     */
+    public function debugAuth()
+    {
+        $user = auth()->user();
+        $sessionId = session()->getId();
+        $sessionData = session()->all();
+        
+        return response()->json([
+            'user_id' => $user ? $user->id : null,
+            'user_name' => $user ? $user->name : null,
+            'user_email' => $user ? $user->email : null,
+            'session_id' => $sessionId,
+            'is_authenticated' => auth()->check(),
+            'active_rental' => $user ? $user->activeRental : null,
+            'session_driver' => config('session.driver'),
+            'session_lifetime' => config('session.lifetime'),
+            'session_data' => $sessionData,
+            'environment' => app()->environment(),
+            'app_url' => config('app.url'),
+            'session_secure' => config('session.secure'),
+            'session_http_only' => config('session.http_only'),
+            'session_same_site' => config('session.same_site')
+        ]);
+    }
+
+    /**
+     * Test session and authentication
+     */
+    public function testSession(Request $request)
+    {
+        $user = auth()->user();
+        $sessionId = session()->getId();
+        
+        // Test session write
+        session(['test_key' => 'test_value_' . time()]);
+        $testValue = session('test_key');
+        
+        return response()->json([
+            'success' => true,
+            'user_id' => $user ? $user->id : null,
+            'user_name' => $user ? $user->name : null,
+            'session_id' => $sessionId,
+            'is_authenticated' => auth()->check(),
+            'session_test' => $testValue,
+            'session_driver' => config('session.driver'),
+            'session_table' => config('session.table'),
+            'session_connection' => config('session.connection'),
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    }
+
+    /**
      * User returns car early
      */
-    public function returnCar(Request $request, Rental $rental)
+    public function returnCar(Request $request, $rentalId)
     {
         try {
-            // Validate user can return this rental
-            if ($rental->user_id !== auth()->id()) {
-                return back()->with('error', 'Bạn không có quyền trả xe này!');
+            // Enhanced authentication check
+            if (!auth()->check()) {
+                \Log::warning('User not authenticated for car return', [
+                    'rental_id' => $rentalId,
+                    'session_id' => session()->getId(),
+                    'ip' => $request->ip()
+                ]);
+                return back()->with('error', 'Bạn cần đăng nhập để thực hiện thao tác này!');
+            }
+
+            // Get rental manually to ensure we have the right one
+            $rental = Rental::findOrFail($rentalId);
+            $user = auth()->user();
+            
+            // Debug logging with more details
+            \Log::info('Return car attempt', [
+                'rental_id' => $rental->id,
+                'rental_user_id' => $rental->user_id,
+                'rental_user_name' => $rental->user->name ?? 'Unknown',
+                'auth_user_id' => $user->id,
+                'auth_user_name' => $user->name,
+                'auth_user_email' => $user->email,
+                'rental_status' => $rental->status,
+                'request_rental_id' => $rentalId,
+                'session_id' => session()->getId(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            // Enhanced permission validation
+            if ($rental->user_id !== $user->id) {
+                \Log::warning('Permission denied for car return', [
+                    'rental_id' => $rental->id,
+                    'rental_user_id' => $rental->user_id,
+                    'rental_user_name' => $rental->user->name ?? 'Unknown',
+                    'auth_user_id' => $user->id,
+                    'auth_user_name' => $user->name,
+                    'auth_user_email' => $user->email,
+                    'session_id' => session()->getId(),
+                    'ip' => $request->ip()
+                ]);
+                return back()->with('error', 'Bạn không có quyền trả xe này! Chỉ người mượn xe mới có thể trả xe. (Xe được mượn bởi: ' . ($rental->user->name ?? 'Không xác định') . ')');
             }
 
             if ($rental->status !== 'active') {
@@ -271,15 +387,34 @@ class RentalCarController extends Controller
 
             $request->validate([
                 'actual_return_time' => 'required|date|before_or_equal:now',
-                'return_notes' => 'nullable|string|max:500'
+                'return_notes' => 'nullable|string|max:500',
+                'refueled' => 'nullable|boolean',
+                'fuel_amount' => 'nullable|numeric|min:0'
+            ], [
+                'actual_return_time.required' => 'Vui lòng chọn thời gian trả xe thực tế!',
+                'actual_return_time.date' => 'Thời gian trả xe không hợp lệ!',
+                'actual_return_time.before_or_equal' => 'Thời gian trả xe phải từ bây giờ trở về trước!',
+                'return_notes.max' => 'Ghi chú không được quá 500 ký tự!',
+                'fuel_amount.numeric' => 'Số tiền xăng phải là số!',
+                'fuel_amount.min' => 'Số tiền xăng không được âm!'
             ]);
 
             // Update rental
             $actualReturnTime = \Carbon\Carbon::parse($request->actual_return_time);
+            
+            // Prepare return notes with fuel information
+            $returnNotes = "Trả xe sớm: " . ($request->return_notes ?? 'Không có ghi chú');
+            if ($request->refueled) {
+                $returnNotes .= "\nĐã đổ đầy nhiên liệu";
+                if ($request->fuel_amount) {
+                    $returnNotes .= " - Số tiền: " . number_format($request->fuel_amount) . " VNĐ";
+                }
+            }
+            
             $rental->update([
                 'status' => 'completed',
                 'rental_end' => $actualReturnTime,
-                'notes' => $rental->notes . "\n\nTrả xe sớm: " . ($request->return_notes ?? 'Không có ghi chú')
+                'notes' => $rental->notes . "\n\n" . $returnNotes
             ]);
 
             // Set car back to available

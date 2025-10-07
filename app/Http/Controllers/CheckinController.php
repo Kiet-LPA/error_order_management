@@ -38,27 +38,23 @@ class CheckinController extends Controller
     }
 
     /**
-     * Get current session (morning/evening)
+     * Get current session (morning/evening) - DEPRECATED
+     * Now using simple checkin/checkout system
      */
     private function getCurrentSession()
     {
-        $hour = (int)date('H');
-        
-        if ($hour >= 4 && $hour <= 11) {
-            return 'morning';
-        } elseif ($hour >= 13 && $hour <= 20) {
-            return 'evening';
-        }
-        
+        // Keep for backward compatibility but not used in new system
         return null;
     }
 
     /**
-     * Check if user can check-in now
+     * Check if user can check-in now - DEPRECATED
+     * Now using simple checkin/checkout system
      */
     private function canCheckIn()
     {
-        return $this->getCurrentSession() !== null;
+        // Always allow checkin/checkout
+        return true;
     }
 
     /**
@@ -82,32 +78,50 @@ class CheckinController extends Controller
         }
 
         $today = Carbon::today();
-        $session = $this->getCurrentSession();
         
-        // Get today's checkins
+        // Get today's checkins (both morning and evening)
         $todayCheckins = $user->checkins()
             ->where('checkin_date', $today)
+            ->orderBy('checkin_time')
             ->get();
 
-        // Check if already checked in for current session
-        $currentSessionCheckin = $todayCheckins->where('session', $session)->first();
+        // Check if already checked in today
+        $hasCheckin = $todayCheckins->where('session', 'morning')->first();
+        $hasCheckout = $todayCheckins->where('session', 'evening')->first();
+        
+        // Calculate total working hours if both checkin and checkout exist
+        $totalWorkingHours = 0;
+        if ($hasCheckin && $hasCheckout) {
+            $checkinTime = Carbon::parse($hasCheckin->checkin_time);
+            $checkoutTime = Carbon::parse($hasCheckout->checkin_time);
+            $totalWorkingHours = $checkoutTime->diffInHours($checkinTime);
+        }
         
         // Get GPS requests for today
         $gpsRequest = $user->gpsRequests()
             ->where('request_date', $today)
             ->first();
 
-        return view('checkin.index', compact('user', 'department', 'todayCheckins', 'currentSessionCheckin', 'gpsRequest', 'session'));
+        return view('checkin.index', compact(
+            'user', 
+            'department', 
+            'todayCheckins', 
+            'hasCheckin', 
+            'hasCheckout', 
+            'totalWorkingHours',
+            'gpsRequest'
+        ));
     }
 
     /**
-     * Process checkin request
+     * Process checkin request (simplified - just checkin/checkout)
      */
     public function checkin(Request $request)
     {
         $request->validate([
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
+            'action' => 'required|in:checkin,checkout', // New parameter to specify action
         ]);
 
         $user = Auth::user();
@@ -120,26 +134,20 @@ class CheckinController extends Controller
             ], 400);
         }
 
-        if (!$this->canCheckIn()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hiện tại không trong thời gian điểm danh.'
-            ], 400);
-        }
-
-        $session = $this->getCurrentSession();
         $today = Carbon::today();
+        $action = $request->action; // 'checkin' or 'checkout'
 
-        // Check if already checked in for this session
+        // Check if already performed this action today
         $existingCheckin = $user->checkins()
             ->where('checkin_date', $today)
-            ->where('session', $session)
+            ->where('session', $action)
             ->first();
 
         if ($existingCheckin) {
+            $actionText = $action === 'checkin' ? 'checkin' : 'checkout';
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn đã điểm danh cho ca ' . ($session === 'morning' ? 'sáng' : 'chiều') . ' hôm nay.'
+                'message' => "Bạn đã {$actionText} hôm nay rồi!"
             ], 400);
         }
 
@@ -153,12 +161,12 @@ class CheckinController extends Controller
 
         // Check if within radius
         if ($distance <= $department->radius_meters) {
-            // Successful checkin
+            // Successful checkin/checkout
             $checkin = Checkin::create([
                 'user_id' => $user->id,
                 'department_id' => $department->id,
                 'checkin_date' => $today,
-                'session' => $session,
+                'session' => $action, // 'checkin' or 'checkout'
                 'checkin_time' => now(),
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
@@ -167,13 +175,14 @@ class CheckinController extends Controller
                 'status' => 'success',
             ]);
 
+            $actionText = $action === 'checkin' ? 'Checkin' : 'Checkout';
             return response()->json([
                 'success' => true,
-                'message' => 'Điểm danh thành công!',
+                'message' => "{$actionText} thành công!",
                 'checkin' => $checkin
             ]);
         } else {
-            // Failed checkin - create GPS request
+            // Failed checkin/checkout - create GPS request
             $gpsCode = $this->generateGPSCode($user->id, $department->id);
             
             GpsRequest::updateOrCreate(
@@ -184,17 +193,25 @@ class CheckinController extends Controller
                 [
                     'department_id' => $department->id,
                     'distance_meters' => $distance,
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
                     'gps_code' => $gpsCode,
                     'status' => 'pending',
                 ]
             );
 
+            $actionText = $action === 'checkin' ? 'checkin' : 'checkout';
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn đang ở ngoài khu vực điểm danh. Khoảng cách: ' . round($distance) . 'm (cho phép: ' . $department->radius_meters . 'm). Mã GPS: ' . $gpsCode,
+                'message' => "Bạn đang ở ngoài khu vực điểm danh. Khoảng cách: " . round($distance) . "m (cho phép: " . $department->radius_meters . "m). Mã GPS: " . $gpsCode,
                 'gps_code' => $gpsCode,
                 'distance' => round($distance),
-                'allowed_distance' => $department->radius_meters
+                'allowed_distance' => $department->radius_meters,
+                'coordinates' => [
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'google_maps_url' => "https://www.google.com/maps?q={$request->latitude},{$request->longitude}"
+                ]
             ]);
         }
     }

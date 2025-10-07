@@ -530,7 +530,7 @@
                   @foreach($attachments as $attachment)
                     <div class="attachment-item">
                       @if(str_starts_with($attachment['type'], 'image/'))
-                        <a href="{{ $attachment['url'] }}" target="_blank" class="attachment-link">
+                        <a href="#" onclick="openImageModal('{{ $attachment['url'] }}', '{{ $attachment['name'] }}')" class="attachment-link">
                           <img src="{{ $attachment['url'] }}" alt="{{ $attachment['name'] }}" class="attachment-preview" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                         </a>
                       @elseif(str_starts_with($attachment['type'], 'video/'))
@@ -589,23 +589,87 @@
 
     <div class="report-card">
       <h6 class="mb-3">Hành động</h6>
-      <a href="{{ route('tasks.updateStatus',[$task,'status'=>'finished']) }}" class="btn btn-success w-100 mb-2">✅ Hoàn thành</a>
-      <a href="{{ route('tasks.updateStatus',[$task,'status'=>'in_progress']) }}" class="btn btn-primary w-100 mb-2">🔄 Cập nhật trạng thái</a>
-      <a href="{{ route('tasks.history',$task) }}" class="btn btn-outline-info w-100 mb-2">👁 Xem lịch sử</a>
+      {{-- Employee/Manager: Nút hoàn thành và gửi duyệt (nếu được assign) --}}
+      @if($task->status === 'in_progress' && auth()->user()->canSubmitTask($task))
+        @php
+          $progress = $task->getSubmissionProgress();
+          $hasSubmitted = $task->hasUserSubmitted(auth()->user());
+        @endphp
+        
+        @if($hasSubmitted)
+          <button class="btn btn-success w-100 mb-2" disabled>
+            ✅ Đã gửi báo cáo hoàn thành 
+            @if($progress['total'] > 1)
+              ({{ $progress['submitted'] }}/{{ $progress['total'] }} người)
+            @endif
+          </button>
+        @else
+          <a href="{{ route('tasks.updateStatus',[$task,'status'=>'pending_approval']) }}" class="btn btn-success w-100 mb-2">
+            ✅ Hoàn thành và gửi duyệt
+            @if($progress['total'] > 1)
+              ({{ $progress['submitted'] }}/{{ $progress['total'] }} người)
+            @endif
+          </a>
+        @endif
+        
+        @if($progress['total'] > 1)
+          <div class="progress mb-2">
+            <div class="progress-bar" role="progressbar" style="width: {{ $progress['progress'] }}%">
+              {{ $progress['submitted'] }}/{{ $progress['total'] }} người đã gửi
+            </div>
+          </div>
+        @endif
+      @endif
       
+      {{-- Admin/Director/Manager: Nút hoàn thành (chỉ khi có quyền) --}}
+      @if(in_array($task->status, ['pending_approval']) && auth()->user()->canApproveTask($task))
+        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'finished']) }}" class="btn btn-success w-100 mb-2">✅ Hoàn thành</a>
+        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'rejected']) }}" class="btn btn-danger w-100 mb-2">❌ Từ chối</a>
+      @endif
+      
+      {{-- Admin/Director/Manager: Nút chuyển trạng thái (chỉ khi có quyền) --}}
+      @if(in_array($task->status, ['in_progress', 'overdue']) && auth()->user()->canEditTask($task))
+        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'pending_approval']) }}" class="btn btn-primary w-100 mb-2">🔄 Chuyển sang chờ duyệt</a>
+      @endif
+      
+      {{-- Employee/Manager: Nút làm lại khi bị từ chối --}}
+      @if($task->status === 'rejected' && auth()->user()->canSubmitTask($task))
+        <a href="{{ route('tasks.updateStatus',[$task,'status'=>'pending_approval']) }}" class="btn btn-warning w-100 mb-2">🔄 Đã làm lại & gửi duyệt</a>
+      @endif
+      
+      {{-- Nút xem lịch sử (chỉ khi có quyền xem task) --}}
+      @if(auth()->user()->canViewTask($task))
+        <a href="{{ route('tasks.history',$task) }}" class="btn btn-outline-info w-100 mb-2">👁 Xem lịch sử</a>
+      @endif
+      
+      {{-- Nút chuyển tiếp (chỉ khi có quyền) --}}
       @if((auth()->user()->isAdmin() || auth()->user()->isDirector() || auth()->user()->isManager()) && auth()->user()->canViewTask($task))
         <a href="{{ route('tasks.forward.form', $task) }}" class="btn btn-outline-warning w-100 mb-2">
-          <i class="bi bi-arrow-right-circle me-2"></i>Forward Task
+          <i class="bi bi-arrow-right-circle me-2"></i>Chuyển tiếp
         </a>
       @endif
       
-      @if($task->canUndo() && $task->assignee_id == auth()->id())
-        <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn hoàn tác công việc này?')">
-          @csrf
-          <button type="submit" class="btn btn-undo w-100">
-            <i class="bi bi-arrow-counterclockwise me-2"></i>Hoàn tác
-          </button>
-        </form>
+      {{-- Nút chỉnh sửa (chỉ khi có quyền) --}}
+      @if(auth()->user()->canEditTask($task))
+        <a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-secondary w-100 mb-2">✏️ Chỉnh sửa</a>
+      @endif
+      
+      @if(auth()->user()->canSubmitTask($task) && $task->status === 'in_progress')
+        @php
+          $userSubmission = $task->getUserSubmission(auth()->user());
+          $progress = $task->getSubmissionProgress();
+        @endphp
+        @if($userSubmission && $userSubmission->canUndo())
+          <form action="{{ route('tasks.undo-completion', $task) }}" method="POST" class="mt-2" onsubmit="return confirm('Bạn có chắc chắn muốn rút lại báo cáo hoàn thành này?')">
+            @csrf
+            <button type="submit" class="btn btn-warning w-100">
+              <i class="bi bi-arrow-counterclockwise me-2"></i>Rút lại báo cáo hoàn thành
+              @if($progress['total'] > 1)
+                ({{ $progress['submitted'] }}/{{ $progress['total'] }} người)
+              @endif
+            </button>
+          </form>
+        @endif
       @endif
       
       @if(auth()->user()->canDeleteTask($task))
