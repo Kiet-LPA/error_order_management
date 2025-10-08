@@ -168,44 +168,62 @@
 <div class="task-header-gradient d-flex flex-column flex-md-row align-items-md-center justify-content-between">
     <div>
         <h2 class="mb-2">{{ $task->title }}</h2>
-        <span class="badge badge-priority me-2" style="
-            @if($task->status == 'in_progress') background:#3b82f6; color:#fff;
-            @elseif($task->status == 'completed') background:#f59e0b; color:#fff;
-            @elseif($task->status == 'rejected') background:#ef4444; color:#fff;
-            @elseif($task->status == 'overdue') background:#ed8712; color:#fff;
-            @elseif($task->status == 'finished') background:#059669; color:#fff;
-            @elseif($task->status == 'pending_approval') background:#8b5cf6; color:#fff;
-            @else background:#6b7280; color:#fff; @endif">
-            @if($task->status == 'in_progress')
-                Đang làm
-            @elseif($task->status == 'completed')
-                Chờ duyệt
-            @elseif($task->status == 'rejected')
-                Từ chối
-            @elseif($task->status == 'overdue')
-                Trễ hạn
-            @elseif($task->status == 'finished')
-                Hoàn thành
-            @elseif($task->status == 'pending_approval')
-                Chờ phê duyệt
-            @else
-                {{ strtoupper($task->status) }}
-            @endif
-        </span>
-        <span class="badge badge-priority bg-warning text-dark" style="background:#5DA444; color:#fff;">Độ ưu tiên: 
-            @if($task->priority == 'high')
-                Cao
-            @elseif($task->priority == 'medium')
-                Trung bình
-            @elseif($task->priority == 'low')
-                Thấp
-            @else
-                Không rõ
-            @endif
-        </span>
+        <div class="mb-2">
+            <span class="badge badge-priority me-2" style="
+                @if($task->status == 'in_progress') background:#3b82f6; color:#fff;
+                @elseif($task->status == 'completed') background:#f59e0b; color:#fff;
+                @elseif($task->status == 'rejected') background:#ef4444; color:#fff;
+                @elseif($task->status == 'overdue') background:#ed8712; color:#fff;
+                @elseif($task->status == 'finished') background:#059669; color:#fff;
+                @elseif($task->status == 'pending_approval') background:#8b5cf6; color:#fff;
+                @else background:#6b7280; color:#fff; @endif">
+                @if($task->status == 'in_progress')
+                    Đang làm
+                @elseif($task->status == 'completed')
+                    Chờ duyệt
+                @elseif($task->status == 'rejected')
+                    Từ chối
+                @elseif($task->status == 'overdue')
+                    Trễ hạn
+                @elseif($task->status == 'finished')
+                    Hoàn thành
+                @elseif($task->status == 'pending_approval')
+                    Chờ phê duyệt
+                @else
+                    {{ strtoupper($task->status) }}
+                @endif
+            </span>
+            <span class="badge badge-priority bg-warning text-dark" style="background:#5DA444; color:#fff;">Độ ưu tiên: 
+                @if($task->priority == 'high')
+                    Cao
+                @elseif($task->priority == 'medium')
+                    Trung bình
+                @elseif($task->priority == 'low')
+                    Thấp
+                @else
+                    Không rõ
+                @endif
+            </span>
+        </div>
     </div>
     <a href="{{ route('dashboard') }}" class="btn btn-light" style="position:absolute;top:24px;right:32px; background:#558EC1; color:#fff; border-color:#558EC1;">&larr; Quay lại</a>
 </div>
+
+<!-- Mô tả công việc -->
+@if($task->description && trim($task->description) !== '')
+<div class="card card-custom mb-4" style="border: 2px solid #558EC1; box-shadow: 0 4px 15px rgba(85, 142, 193, 0.15);">
+    <div class="card-header" style="background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%); border-bottom: none;">
+        <h5 class="mb-0" style="color:#fff; font-weight:600; font-size: 1.1rem;">
+            <i class="bi bi-file-text me-2"></i>Mô tả công việc
+        </h5>
+    </div>
+    <div class="card-body" style="background: #f8fdf8; padding: 1.5rem;">
+        <div class="description-content" style="background: #fff; padding: 1.25rem; border-radius: 8px; border-left: 4px solid #5DA444; line-height: 1.7; color: #374151; font-size: 1.05rem;">
+            {{ $task->description }}
+        </div>
+    </div>
+</div>
+@endif
 
 <div class="row g-4">
     <div class="col-lg-8">

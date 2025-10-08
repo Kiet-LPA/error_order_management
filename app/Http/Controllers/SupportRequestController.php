@@ -424,39 +424,17 @@ class SupportRequestController extends Controller
         
         $request->validate([
             'content' => 'required|string|max:1000',
-            'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp|max:51200',
         ]);
-        
-        $attachments = [];
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                $originalName = $file->getClientOriginalName();
-                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
-                $safeName = $nameWithoutExt;
-                $counter = 1;
-                
-                while (file_exists(public_path('storage/support-attachments/' . $safeName . '.' . $extension))) {
-                    $safeName = $nameWithoutExt . '_' . $counter;
-                    $counter++;
-                }
-                
-                $fileName = $safeName . '.' . $extension;
-                $file->storeAs('public/support-attachments', $fileName);
-                $attachments[] = [
-                    'name' => $originalName,
-                    'url' => asset('storage/support-attachments/' . $fileName),
-                    'size' => $file->getSize(),
-                ];
-            }
-        }
         
         $comment = SupportRequestComment::create([
             'support_request_id' => $supportRequest->id,
             'user_id' => $user->id,
             'content' => $request->content,
-            'attachments' => $attachments,
+            'attachments' => [], // Không còn file đính kèm
         ]);
+        
+        // Gửi thông báo cho những người liên quan
+        \App\Services\NotificationService::supportRequestCommentAdded($comment, $user);
         
         // Ghi log hoạt động
         SupportRequestActivity::create([
@@ -468,6 +446,7 @@ class SupportRequestController extends Controller
         
         return back()->with('success', 'Comment đã được thêm.');
     }
+
 
     /**
      * Hiển thị trang quản lý yêu cầu hỗ trợ (quest-detail)

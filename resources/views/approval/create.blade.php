@@ -357,7 +357,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <!-- <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="department" class="form-label">
                                         Phòng ban
@@ -402,7 +402,7 @@
                                     @enderror
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                         
                         <!-- Hàng 2: Mô tả -->
                         <div class="row">
@@ -499,14 +499,14 @@
                                         Số tiền
                                         <span class="text-danger">*</span>
                                     </label>
-                                    <input type="number" 
+                                    <input type="text" 
                                            class="form-control @error('form_data.amount') is-invalid @enderror" 
                                            id="amount" 
                                            name="form_data[amount]" 
                                            value="{{ old('form_data.amount') }}"
-                                           step="0.01" 
-                                           min="0"
-                                           placeholder="Nhập số tiền...">
+                                           placeholder="Nhập số tiền (ví dụ: 5.000.000)..."
+                                           autocomplete="off">
+                                    <input type="hidden" id="amount_raw" name="amount_raw">
                                     @error('form_data.amount')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -1169,6 +1169,54 @@ document.addEventListener('DOMContentLoaded', function() {
             this.appendChild(hiddenInput);
         });
     });
+});
+
+// Đảm bảo trường amount chấp nhận số lẻ
+document.addEventListener('DOMContentLoaded', function() {
+    const amountField = document.getElementById('amount');
+    if (amountField) {
+        // Xóa validation mặc định của browser
+        amountField.addEventListener('invalid', function(e) {
+            e.preventDefault();
+        });
+        
+        // Format số tiền với dấu chấm phân cách
+        amountField.addEventListener('input', function(e) {
+            let value = this.value.replace(/[^\d]/g, ''); // Chỉ giữ lại số
+            let rawValue = value;
+            
+            if (value) {
+                // Format với dấu chấm phân cách hàng nghìn
+                value = parseInt(value).toLocaleString('vi-VN');
+                this.value = value;
+            } else {
+                this.value = '';
+            }
+            
+            // Lưu giá trị raw vào hidden field
+            document.getElementById('amount_raw').value = rawValue;
+            
+            // Loại bỏ bất kỳ validation nào khác
+            this.setCustomValidity('');
+        });
+        
+        // Khi focus, hiển thị giá trị raw để dễ chỉnh sửa
+        amountField.addEventListener('focus', function(e) {
+            let rawValue = document.getElementById('amount_raw').value;
+            if (rawValue) {
+                this.value = rawValue;
+            }
+        });
+        
+        // Khi blur, format lại
+        amountField.addEventListener('blur', function(e) {
+            let rawValue = document.getElementById('amount_raw').value;
+            if (rawValue) {
+                let formattedValue = parseInt(rawValue).toLocaleString('vi-VN');
+                this.value = formattedValue;
+            }
+        });
+    }
 });
 </script>
 @endpush

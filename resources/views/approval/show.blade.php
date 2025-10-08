@@ -322,11 +322,10 @@
                         </div>
                     </div>
 
-                    <!-- Approval Actions - Chỉ manager/director được gửi yêu cầu mới thấy -->
-                    @if(($approvalRequest->current_approver_id === auth()->id()) && 
-                        in_array(auth()->user()->role, ['manager', 'director']) && 
-                        $approvalRequest->approval_status === 'pending' &&
-                        $approvalRequest->created_by_id !== auth()->id())
+                    <!-- Approval Actions - Hiển thị cho người có quyền phê duyệt -->
+                    @if($approvalRequest->approval_status === 'pending' && 
+                        $approvalRequest->created_by_id !== auth()->id() &&
+                        $approvalRequest->canBeApprovedBy(auth()->user()))
                         <div class="card mt-5">
                             <div class="card-header">
                                 <h4>Phê duyệt đề xuất</h4>

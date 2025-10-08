@@ -1287,6 +1287,9 @@ class TaskController extends Controller
                         'file_extension' => pathinfo($attachment['name'], PATHINFO_EXTENSION),
                     ]);
                 }
+
+                // Gửi thông báo cho những người liên quan
+                \App\Services\NotificationService::taskCommentAdded($comment, $user);
         
         return back()->with('success', 'Bình luận đã được gửi thành công!');
     }

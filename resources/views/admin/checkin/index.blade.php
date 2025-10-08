@@ -146,7 +146,7 @@
                             </td>
                             <td>{{ $checkin->department->name ?? 'N/A' }}</td>
                             <td>{{ \Carbon\Carbon::parse($checkin->checkin_date)->format('d/m/Y') }}</td>
-                            <td>{{ $checkin->session === 'morning' ? '🌅 Sáng' : '🌆 Chiều' }}</td>
+                            <td>{{ $checkin->session === 'checkin' ? '📍 Checkin' : '🚪 Checkout' }}</td>
                             <td>{{ \Carbon\Carbon::parse($checkin->checkin_time)->format('H:i') }}</td>
                             <td>{{ $checkin->distance_meters ? round($checkin->distance_meters) . 'm' : 'N/A' }}</td>
                             <td>

@@ -162,6 +162,7 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         
         Route::get('/support-requests/{supportRequest}', [SupportRequestController::class, 'show'])->name('support-requests.show');
         Route::post('/support-requests/{supportRequest}/comment', [SupportRequestController::class, 'comment'])->name('support-requests.comment');
+        
     });
 
     // Admin & Director & Manager: Approve/Reject/Forward support requests
@@ -354,7 +355,7 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::get('/approval/{id}/print', [App\Http\Controllers\PDFController::class, 'print'])->name('approval.print');
     
     // Comments
-    Route::post('/approval/{id}/comment', [App\Http\Controllers\CommentController::class, 'store'])->name('approval.comment');
+    Route::post('/approval/{id}/comment', [App\Http\Controllers\CommentController::class, 'storeApprovalComment'])->name('approval.comment');
     
     // Autocomplete suggestions
     Route::get('/approval/suggestions/items', [App\Http\Controllers\ApprovalController::class, 'getItemSuggestions'])->name('approval.item-suggestions');

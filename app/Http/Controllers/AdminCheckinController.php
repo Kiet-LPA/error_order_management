@@ -211,10 +211,10 @@ class AdminCheckinController extends Controller
                         'user_id' => $gpsRequest->user_id,
                         'department_id' => $gpsRequest->department_id,
                         'checkin_date' => $gpsRequest->request_date,
-                        'session' => $this->getSessionFromTime($gpsRequest->request_date),
+                        'session' => $gpsRequest->session, // Sử dụng session từ GPS request
                         'checkin_time' => now(),
-                        'latitude' => 0, // Manual approval
-                        'longitude' => 0,
+                        'latitude' => $gpsRequest->latitude ?? 0,
+                        'longitude' => $gpsRequest->longitude ?? 0,
                         'distance_meters' => $gpsRequest->distance_meters,
                         'ip_address' => request()->ip(),
                         'status' => 'success',
@@ -266,7 +266,7 @@ class AdminCheckinController extends Controller
         $request->validate([
             'employee_id' => 'required|exists:users,id',
             'checkin_date' => 'required|date',
-            'session' => 'required|in:morning,evening',
+            'session' => 'required|in:checkin,checkout',
             'notes' => 'required|string|max:500'
         ]);
 
@@ -286,7 +286,8 @@ class AdminCheckinController extends Controller
                                  ->first();
 
         if ($existingCheckin) {
-            return redirect()->back()->with('error', 'Nhân viên đã điểm danh cho ca này.');
+            $sessionText = $request->session === 'checkin' ? 'checkin' : 'checkout';
+            return redirect()->back()->with('error', "Nhân viên đã {$sessionText} cho ngày này.");
         }
 
         // Tạo checkin thủ công
@@ -294,7 +295,7 @@ class AdminCheckinController extends Controller
             'user_id' => $request->employee_id,
             'department_id' => $employee->department_id,
             'checkin_date' => $request->checkin_date,
-            'session' => $request->session,
+            'session' => $request->session, // 'checkin' or 'checkout'
             'checkin_time' => now(),
             'latitude' => $employee->department->latitude ?? 0,
             'longitude' => $employee->department->longitude ?? 0,
@@ -426,7 +427,7 @@ class AdminCheckinController extends Controller
     private function getSessionFromTime($date)
     {
         $hour = Carbon::parse($date)->hour;
-        return ($hour >= 4 && $hour <= 11) ? 'morning' : 'evening';
+        return ($hour >= 4 && $hour <= 11) ? 'checkin' : 'checkout';
     }
 
     /**
@@ -442,8 +443,8 @@ class AdminCheckinController extends Controller
                                    return [
                                        'total' => $dayCheckins->count(),
                                        'success' => $dayCheckins->where('status', 'success')->count(),
-                                       'morning' => $dayCheckins->where('session', 'morning')->count(),
-                                       'evening' => $dayCheckins->where('session', 'evening')->count()
+                                       'checkin' => $dayCheckins->where('session', 'checkin')->count(),
+                                       'checkout' => $dayCheckins->where('session', 'checkout')->count()
                                    ];
                                });
 
@@ -559,7 +560,7 @@ class AdminCheckinController extends Controller
                 'user_id' => 1,
                 'department_id' => 1,
                 'checkin_date' => now()->toDateString(),
-                'session' => 'morning',
+                'session' => 'checkin',
                 'checkin_time' => now(),
                 'latitude' => 0,
                 'longitude' => 0,

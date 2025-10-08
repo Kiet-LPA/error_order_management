@@ -138,8 +138,8 @@
                                     <th>Ngày</th>
                                     <th>Tổng</th>
                                     <th>Thành công</th>
-                                    <th>Sáng</th>
-                                    <th>Chiều</th>
+                                    <th>Checkin</th>
+                                    <th>Checkout</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -148,8 +148,8 @@
                                     <td>{{ \Carbon\Carbon::parse($date)->format('d/m') }}</td>
                                     <td><span class="badge bg-primary">{{ $data['total'] }}</span></td>
                                     <td><span class="badge bg-success">{{ $data['success'] }}</span></td>
-                                    <td><span class="badge bg-warning">{{ $data['morning'] }}</span></td>
-                                    <td><span class="badge bg-info">{{ $data['evening'] }}</span></td>
+                                    <td><span class="badge bg-warning">{{ $data['checkin'] }}</span></td>
+                                    <td><span class="badge bg-info">{{ $data['checkout'] }}</span></td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -281,20 +281,20 @@ new Chart(dailyCtx, {
 const sessionCtx = document.getElementById('sessionChart').getContext('2d');
 const sessionData = @json($reports['daily']);
 
-let morningTotal = 0;
-let eveningTotal = 0;
+let checkinTotal = 0;
+let checkoutTotal = 0;
 
 Object.values(sessionData).forEach(item => {
-    morningTotal += item.morning;
-    eveningTotal += item.evening;
+    checkinTotal += item.checkin;
+    checkoutTotal += item.checkout;
 });
 
 new Chart(sessionCtx, {
     type: 'doughnut',
     data: {
-        labels: ['Ca sáng', 'Ca chiều'],
+        labels: ['Checkin', 'Checkout'],
         datasets: [{
-            data: [morningTotal, eveningTotal],
+            data: [checkinTotal, checkoutTotal],
             backgroundColor: ['#ffc107', '#17a2b8']
         }]
     },

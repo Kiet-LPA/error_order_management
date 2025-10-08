@@ -423,6 +423,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
         }
         
+        // Reset change tracking khi form được submit
+        hasChanges = false;
+        
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Đang lưu...';
     });

@@ -5,7 +5,7 @@
 
 <div class="task-header">
   <h3 class="mb-2">{{ $task->title }}</h3>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 mb-2">
     <span class="badge priority-badge bg-{{ $task->status=='done'?'success':($task->status=='in_progress'?'primary': 'warning') }}">
       {{ __("statuses.$task->status") ?? strtoupper($task->status) }}
     </span>
@@ -17,37 +17,22 @@
   </div>
 </div>
 
-<!-- Mô tả công việc - Đặt ở đây để đảm bảo hiển thị -->
-<div class="card mb-3">
-  <div class="card-header bg-info text-white">
-    <h6 class="mb-0">
+<!-- Mô tả công việc -->
+@if($task->description && trim($task->description) !== '')
+<div class="card mb-3" style="border: 2px solid #667eea; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);">
+  <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-bottom: none;">
+    <h5 class="mb-0" style="color:#fff; font-weight:600; font-size: 1.1rem;">
       <i class="bi bi-file-text me-2"></i>Mô tả công việc
-    </h6>
+    </h5>
   </div>
-  <div class="card-body">
-    @if($task->description && trim($task->description) !== '')
-      <div class="description-content">
-        {{ $task->description }}
-      </div>
-    @else
-      <em class="text-muted">Không có mô tả</em>
-    @endif
-    
-    <!-- Debug info -->
-    <div class="mt-2 p-2 bg-warning border rounded">
-      <small class="text-muted">
-        <strong>Debug:</strong><br>
-        Description value: "{{ $task->description ?? 'NULL' }}"<br>
-        Type: {{ gettype($task->description) }}<br>
-        Empty: {{ empty($task->description) ? 'Yes' : 'No' }}<br>
-        Length: {{ strlen($task->description ?? '') }}<br>
-        Trimmed empty: {{ trim($task->description ?? '') === '' ? 'Yes' : 'No' }}<br>
-        Raw attributes: {{ json_encode($task->getAttributes()) }}
-      </small>
+  <div class="card-body" style="background: #f8f9ff; padding: 1.5rem;">
+    <div class="description-content" style="background: #fff; padding: 1.25rem; border-radius: 8px; border-left: 4px solid #667eea; line-height: 1.7; color: #374151; font-size: 1.05rem;">
+      {{ $task->description }}
     </div>
-    
   </div>
 </div>
+@endif
+
 
 <!-- Debug Subtasks -->
 <div class="card mb-3">

@@ -315,7 +315,30 @@
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 hideGpsInstructions();
-                checkin(position.coords.latitude, position.coords.longitude, action);
+                
+                // ✅ KIỂM TRA ĐỘ CHÍNH XÁC GPS
+                if (position.coords.accuracy > 100) {
+                    btn.disabled = false;
+                    btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout';
+                    
+                    showGpsError(`
+                        <h6>⚠️ GPS không đủ chính xác</h6>
+                        <p>Độ chính xác hiện tại: <strong>${Math.round(position.coords.accuracy)}m</strong></p>
+                        <p>Yêu cầu độ chính xác: <strong>&lt; 100m</strong></p>
+                        <div class="alert alert-info mt-3">
+                            <h6>🔧 Cách khắc phục:</h6>
+                            <ul>
+                                <li>Di chuyển đến nơi có tín hiệu GPS tốt hơn (ngoài trời, tránh tòa nhà cao)</li>
+                                <li>Đợi vài giây để GPS ổn định</li>
+                                <li>Kiểm tra cài đặt vị trí trên thiết bị</li>
+                                <li>Thử lại sau khi di chuyển</li>
+                            </ul>
+                        </div>
+                    `);
+                    return;
+                }
+                
+                checkin(position.coords.latitude, position.coords.longitude, action, position.coords.accuracy);
             },
             function(error) {
                 btn.disabled = false;
@@ -376,9 +399,14 @@
                 showGpsError(message + instructions);
             },
             {
+                // ✅ BẬT ĐỘ CHÍNH XÁC CAO - QUAN TRỌNG NHẤT!
                 enableHighAccuracy: true,
-                timeout: 30000, // Tăng timeout lên 30 giây
-                maximumAge: 0 // Luôn lấy vị trí mới
+                
+                // Thời gian chờ tối đa: 15 giây
+                timeout: 15000,
+                
+                // Cache GPS tối đa: 30 giây
+                maximumAge: 30000
             }
         );
     }
@@ -407,7 +435,7 @@
         }
     }
 
-    function checkin(latitude, longitude, action) {
+    function checkin(latitude, longitude, action, accuracy = null) {
         const btn = document.getElementById(action === 'checkin' ? 'checkinBtn' : 'checkoutBtn');
         btn.innerHTML = '⏳ Đang xử lý...';
         
@@ -421,7 +449,8 @@
             body: JSON.stringify({
                 latitude: latitude,
                 longitude: longitude,
-                action: action
+                action: action,
+                accuracy: accuracy
             })
         })
         .then(response => response.json())

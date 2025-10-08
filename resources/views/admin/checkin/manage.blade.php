@@ -88,8 +88,8 @@
                     </label>
                     <select class="form-select" id="session" name="session">
                         <option value="">Tất cả ca</option>
-                        <option value="morning" {{ request('session') == 'morning' ? 'selected' : '' }}>Ca sáng</option>
-                        <option value="evening" {{ request('session') == 'evening' ? 'selected' : '' }}>Ca chiều</option>
+                        <option value="checkin" {{ request('session') == 'checkin' ? 'selected' : '' }}>Checkin</option>
+                        <option value="checkout" {{ request('session') == 'checkout' ? 'selected' : '' }}>Checkout</option>
                     </select>
                 </div>
 
@@ -97,6 +97,13 @@
                     <label class="form-label">&nbsp;</label>
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-success w-100" onclick="showFixAttendanceModal()">
+                        <i class="bi bi-plus-circle me-1"></i>Sửa điểm danh
                     </button>
                 </div>
             </form>
@@ -128,7 +135,7 @@
                             </td>
                             <td>{{ $checkin->department->name ?? 'N/A' }}</td>
                             <td>{{ \Carbon\Carbon::parse($checkin->checkin_date)->format('d/m/Y') }}</td>
-                            <td>{{ $checkin->session === 'morning' ? '🌅 Sáng' : '🌆 Chiều' }}</td>
+                            <td>{{ $checkin->session === 'checkin' ? '📍 Checkin' : '🚪 Checkout' }}</td>
                             <td>{{ \Carbon\Carbon::parse($checkin->checkin_time)->format('H:i') }}</td>
                             <td>{{ $checkin->distance_meters ? round($checkin->distance_meters) . 'm' : 'N/A' }}</td>
                             <td>
@@ -217,8 +224,8 @@
                                 <label class="form-label">Ca làm việc:</label>
                                 <select name="session" class="form-select" required>
                                     <option value="">-- Chọn ca --</option>
-                                    <option value="morning">🌅 Ca sáng (04:00 - 11:00)</option>
-                                    <option value="evening">🌆 Ca chiều (13:00 - 20:00)</option>
+                                    <option value="checkin">📍 Checkin (Điểm danh vào làm)</option>
+                                    <option value="checkout">🚪 Checkout (Điểm danh tan làm)</option>
                                 </select>
                             </div>
                         </div>

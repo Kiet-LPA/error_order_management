@@ -12,11 +12,16 @@ use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
-    public function store(Request $request, Task $task)
+    public function store(Request $request, Task $task = null)
     {
-        // Kiểm tra xem có phải là task hay approval request
+        // Kiểm tra xem có phải là approval request không
         if ($request->has('approval_request_id')) {
             return $this->storeApprovalComment($request, $request->approval_request_id);
+        }
+        
+        // Nếu không có task và không có approval_request_id, lỗi
+        if (!$task) {
+            abort(404, 'Task không tồn tại');
         }
         
         // Xử lý comment cho task
@@ -32,22 +37,32 @@ class CommentController extends Controller
             'parent_id' => 'nullable|exists:comments,id'
         ]);
 
-        Comment::create([
+        $comment = Comment::create([
             'task_id' => $task->id,
             'user_id' => Auth::id(),
             'content' => $request->content,
             'parent_id' => $request->parent_id
         ]);
 
+        // Gửi thông báo cho những người liên quan
+        \App\Services\NotificationService::taskCommentAdded($comment, Auth::user());
+
         return redirect()->back()->with('success', 'Đã thêm bình luận thành công');
     }
     
-    private function storeApprovalComment(Request $request, $approvalRequestId)
+    public function storeApprovalComment(Request $request, $approvalRequestId)
     {
         $approvalRequest = ApprovalRequest::findOrFail($approvalRequestId);
         
         // Kiểm tra quyền comment
-        $this->authorize('view', $approvalRequest);
+        $user = Auth::user();
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            // Employee chỉ có thể comment nếu họ là creator hoặc current approver
+            if ($approvalRequest->created_by_id !== $user->id && 
+                $approvalRequest->current_approver_id !== $user->id) {
+                abort(403, 'Bạn không có quyền bình luận');
+            }
+        }
         
         // Kiểm tra trạng thái thảo luận
         if ($approvalRequest->discussion_status === 'closed') {
@@ -58,11 +73,14 @@ class CommentController extends Controller
             'comment' => 'required|string|max:1000'
         ]);
 
-        ApprovalComment::create([
+        $comment = ApprovalComment::create([
             'approval_request_id' => $approvalRequestId,
             'user_id' => Auth::id(),
             'comment' => $request->comment
         ]);
+
+        // Gửi thông báo cho những người liên quan
+        \App\Services\NotificationService::approvalRequestCommentAdded($comment, Auth::user());
 
         return redirect()->back()->with('success', 'Đã thêm bình luận thành công');
     }

@@ -86,8 +86,8 @@ class CheckinController extends Controller
             ->get();
 
         // Check if already checked in today
-        $hasCheckin = $todayCheckins->where('session', 'morning')->first();
-        $hasCheckout = $todayCheckins->where('session', 'evening')->first();
+        $hasCheckin = $todayCheckins->where('session', 'checkin')->first();
+        $hasCheckout = $todayCheckins->where('session', 'checkout')->first();
         
         // Calculate total working hours if both checkin and checkout exist
         $totalWorkingHours = 0;
@@ -118,14 +118,46 @@ class CheckinController extends Controller
      */
     public function checkin(Request $request)
     {
-        $request->validate([
-            'latitude' => 'required|numeric|between:-90,90',
-            'longitude' => 'required|numeric|between:-180,180',
-            'action' => 'required|in:checkin,checkout', // New parameter to specify action
-        ]);
+        try {
+            \Log::info('Checkin request received', [
+                'user_id' => Auth::id(),
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'action' => $request->action
+            ]);
 
-        $user = Auth::user();
-        $department = $user->getCheckinDepartment();
+            $request->validate([
+                'latitude' => 'required|numeric|between:-90,90',
+                'longitude' => 'required|numeric|between:-180,180',
+                'action' => 'required|in:checkin,checkout',
+                'accuracy' => 'nullable|numeric|min:0|max:1000', // GPS accuracy in meters
+            ]);
+
+            $user = Auth::user();
+            $department = $user->getCheckinDepartment();
+            
+            // ✅ KIỂM TRA ĐỘ CHÍNH XÁC GPS (nếu có)
+            if ($request->has('accuracy') && $request->accuracy > 100) {
+                \Log::warning('GPS accuracy too low', [
+                    'user_id' => $user->id,
+                    'accuracy' => $request->accuracy,
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => "GPS không đủ chính xác. Độ chính xác hiện tại: " . round($request->accuracy) . "m (yêu cầu < 100m). Vui lòng di chuyển đến nơi có tín hiệu GPS tốt hơn."
+                ], 400);
+            }
+            
+            \Log::info('User department info', [
+                'user_id' => $user->id,
+                'department_id' => $department ? $department->id : null,
+                'department_name' => $department ? $department->name : null,
+                'has_gps_config' => $department ? $department->hasGpsConfig() : false,
+                'gps_accuracy' => $request->accuracy ?? 'not_provided'
+            ]);
         
         if (!$department || !$department->hasGpsConfig()) {
             return response()->json([
@@ -189,9 +221,11 @@ class CheckinController extends Controller
                 [
                     'user_id' => $user->id,
                     'request_date' => $today,
+                    'session' => $action, // 'checkin' or 'checkout'
                 ],
                 [
                     'department_id' => $department->id,
+                    'session' => $action, // 'checkin' or 'checkout'
                     'distance_meters' => $distance,
                     'latitude' => $request->latitude,
                     'longitude' => $request->longitude,
@@ -213,6 +247,18 @@ class CheckinController extends Controller
                     'google_maps_url' => "https://www.google.com/maps?q={$request->latitude},{$request->longitude}"
                 ]
             ]);
+        }
+        } catch (\Exception $e) {
+            \Log::error('Checkin error', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi xử lý điểm danh: ' . $e->getMessage()
+            ], 500);
         }
     }
 

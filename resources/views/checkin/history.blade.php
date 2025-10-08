@@ -199,7 +199,7 @@
                                     <td>{{ $checkin->checkin_date->format('d/m/Y') }}</td>
                                     <td>
                                         <span class="session-badge session-{{ $checkin->session }}">
-                                            {{ $checkin->session === 'morning' ? '🌅 Sáng' : '🌆 Chiều' }}
+                                            {{ $checkin->session === 'checkin' ? '📍 Checkin' : '🚪 Checkout' }}
                                         </span>
                                     </td>
                                     <td>{{ $checkin->checkin_time->format('H:i:s') }}</td>

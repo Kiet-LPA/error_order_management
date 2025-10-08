@@ -213,6 +213,12 @@ class ApprovalController extends Controller
             'approvers' => 'required|array|min:1',
             'approvers.*' => 'exists:users,id'
         ]);
+        
+        // Xử lý số tiền từ raw value nếu có
+        $formData = $request->input('form_data');
+        if ($request->has('amount_raw') && $request->input('amount_raw')) {
+            $formData['amount'] = $request->input('amount_raw');
+        }
 
         // Lấy danh sách người phê duyệt được chọn
         $selectedApprovers = $request->input('approvers', []);
@@ -223,7 +229,7 @@ class ApprovalController extends Controller
 
         $approvalRequest = ApprovalRequest::create([
             'form_type' => $formType,
-            'form_data' => $request->input('form_data'),
+            'form_data' => $formData,
             'status' => 'submitted',
             'approval_status' => 'pending',
             'created_by_id' => Auth::id(),
@@ -338,9 +344,15 @@ class ApprovalController extends Controller
             'form_data.department' => 'nullable|exists:departments,id',
             'current_approver_id' => 'nullable|exists:users,id'
         ]);
+        
+        // Xử lý số tiền từ raw value nếu có
+        $formData = $request->input('form_data');
+        if ($request->has('amount_raw') && $request->input('amount_raw')) {
+            $formData['amount'] = $request->input('amount_raw');
+        }
 
         $approvalRequest->update([
-            'form_data' => $request->input('form_data'),
+            'form_data' => $formData,
             'updated_at' => now()
         ]);
 
@@ -462,14 +474,14 @@ class ApprovalController extends Controller
         // Check if user can approve this request
         $user = auth()->user();
         if (!$this->userCanApprove($approvalRequest, $user)) {
-            return response()->json(['error' => 'Bạn không có quyền phê duyệt đề xuất này'], 403);
+            return redirect()->back()->with('error', 'Bạn không có quyền phê duyệt đề xuất này');
         }
         
         // Director không thể approve approval request của Admin
         if ($user->isDirector()) {
             $creator = $approvalRequest->creator;
             if ($creator && $creator->isAdmin()) {
-                return response()->json(['error' => 'Director không thể phê duyệt đề xuất của Admin'], 403);
+                return redirect()->back()->with('error', 'Director không thể phê duyệt đề xuất của Admin');
             }
         }
 
@@ -490,7 +502,7 @@ class ApprovalController extends Controller
         // Gửi thông báo cho người tạo và admin/director
         NotificationService::approvalRequestApprovedNew($approvalRequest, auth()->user());
 
-        return response()->json(['success' => 'Đề xuất đã được phê duyệt thành công']);
+        return redirect()->back()->with('success', 'Đề xuất đã được phê duyệt thành công');
     }
 
     /**
@@ -528,14 +540,14 @@ class ApprovalController extends Controller
         // Check if user can reject this request
         $user = auth()->user();
         if ($approvalRequest->current_approver_id !== auth()->id() && !$user->isAdmin() && !$user->isDirector()) {
-            return response()->json(['error' => 'Bạn không có quyền từ chối đề xuất này'], 403);
+            return redirect()->back()->with('error', 'Bạn không có quyền từ chối đề xuất này');
         }
         
         // Director không thể reject approval request của Admin
         if ($user->isDirector()) {
             $creator = $approvalRequest->creator;
             if ($creator && $creator->isAdmin()) {
-                return response()->json(['error' => 'Director không thể từ chối đề xuất của Admin'], 403);
+                return redirect()->back()->with('error', 'Director không thể từ chối đề xuất của Admin');
             }
         }
 
@@ -554,7 +566,7 @@ class ApprovalController extends Controller
         // Gửi thông báo cho người tạo và admin/director
         NotificationService::approvalRequestRejectedNew($approvalRequest, auth()->user());
 
-        return response()->json(['success' => 'Đề xuất đã bị từ chối']);
+        return redirect()->back()->with('success', 'Đề xuất đã bị từ chối');
     }
 
     public function bulkApprove(Request $request)

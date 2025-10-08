@@ -33,18 +33,20 @@ class ProfileController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        
-        \Log::info('Profile update started for user: ' . $user->id);
-        \Log::info('Has file avatar: ' . ($request->hasFile('avatar') ? 'YES' : 'NO'));
-        if ($request->hasFile('avatar')) {
-            \Log::info('Avatar file details: ' . $request->file('avatar')->getClientOriginalName());
-        }
+        try {
+            $user = $request->user();
+            
+            \Log::info('Profile update started for user: ' . $user->id);
+            \Log::info('Request data: ', $request->all());
+            \Log::info('Has file avatar: ' . ($request->hasFile('avatar') ? 'YES' : 'NO'));
+            if ($request->hasFile('avatar')) {
+                \Log::info('Avatar file details: ' . $request->file('avatar')->getClientOriginalName());
+            }
         
         // Validate fields
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
         ];
@@ -102,7 +104,7 @@ class ProfileController extends Controller
         // 2. Update Profile Information
         $user->name = $validated['name'];
         
-        if ($user->email !== $validated['email']) {
+        if (isset($validated['email']) && $validated['email'] && $user->email !== $validated['email']) {
             $user->email = $validated['email'];
             $user->email_verified_at = null;
             $messages[] = 'Email';
@@ -118,11 +120,20 @@ class ProfileController extends Controller
         
         $user->save();
         
-        $message = count($messages) > 0 
-            ? 'Đã cập nhật: ' . implode(', ', $messages) 
-            : 'Cập nhật thành công';
+            $message = count($messages) > 0 
+                ? 'Đã cập nhật: ' . implode(', ', $messages) 
+                : 'Cập nhật thành công';
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated')->with('message', $message);
+            return Redirect::route('profile.edit')->with('status', 'profile-updated')->with('message', $message);
+            
+        } catch (\Exception $e) {
+            \Log::error('Profile update error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return Redirect::route('profile.edit')
+                ->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật hồ sơ: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
 

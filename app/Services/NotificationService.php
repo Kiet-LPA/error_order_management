@@ -1076,4 +1076,285 @@ class NotificationService
             $approvalRequest
         );
     }
+
+    /**
+     * Gửi thông báo khi có comment mới trong task
+     */
+    public static function taskCommentAdded($comment, User $commenter)
+    {
+        $task = $comment->task;
+        $excludeUserIds = [$commenter->id]; // Loại trừ người comment
+
+        // Thông báo cho tất cả assignees của task
+        $assignees = $task->assignees;
+        foreach ($assignees as $assignee) {
+            if (!in_array($assignee->id, $excludeUserIds)) {
+                Notification::create([
+                    'user_id' => $assignee->id,
+                    'type' => 'task_comment_added',
+                    'title' => 'Có bình luận mới trong công việc',
+                    'message' => "{$commenter->name} đã bình luận trong công việc: {$task->title}",
+                    'data' => [
+                        'task_id' => $task->id,
+                        'comment_id' => $comment->id,
+                        'commenter_id' => $commenter->id,
+                        'commenter_name' => $commenter->name,
+                        'comment_preview' => \Str::limit($comment->content, 100)
+                    ]
+                ]);
+                $excludeUserIds[] = $assignee->id;
+            }
+        }
+
+        // Thông báo cho creator của task (nếu khác assignees)
+        if ($task->creator && !in_array($task->creator->id, $excludeUserIds)) {
+            Notification::create([
+                'user_id' => $task->creator->id,
+                'type' => 'task_comment_added',
+                'title' => 'Có bình luận mới trong công việc',
+                'message' => "{$commenter->name} đã bình luận trong công việc: {$task->title}",
+                'data' => [
+                    'task_id' => $task->id,
+                    'comment_id' => $comment->id,
+                    'commenter_id' => $commenter->id,
+                    'commenter_name' => $commenter->name,
+                    'comment_preview' => \Str::limit($comment->content, 100)
+                ]
+            ]);
+            $excludeUserIds[] = $task->creator->id;
+        }
+
+        // Thông báo cho followers của task
+        $followers = $task->followers;
+        foreach ($followers as $follower) {
+            if (!in_array($follower->id, $excludeUserIds)) {
+                Notification::create([
+                    'user_id' => $follower->id,
+                    'type' => 'task_comment_added',
+                    'title' => 'Có bình luận mới trong công việc',
+                    'message' => "{$commenter->name} đã bình luận trong công việc: {$task->title}",
+                    'data' => [
+                        'task_id' => $task->id,
+                        'comment_id' => $comment->id,
+                        'commenter_id' => $commenter->id,
+                        'commenter_name' => $commenter->name,
+                        'comment_preview' => \Str::limit($comment->content, 100)
+                    ]
+                ]);
+                $excludeUserIds[] = $follower->id;
+            }
+        }
+
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
+            'task_comment_added',
+            'Có bình luận mới trong công việc',
+            "{$commenter->name} đã bình luận trong công việc: {$task->title}",
+            [
+                'task_id' => $task->id,
+                'comment_id' => $comment->id,
+                'commenter_id' => $commenter->id,
+                'commenter_name' => $commenter->name,
+                'comment_preview' => \Str::limit($comment->content, 100)
+            ],
+            $excludeUserIds,
+            $task
+        );
+    }
+
+    /**
+     * Gửi thông báo khi có comment mới trong support request
+     */
+    public static function supportRequestCommentAdded($comment, User $commenter)
+    {
+        $supportRequest = $comment->supportRequest;
+        $excludeUserIds = [$commenter->id]; // Loại trừ người comment
+
+        // Thông báo cho requester
+        if ($supportRequest->requester && !in_array($supportRequest->requester->id, $excludeUserIds)) {
+            Notification::create([
+                'user_id' => $supportRequest->requester->id,
+                'type' => 'support_request_comment_added',
+                'title' => 'Có bình luận mới trong yêu cầu hỗ trợ',
+                'message' => "{$commenter->name} đã bình luận trong yêu cầu hỗ trợ: {$supportRequest->title}",
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'comment_id' => $comment->id,
+                    'commenter_id' => $commenter->id,
+                    'commenter_name' => $commenter->name,
+                    'comment_preview' => \Str::limit($comment->content, 100)
+                ]
+            ]);
+            $excludeUserIds[] = $supportRequest->requester->id;
+        }
+
+        // Thông báo cho recipients
+        if ($supportRequest->recipients) {
+            $recipientIds = is_string($supportRequest->recipients) 
+                ? json_decode($supportRequest->recipients, true) 
+                : $supportRequest->recipients;
+                
+            if (is_array($recipientIds)) {
+                foreach ($recipientIds as $recipientId) {
+                    if (!in_array($recipientId, $excludeUserIds)) {
+                        $recipient = User::find($recipientId);
+                        if ($recipient) {
+                            Notification::create([
+                                'user_id' => $recipientId,
+                                'type' => 'support_request_comment_added',
+                                'title' => 'Có bình luận mới trong yêu cầu hỗ trợ',
+                                'message' => "{$commenter->name} đã bình luận trong yêu cầu hỗ trợ: {$supportRequest->title}",
+                                'data' => [
+                                    'support_request_id' => $supportRequest->id,
+                                    'comment_id' => $comment->id,
+                                    'commenter_id' => $commenter->id,
+                                    'commenter_name' => $commenter->name,
+                                    'comment_preview' => \Str::limit($comment->content, 100)
+                                ]
+                            ]);
+                            $excludeUserIds[] = $recipientId;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Thông báo cho approver
+        if ($supportRequest->approver && !in_array($supportRequest->approver->id, $excludeUserIds)) {
+            Notification::create([
+                'user_id' => $supportRequest->approver->id,
+                'type' => 'support_request_comment_added',
+                'title' => 'Có bình luận mới trong yêu cầu hỗ trợ',
+                'message' => "{$commenter->name} đã bình luận trong yêu cầu hỗ trợ: {$supportRequest->title}",
+                'data' => [
+                    'support_request_id' => $supportRequest->id,
+                    'comment_id' => $comment->id,
+                    'commenter_id' => $commenter->id,
+                    'commenter_name' => $commenter->name,
+                    'comment_preview' => \Str::limit($comment->content, 100)
+                ]
+            ]);
+            $excludeUserIds[] = $supportRequest->approver->id;
+        }
+
+        // Thông báo cho followers
+        $followers = $supportRequest->followers;
+        foreach ($followers as $follower) {
+            if (!in_array($follower->id, $excludeUserIds)) {
+                Notification::create([
+                    'user_id' => $follower->id,
+                    'type' => 'support_request_comment_added',
+                    'title' => 'Có bình luận mới trong yêu cầu hỗ trợ',
+                    'message' => "{$commenter->name} đã bình luận trong yêu cầu hỗ trợ: {$supportRequest->title}",
+                    'data' => [
+                        'support_request_id' => $supportRequest->id,
+                        'comment_id' => $comment->id,
+                        'commenter_id' => $commenter->id,
+                        'commenter_name' => $commenter->name,
+                        'comment_preview' => \Str::limit($comment->content, 100)
+                    ]
+                ]);
+                $excludeUserIds[] = $follower->id;
+            }
+        }
+
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
+            'support_request_comment_added',
+            'Có bình luận mới trong yêu cầu hỗ trợ',
+            "{$commenter->name} đã bình luận trong yêu cầu hỗ trợ: {$supportRequest->title}",
+            [
+                'support_request_id' => $supportRequest->id,
+                'comment_id' => $comment->id,
+                'commenter_id' => $commenter->id,
+                'commenter_name' => $commenter->name,
+                'comment_preview' => \Str::limit($comment->comment, 100)
+            ],
+            $excludeUserIds,
+            $supportRequest
+        );
+    }
+
+    /**
+     * Gửi thông báo khi có comment mới trong approval request
+     */
+    public static function approvalRequestCommentAdded($comment, User $commenter)
+    {
+        $approvalRequest = $comment->approvalRequest;
+        $excludeUserIds = [$commenter->id]; // Loại trừ người comment
+
+        // Thông báo cho creator
+        if ($approvalRequest->created_by_id && !in_array($approvalRequest->created_by_id, $excludeUserIds)) {
+            Notification::create([
+                'user_id' => $approvalRequest->created_by_id,
+                'type' => 'approval_request_comment_added',
+                'title' => 'Có bình luận mới trong đề xuất',
+                'message' => "{$commenter->name} đã bình luận trong đề xuất phê duyệt",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'comment_id' => $comment->id,
+                    'commenter_id' => $commenter->id,
+                    'commenter_name' => $commenter->name,
+                    'comment_preview' => \Str::limit($comment->content, 100),
+                    'form_type' => $approvalRequest->form_type
+                ]
+            ]);
+            $excludeUserIds[] = $approvalRequest->created_by_id;
+        }
+
+        // Thông báo cho current approver
+        if ($approvalRequest->current_approver_id && !in_array($approvalRequest->current_approver_id, $excludeUserIds)) {
+            Notification::create([
+                'user_id' => $approvalRequest->current_approver_id,
+                'type' => 'approval_request_comment_added',
+                'title' => 'Có bình luận mới trong đề xuất',
+                'message' => "{$commenter->name} đã bình luận trong đề xuất phê duyệt",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'comment_id' => $comment->id,
+                    'commenter_id' => $commenter->id,
+                    'commenter_name' => $commenter->name,
+                    'comment_preview' => \Str::limit($comment->content, 100),
+                    'form_type' => $approvalRequest->form_type
+                ]
+            ]);
+            $excludeUserIds[] = $approvalRequest->current_approver_id;
+        }
+
+        // Thông báo cho approved by (nếu có)
+        if ($approvalRequest->approved_by_id && !in_array($approvalRequest->approved_by_id, $excludeUserIds)) {
+            Notification::create([
+                'user_id' => $approvalRequest->approved_by_id,
+                'type' => 'approval_request_comment_added',
+                'title' => 'Có bình luận mới trong đề xuất',
+                'message' => "{$commenter->name} đã bình luận trong đề xuất phê duyệt",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'comment_id' => $comment->id,
+                    'commenter_id' => $commenter->id,
+                    'commenter_name' => $commenter->name,
+                    'comment_preview' => \Str::limit($comment->content, 100),
+                    'form_type' => $approvalRequest->form_type
+                ]
+            ]);
+            $excludeUserIds[] = $approvalRequest->approved_by_id;
+        }
+
+        // Thông báo cho Admin và Director có liên quan
+        self::notifyRelevantAdminsAndDirectors(
+            'approval_request_comment_added',
+            'Có bình luận mới trong đề xuất',
+            "{$commenter->name} đã bình luận trong đề xuất phê duyệt",
+            [
+                'approval_request_id' => $approvalRequest->id,
+                'comment_id' => $comment->id,
+                'commenter_id' => $commenter->id,
+                'commenter_name' => $commenter->name,
+                'comment_preview' => \Str::limit($comment->comment, 100),
+                'form_type' => $approvalRequest->form_type
+            ],
+            $excludeUserIds,
+            $approvalRequest
+        );
+    }
 }

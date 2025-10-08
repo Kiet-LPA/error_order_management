@@ -14,6 +14,7 @@ class GpsRequest extends Model
         'user_id',
         'department_id',
         'request_date',
+        'session',
         'distance_meters',
         'latitude',
         'longitude',

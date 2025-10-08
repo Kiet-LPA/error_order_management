@@ -430,15 +430,6 @@
                                     </div>
                                     <p class="mb-2">{{ $comment->content }}</p>
                                     
-                                    @if($comment->attachments && count($comment->attachments) > 0)
-                                        <div class="mt-2">
-                                            @foreach($comment->attachments as $attachment)
-                                                <a href="{{ $attachment['url'] }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
-                                                    <i class="bi bi-file-earmark me-1"></i>{{ $attachment['name'] }}
-                                                </a>
-                                            @endforeach
-                                        </div>
-                                    @endif
                                 </div>
                             @endforeach
                         </div>
@@ -452,11 +443,6 @@
                         <div class="mb-3">
                             <label for="content" class="form-label">Thêm bình luận</label>
                             <textarea name="content" id="content" rows="3" class="form-control" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="files" class="form-label">File đính kèm</label>
-                            <input type="file" name="files[]" id="files" multiple class="form-control">
-                            <div class="form-text">Có thể chọn nhiều file. Định dạng: PDF, DOC, XLS, PPT, JPG, PNG, GIF.</div>
                         </div>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-send me-2"></i>Gửi bình luận

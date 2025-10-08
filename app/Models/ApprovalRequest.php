@@ -201,4 +201,28 @@ class ApprovalRequest extends Model
         
         return $value;
     }
+
+    /**
+     * Kiểm tra quyền phê duyệt
+     */
+    public function canBeApprovedBy(User $user): bool
+    {
+        // Admin có thể phê duyệt tất cả
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Director có thể phê duyệt tất cả (như Admin)
+        if ($user->isDirector()) {
+            return true;
+        }
+
+        // Manager có thể phê duyệt nếu là current approver
+        if ($user->isManager()) {
+            return $this->current_approver_id === $user->id;
+        }
+
+        return false;
+    }
+
 }

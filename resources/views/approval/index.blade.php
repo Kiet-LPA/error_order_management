@@ -322,19 +322,10 @@
                                                         @endif
                                                     @endif
                                                 </div>
-                                                {{-- Chỉ hiển thị nút phê duyệt/từ chối cho manager/director được gửi yêu cầu --}}
-                                                @php
-                                                    $creator = $request->creator;
-                                                    $canShowActions = true;
-                                                    if (auth()->user()->isDirector() && $creator && $creator->isAdmin()) {
-                                                        $canShowActions = false;
-                                                    }
-                                                @endphp
-                                                @if(($request->current_approver_id === auth()->id() || auth()->user()->isAdmin() || auth()->user()->isDirector()) && 
-                                                    in_array(auth()->user()->role, ['manager', 'director', 'admin']) && 
-                                                    $request->approval_status === 'pending' &&
+                                                {{-- Hiển thị nút phê duyệt/từ chối cho người có quyền --}}
+                                                @if($request->approval_status === 'pending' && 
                                                     $request->created_by_id !== auth()->id() &&
-                                                    $canShowActions)
+                                                    $request->canBeApprovedBy(auth()->user()))
                                                     <div class="btn-group mt-1" role="group">
                                                         <button type="button" class="btn btn-outline-success btn-sm" onclick="approveRequest({{ $request->id }})" title="Phê duyệt">
                                                             <i class="bi bi-check"></i>
