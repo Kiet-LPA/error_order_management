@@ -169,9 +169,13 @@ class CommentController extends Controller
 
         // Thử nhiều đường dẫn storage có thể
         $possibleStoragePaths = [
-            'public/' . $attachment->file_path,
+            $attachment->file_path, // Đường dẫn đầy đủ từ database
+            'public/' . $attachment->file_path, // Nếu file_path không có public/
             'public/task-comments/' . $attachment->file_name,
             'public/task-comments/' . $attachment->original_name,
+            'public/comment-attachments/' . $attachment->file_name, // Cho file cũ
+            'task-comments/' . $attachment->file_name, // Không có public/
+            'comment-attachments/' . $attachment->file_name, // File cũ không có public/
         ];
         
         $storagePath = null;
@@ -189,8 +193,12 @@ class CommentController extends Controller
         // Sử dụng Storage để lấy file content
         $fileContent = \Storage::get($storagePath);
         
+        // Detect MIME type từ file thực tế
+        $detectedMimeType = $this->detectMimeTypeFromContent($fileContent, $attachment->original_name);
+        $mimeType = $detectedMimeType ?: $attachment->mime_type;
+        
         return response($fileContent)
-            ->header('Content-Type', $attachment->mime_type)
+            ->header('Content-Type', $mimeType)
             ->header('Content-Disposition', 'inline; filename="' . $attachment->original_name . '"')
             ->header('Cache-Control', 'public, max-age=3600');
     }
@@ -223,9 +231,13 @@ class CommentController extends Controller
 
         // Thử nhiều đường dẫn storage có thể
         $possibleStoragePaths = [
-            'public/' . $attachment->file_path,
+            $attachment->file_path, // Đường dẫn đầy đủ từ database
+            'public/' . $attachment->file_path, // Nếu file_path không có public/
             'public/task-comments/' . $attachment->file_name,
             'public/task-comments/' . $attachment->original_name,
+            'public/comment-attachments/' . $attachment->file_name, // Cho file cũ
+            'task-comments/' . $attachment->file_name, // Không có public/
+            'comment-attachments/' . $attachment->file_name, // File cũ không có public/
         ];
         
         $storagePath = null;
@@ -260,5 +272,45 @@ class CommentController extends Controller
         $attachment->delete();
 
         return redirect()->back()->with('success', 'Đã xóa file đính kèm thành công');
+    }
+    
+    /**
+     * Detect MIME type from file content
+     */
+    private function detectMimeTypeFromContent($content, $filename)
+    {
+        // Sử dụng finfo để detect MIME type từ content
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_buffer($finfo, $content);
+        finfo_close($finfo);
+        
+        // Nếu không detect được, thử từ extension
+        if (!$mimeType || $mimeType === 'application/octet-stream') {
+            $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            $extensionToMime = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'mp4' => 'video/mp4',
+                'avi' => 'video/x-msvideo',
+                'mov' => 'video/quicktime',
+                'wmv' => 'video/x-ms-wmv',
+                'flv' => 'video/x-flv',
+                'webm' => 'video/webm',
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt' => 'application/vnd.ms-powerpoint',
+                'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            ];
+            
+            $mimeType = $extensionToMime[$extension] ?? 'application/octet-stream';
+        }
+        
+        return $mimeType;
     }
 }

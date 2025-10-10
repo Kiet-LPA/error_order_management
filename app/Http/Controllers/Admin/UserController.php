@@ -540,25 +540,38 @@ class UserController extends Controller
     {
         $currentUser = auth()->user();
         
+        Log::info('=== USER DELETE ATTEMPT START ===', [
+            'current_user_id' => $currentUser->id,
+            'current_user_role' => $currentUser->role,
+            'current_user_department_id' => $currentUser->department_id,
+            'target_user_id' => $user->id,
+            'target_user_role' => $user->role,
+            'target_user_department_id' => $user->department_id,
+        ]);
+        
         // Kiểm tra quyền xóa user
-        if (!$currentUser->isAdmin() && !$currentUser->isDirector() && !$currentUser->isManager()) {
+        if (!$currentUser->isAdmin() && !$currentUser->isDirector() ) {
+            Log::warning('User delete failed: Insufficient permissions', [
+                'current_user_role' => $currentUser->role
+            ]);
             abort(403, 'Bạn không có quyền xóa người dùng.');
         }
         
-        // Manager chỉ có thể xóa user cùng phòng ban
-        if ($currentUser->isManager() && $user->department_id !== $currentUser->department_id) {
-            abort(403, 'Bạn chỉ có thể xóa người dùng cùng phòng ban.');
-        }
+
         
         // Director không thể xóa Admin
         if ($currentUser->isDirector() && $user->isAdmin()) {
+            Log::warning('User delete failed: Director trying to delete Admin');
             abort(403, 'Director không thể xóa Admin.');
         }
         
         // Không thể xóa chính mình
         if ($currentUser->id === $user->id) {
+            Log::warning('User delete failed: User trying to delete themselves');
             abort(403, 'Bạn không thể xóa tài khoản của chính mình.');
         }
+        
+        Log::info('Permission checks passed, starting deletion process');
         
         try {
             DB::beginTransaction();
@@ -623,11 +636,19 @@ class UserController extends Controller
             $user->delete();
             
             DB::commit();
+            Log::info('=== USER DELETE SUCCESS ===', [
+                'deleted_user_id' => $user->id,
+                'deleted_user_name' => $user->name
+            ]);
             return back()->with('success','Đã xóa thành công.');
             
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error deleting user: ' . $e->getMessage());
+            Log::error('=== USER DELETE FAILED ===', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'target_user_id' => $user->id
+            ]);
             return back()->with('error', 'Có lỗi xảy ra khi xóa người dùng: ' . $e->getMessage());
         }
     }

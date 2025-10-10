@@ -465,7 +465,26 @@
             @php
               $meta = json_decode($act->meta, true);
               $content = is_array($meta) ? ($meta['content'] ?? $meta['description'] ?? $act->meta) : $act->meta;
-              $attachments = is_array($meta) ? ($meta['attachments'] ?? []) : [];
+              
+              // Lấy attachments từ CommentAttachment table thay vì activity log
+              $attachments = [];
+              if ($act->subject_type === 'App\\Models\\Comment' && $act->subject_id) {
+                $comment = \App\Models\Comment::find($act->subject_id);
+                if ($comment) {
+                  foreach ($comment->attachments as $attachment) {
+                    $attachments[] = [
+                      'id' => $attachment->id,
+                      'name' => $attachment->original_name,
+                      'url' => $attachment->file_url,
+                      'type' => $attachment->mime_type,
+                      'size' => $attachment->file_size,
+                    ];
+                  }
+                }
+              } else {
+                // Fallback cho activity log cũ
+                $attachments = is_array($meta) ? ($meta['attachments'] ?? []) : [];
+              }
             @endphp
             
             @if(is_array($meta))
@@ -514,16 +533,59 @@
                 <div class="d-flex flex-wrap gap-2">
                   @foreach($attachments as $attachment)
                     <div class="attachment-item">
-                      @if(str_starts_with($attachment['type'], 'image/'))
+                      @php
+                        // Detect file type từ MIME type và extension
+                        $isImage = str_starts_with($attachment['type'], 'image/') || 
+                                  in_array(strtolower(pathinfo($attachment['name'], PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                        $isVideo = str_starts_with($attachment['type'], 'video/') || 
+                                  in_array(strtolower(pathinfo($attachment['name'], PATHINFO_EXTENSION)), ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', '3gp']);
+                      @endphp
+                      
+                      @if($isImage)
                         <a href="#" onclick="openImageModal('{{ $attachment['url'] }}', '{{ $attachment['name'] }}')" class="attachment-link">
                           <img src="{{ $attachment['url'] }}" alt="{{ $attachment['name'] }}" class="attachment-preview" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                         </a>
-                      @elseif(str_starts_with($attachment['type'], 'video/'))
-                        <a href="{{ $attachment['url'] }}" target="_blank" class="attachment-link">
-                          <div class="attachment-preview bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
-                            <i class="bi bi-play-circle fs-4 text-primary"></i>
+                      @elseif($isVideo)
+                        <div class="video-thumbnail-container" 
+                             style="width: 60px; height: 60px; border-radius: 4px; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s ease;"
+                             data-video-url="{{ $attachment['url'] }}"
+                             data-video-name="{{ $attachment['name'] }}"
+                             data-video-id="{{ $attachment['id'] ?? '' }}"
+                             title="Click để xem video"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                          <!-- Video element để tạo thumbnail -->
+                          <video 
+                            class="video-thumbnail" 
+                            style="width: 100%; height: 100%; object-fit: cover; pointer-events: none;"
+                            preload="metadata"
+                            muted
+                            onloadeddata="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <source src="{{ $attachment['url'] }}" type="video/mp4">
+                            <source src="{{ $attachment['url'] }}" type="video/avi">
+                            <source src="{{ $attachment['url'] }}" type="video/mov">
+                            <source src="{{ $attachment['url'] }}" type="video/webm">
+                          </video>
+                          
+                          <!-- Fallback icon nếu video không load được -->
+                          <div class="video-fallback-icon bg-light d-flex align-items-center justify-content-center" 
+                               style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; pointer-events: none;">
+                            <i class="bi bi-play-circle fs-4 text-danger"></i>
                           </div>
-                        </a>
+                          
+                          <!-- Play button overlay - clickable -->
+                          <div class="video-play-overlay d-flex align-items-center justify-content-center" 
+                               style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); cursor: pointer; z-index: 10;"
+                               onclick="event.stopPropagation(); handleVideoClick(this);">
+                            <i class="bi bi-play-circle-fill fs-3 text-white" style="text-shadow: 0 0 4px rgba(0,0,0,0.8);"></i>
+                          </div>
+                          
+                          <!-- Video type indicator -->
+                          <div style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.7); color: white; font-size: 8px; padding: 1px 3px; border-radius: 2px; pointer-events: none;">
+                            VIDEO
+                          </div>
+                        </div>
                       @else
                         <a href="{{ $attachment['url'] }}" target="_blank" class="attachment-link">
                           <div class="attachment-preview bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
@@ -1190,6 +1252,73 @@ html, body {
   box-sizing: border-box !important;
   line-height: 1.6 !important;
 }
+
+/* Video thumbnail styles */
+.video-thumbnail-container {
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+}
+
+.video-thumbnail-container:hover {
+  border-color: #558EC1;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.video-thumbnail {
+  display: none;
+  background: #000;
+}
+
+.video-fallback-icon {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #6c757d;
+}
+
+.video-play-overlay {
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.video-thumbnail-container:hover .video-play-overlay {
+  opacity: 1;
+  background: rgba(0,0,0,0.5);
+}
+
+.video-play-overlay i {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Attachment item styling */
+.attachment-item {
+  position: relative;
+  display: inline-block;
+}
+
+.attachment-item:hover .attachment-preview,
+.attachment-item:hover .video-thumbnail-container {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.attachment-preview,
+.video-thumbnail-container {
+  transition: all 0.3s ease;
+  border: 1px solid #dee2e6;
+}
+
+.attachment-preview:hover,
+.video-thumbnail-container:hover {
+  border-color: #558EC1;
+}
+
+/* Video modal z-index fix */
+#videoModal {
+  z-index: 9999 !important;
+}
+
+.modal-backdrop {
+  z-index: 9998 !important;
+}
 </style>
 @endsection
 
@@ -1232,6 +1361,22 @@ function breakLongStrings() {
 // Chạy function ngay lập tức
 breakLongStrings();
 validateCommentInput();
+
+// Test function availability
+console.log('=== FUNCTION AVAILABILITY CHECK ===');
+console.log('openVideoModal function available:', typeof openVideoModal);
+console.log('openImageModal function available:', typeof openImageModal);
+
+// Fallback function if openVideoModal is not defined
+if (typeof openVideoModal === 'undefined') {
+    window.openVideoModal = function(videoUrl, videoName, attachmentId) {
+        console.log('=== FALLBACK openVideoModal CALLED ===');
+        console.log('Video URL:', videoUrl);
+        console.log('Video Name:', videoName);
+        console.log('Attachment ID:', attachmentId);
+        alert('Video: ' + videoName + '\nURL: ' + videoUrl + '\nID: ' + attachmentId);
+    };
+}
 
 // Chạy function khi trang load
 document.addEventListener('DOMContentLoaded', function() {
@@ -1727,9 +1872,286 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
+    // Image and Video Modal functions
+    function openImageModal(imageUrl, imageName) {
+        const modalHtml = `
+            <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="imageModalLabel">${imageName}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${imageUrl}" class="img-fluid" alt="${imageName}" style="max-height: 70vh;">
+                        </div>
+                        <div class="modal-footer">
+                            <a href="${imageUrl}" target="_blank" class="btn btn-primary">
+                                <i class="bi bi-download me-1"></i>Tải về
+                            </a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('imageModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add new modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+        modal.show();
+        
+        // Remove modal from DOM when hidden
+        document.getElementById('imageModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    function handleVideoClick(element) {
+        console.log('=== handleVideoClick START ===');
+        console.log('Element clicked:', element);
+        
+        // Lấy container cha chứa data attributes
+        const container = element.closest('.video-thumbnail-container');
+        if (!container) {
+            console.error('Video container not found');
+            return;
+        }
+        
+        const videoUrl = container.dataset.videoUrl;
+        const videoName = container.dataset.videoName;
+        const videoId = container.dataset.videoId;
+        
+        console.log('Video data:', { videoUrl, videoName, videoId });
+        
+        if (!videoUrl) {
+            console.error('Video URL not found');
+            alert('Không tìm thấy URL video');
+            return;
+        }
+        
+        // Gọi openVideoModal
+        if (typeof openVideoModal === 'function') {
+            console.log('Calling openVideoModal...');
+            openVideoModal(videoUrl, videoName, videoId);
+        } else {
+            console.error('openVideoModal function not found');
+            alert('Lỗi: Function openVideoModal không tồn tại');
+        }
+    }
+
+    function openVideoModal(videoUrl, videoName, attachmentId) {
+        console.log('=== openVideoModal START ===');
+        console.log('openVideoModal called with:', { videoUrl, videoName, attachmentId });
+        console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+        
+        const modalHtml = `
+            <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true" style="z-index: 9999;">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="videoModalLabel">${videoName}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <video controls class="w-100" style="max-height: 70vh;" onerror="showVideoError(this)">
+                                <source src="${attachmentId ? '/comment-attachments/' + attachmentId + '/view' : videoUrl}" type="video/mp4">
+                                <source src="${attachmentId ? '/comment-attachments/' + attachmentId + '/view' : videoUrl}" type="video/avi">
+                                <source src="${attachmentId ? '/comment-attachments/' + attachmentId + '/view' : videoUrl}" type="video/mov">
+                                <source src="${attachmentId ? '/comment-attachments/' + attachmentId + '/view' : videoUrl}" type="video/wmv">
+                                <source src="${attachmentId ? '/comment-attachments/' + attachmentId + '/view' : videoUrl}" type="video/webm">
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    Trình duyệt của bạn không hỗ trợ video này. 
+                                    <a href="${attachmentId ? '/comment-attachments/' + attachmentId + '/download' : videoUrl}" target="_blank" class="btn btn-sm btn-primary ms-2">
+                                        <i class="bi bi-download me-1"></i>Tải về để xem
+                                    </a>
+                                </div>
+                            </video>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="${attachmentId ? '/comment-attachments/' + attachmentId + '/view' : videoUrl}" target="_blank" class="btn btn-info">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>Mở trong tab mới
+                            </a>
+                            <a href="${attachmentId ? '/comment-attachments/' + attachmentId + '/download' : videoUrl}" target="_blank" class="btn btn-primary">
+                                <i class="bi bi-download me-1"></i>Tải về
+                            </a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('videoModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add new modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Set z-index for modal backdrop
+        const modalElement = document.getElementById('videoModal');
+        modalElement.addEventListener('shown.bs.modal', function() {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.style.zIndex = '9998';
+            }
+        });
+        
+        // Show modal
+        try {
+            console.log('Creating Bootstrap modal...');
+            const modal = new bootstrap.Modal(modalElement);
+            console.log('Modal created, showing...');
+            modal.show();
+            console.log('Modal show() called');
+        } catch (error) {
+            console.error('Error creating/showing modal:', error);
+            alert('Lỗi khi mở video: ' + error.message);
+        }
+        
+        // Remove modal from DOM when hidden
+        document.getElementById('videoModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+    
+    // Fallback event listener for video clicks
+    document.addEventListener('click', function(e) {
+        // Check if clicked on video thumbnail
+        if (e.target.closest('.attachment-preview') && e.target.closest('.attachment-preview').querySelector('.bi-play-circle')) {
+            console.log('Fallback video thumbnail click detected');
+            const thumbnail = e.target.closest('.attachment-preview');
+            if (thumbnail && thumbnail.onclick) {
+                thumbnail.onclick(e);
+            }
+        }
+    });
+
+    // Add CSS for video thumbnail
+    const style = document.createElement('style');
+    style.textContent = `
+        .video-thumbnail {
+            border: 2px solid #dc3545;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .video-thumbnail:hover {
+            border-color: #c82333;
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        }
+        .video-thumbnail .bi-play-circle {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Function to handle video error
+    function showVideoError(videoElement) {
+        console.error('Video failed to load:', videoElement.src);
+        
+        // Show error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger mt-3';
+        errorDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Không thể phát video!</strong><br>
+            <small>Video có thể bị lỗi format hoặc codec không được hỗ trợ. Vui lòng tải về để xem bằng ứng dụng khác.</small>
+        `;
+        
+        // Insert error message after video
+        videoElement.parentNode.insertBefore(errorDiv, videoElement.nextSibling);
+        
+        // Hide video element
+        videoElement.style.display = 'none';
+    }
+
+    // Function to delete comment
+    function deleteComment(commentId) {
+        if (!confirm('Bạn có chắc muốn xóa bình luận này?')) {
+            return;
+        }
+        
+        fetch(`/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                showAlert('success', 'Đã xóa bình luận thành công');
+                location.reload();
+            } else {
+                return response.text().then(text => {
+                    throw new Error(text);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting comment:', error);
+            showAlert('error', 'Có lỗi xảy ra khi xóa bình luận');
+        });
+    }
+
     // Load followers khi trang load
     document.addEventListener('DOMContentLoaded', function() {
         loadAvailableFollowers();
+        
+        // Test function availability
+        console.log('openVideoModal function available:', typeof openVideoModal);
+        console.log('openImageModal function available:', typeof openImageModal);
+        
+        // Add click listeners to all video play buttons (old style)
+        document.querySelectorAll('.bi-play-circle').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                console.log('Video button clicked via event listener');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Find the parent link
+                const link = button.closest('a');
+                if (link && link.onclick) {
+                    console.log('Executing onclick handler');
+                    link.onclick();
+                } else {
+                    console.log('No onclick handler found');
+                }
+            });
+        });
+        
+        // Add click listeners to new video thumbnail containers
+        document.querySelectorAll('.video-thumbnail-container').forEach(function(container) {
+            container.addEventListener('click', function(e) {
+                console.log('Video container clicked via event listener');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const videoUrl = this.dataset.videoUrl;
+                const videoName = this.dataset.videoName;
+                const videoId = this.dataset.videoId;
+                
+                console.log('Video data from container:', { videoUrl, videoName, videoId });
+                
+                if (videoUrl && typeof openVideoModal === 'function') {
+                    console.log('Calling openVideoModal from container click...');
+                    openVideoModal(videoUrl, videoName, videoId);
+                } else {
+                    console.error('Missing video data or openVideoModal function');
+                }
+            });
+        });
     });
 });
 </script>

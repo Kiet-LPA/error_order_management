@@ -1211,6 +1211,17 @@ class TaskController extends Controller
         // Xử lý file upload
         $attachments = [];
         if ($r->hasFile('attachments')) {
+            \Log::info('=== FILE UPLOAD START ===', [
+                'file_count' => count($r->file('attachments')),
+                'files' => array_map(function($file) {
+                    return [
+                        'name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType()
+                    ];
+                }, $r->file('attachments'))
+            ]);
+            
             $totalSize = 0;
             $maxTotalSize = 1073741824; // 1GB
             
@@ -1224,8 +1235,22 @@ class TaskController extends Controller
             foreach ($r->file('attachments') as $file) {
                 $originalName = $file->getClientOriginalName();
                 
-                // Tạo tên file an toàn (tránh trùng lặp)
-                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                // Detect file type từ MIME type thay vì extension
+                $mimeType = $file->getMimeType();
+                $detectedExtension = $this->getExtensionFromMimeType($mimeType);
+                $originalExtension = pathinfo($originalName, PATHINFO_EXTENSION);
+                
+                // Sử dụng extension từ MIME type nếu có, fallback về extension gốc
+                $extension = $detectedExtension ?: $originalExtension;
+                
+                \Log::info('File type detection', [
+                    'original_name' => $originalName,
+                    'original_extension' => $originalExtension,
+                    'detected_mime_type' => $mimeType,
+                    'detected_extension' => $detectedExtension,
+                    'final_extension' => $extension,
+                    'mismatch' => $originalExtension !== $extension
+                ]);
                 $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
                 $safeName = $nameWithoutExt;
                 $counter = 1;
@@ -1243,16 +1268,18 @@ class TaskController extends Controller
                         
                         // Lưu thông tin file
                         $fileSize = $file->getSize();
-                        $fileType = $file->getMimeType();
+                        $fileType = $mimeType; // Sử dụng MIME type đã detect
                         
                         \Log::info('File saved using Storage', [
                             'fileName' => $fileName,
                             'storedPath' => $storedPath,
                             'fileExists' => \Storage::exists($storedPath),
-                            'fileSize' => $fileSize
+                            'fileSize' => $fileSize,
+                            'fullPath' => storage_path('app/' . $storedPath),
+                            'publicPath' => public_path('storage/task-comments/' . $fileName)
                         ]);
                 
-                $fileUrl = asset('storage/task-comments/' . $fileName);
+                $fileUrl = url('storage/task-comments/' . $fileName);
                 \Log::info('File URL generated', [
                     'fileName' => $fileName,
                     'fileUrl' => $fileUrl,
@@ -1261,7 +1288,7 @@ class TaskController extends Controller
                 
                 $attachments[] = [
                     'name' => $originalName,
-                    'path' => 'task-comments/' . $fileName,
+                    'path' => 'public/task-comments/' . $fileName,
                     'url' => $fileUrl,
                     'size' => $fileSize,
                     'type' => $fileType,
@@ -1276,8 +1303,9 @@ class TaskController extends Controller
                 ]);
                 
                 // Lưu attachments vào CommentAttachment table
+                $attachmentIds = [];
                 foreach ($attachments as $attachment) {
-                    $comment->attachments()->create([
+                    $commentAttachment = $comment->attachments()->create([
                         'original_name' => $attachment['name'],
                         'file_name' => basename($attachment['path']),
                         'file_path' => $attachment['path'],
@@ -1285,6 +1313,15 @@ class TaskController extends Controller
                         'mime_type' => $attachment['type'],
                         'file_size' => $attachment['size'],
                         'file_extension' => pathinfo($attachment['name'], PATHINFO_EXTENSION),
+                    ]);
+                    
+                    $attachmentIds[] = $commentAttachment->id;
+                    
+                    \Log::info('CommentAttachment created', [
+                        'id' => $commentAttachment->id,
+                        'file_name' => $commentAttachment->file_name,
+                        'file_path' => $commentAttachment->file_path,
+                        'file_url' => $commentAttachment->file_url
                     ]);
                 }
 
@@ -1877,6 +1914,54 @@ class TaskController extends Controller
             'subtask' => $subtask,
             'task_progress' => $task->getSubtasksProgressPercentage()
         ]);
+    }
+    
+    /**
+     * Get file extension from MIME type
+     */
+    private function getExtensionFromMimeType($mimeType)
+    {
+        $mimeToExtension = [
+            // Images
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/bmp' => 'bmp',
+            'image/svg+xml' => 'svg',
+            
+            // Videos
+            'video/mp4' => 'mp4',
+            'video/avi' => 'avi',
+            'video/quicktime' => 'mov',
+            'video/x-msvideo' => 'avi',
+            'video/x-ms-wmv' => 'wmv',
+            'video/x-flv' => 'flv',
+            'video/webm' => 'webm',
+            'video/3gpp' => '3gp',
+            'video/x-ms-asf' => 'asf',
+            
+            // Documents
+            'application/pdf' => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'application/vnd.ms-powerpoint' => 'ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+            
+            // Text
+            'text/plain' => 'txt',
+            'text/csv' => 'csv',
+            
+            // Archives
+            'application/zip' => 'zip',
+            'application/x-rar-compressed' => 'rar',
+            'application/x-7z-compressed' => '7z',
+        ];
+        
+        return $mimeToExtension[$mimeType] ?? null;
     }
 }
 
