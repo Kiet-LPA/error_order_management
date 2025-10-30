@@ -66,15 +66,76 @@ class CheckinController extends Controller
     }
 
     /**
+     * Kiểm tra xem user có phòng ban nào có GPS không
+     */
+    private function userHasAnyDepartmentWithGps($user)
+    {
+        // Lấy tất cả phòng ban mà user đã được assign
+        $assignedDepartments = collect();
+        
+        // Thêm department chính nếu có
+        if ($user->department) {
+            $assignedDepartments->push($user->department);
+        }
+        
+        // Thêm các departments từ bảng user_departments
+        $additionalDepartments = $user->departments()->get();
+        $assignedDepartments = $assignedDepartments->merge($additionalDepartments);
+        
+        // Kiểm tra xem có phòng ban nào có GPS không
+        return $assignedDepartments
+            ->unique('id')
+            ->filter(function ($department) {
+                return $department->hasGpsConfig();
+            })
+            ->isNotEmpty();
+    }
+
+    /**
+     * Lấy phòng ban đầu tiên có GPS của user
+     */
+    private function getFirstDepartmentWithGps($user)
+    {
+        // Lấy tất cả phòng ban mà user đã được assign
+        $assignedDepartments = collect();
+        
+        // Thêm department chính nếu có
+        if ($user->department) {
+            $assignedDepartments->push($user->department);
+        }
+        
+        // Thêm các departments từ bảng user_departments
+        $additionalDepartments = $user->departments()->get();
+        $assignedDepartments = $assignedDepartments->merge($additionalDepartments);
+        
+        // Tìm phòng ban đầu tiên có GPS
+        return $assignedDepartments
+            ->unique('id')
+            ->filter(function ($department) {
+                return $department->hasGpsConfig();
+            })
+            ->first();
+    }
+
+    /**
      * Display checkin page for employee
      */
     public function index()
     {
         $user = Auth::user();
-        $department = $user->getCheckinDepartment();
         
-        if (!$department || !$department->hasGpsConfig()) {
+        // Kiểm tra xem user có phòng ban nào có GPS không
+        $hasAnyDepartmentWithGps = $this->userHasAnyDepartmentWithGps($user);
+        
+        if (!$hasAnyDepartmentWithGps) {
             return view('checkin.no-region');
+        }
+        
+        // Lấy phòng ban chính để hiển thị thông tin ban đầu (nếu có GPS)
+        // Nếu phòng ban chính không có GPS, lấy phòng ban đầu tiên có GPS
+        $department = $user->getCheckinDepartment();
+        if (!$department || !$department->hasGpsConfig()) {
+            $department = $this->getFirstDepartmentWithGps($user);
         }
 
         $today = Carbon::today();
@@ -134,7 +195,6 @@ class CheckinController extends Controller
             ]);
 
             $user = Auth::user();
-            $department = $user->getCheckinDepartment();
             
             // ✅ KIỂM TRA ĐỘ CHÍNH XÁC GPS (nếu có)
             if ($request->has('accuracy') && $request->accuracy > 100) {
@@ -151,18 +211,22 @@ class CheckinController extends Controller
                 ], 400);
             }
             
-            \Log::info('User department info', [
+            // Tìm phòng ban gần nhất có GPS trong số các phòng ban đã được assign
+            $department = $user->getNearestDepartmentWithGps($request->latitude, $request->longitude);
+            
+            \Log::info('Nearest department detection', [
                 'user_id' => $user->id,
-                'department_id' => $department ? $department->id : null,
-                'department_name' => $department ? $department->name : null,
-                'has_gps_config' => $department ? $department->hasGpsConfig() : false,
+                'user_latitude' => $request->latitude,
+                'user_longitude' => $request->longitude,
+                'nearest_department_id' => $department ? $department->id : null,
+                'nearest_department_name' => $department ? $department->name : null,
                 'gps_accuracy' => $request->accuracy ?? 'not_provided'
             ]);
         
-        if (!$department || !$department->hasGpsConfig()) {
+        if (!$department) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn chưa được phân công khu vực điểm danh.'
+                'message' => 'Không tìm thấy phòng ban nào có cấu hình GPS trong số các phòng ban bạn được phân công.'
             ], 400);
         }
 
@@ -210,8 +274,15 @@ class CheckinController extends Controller
             $actionText = $action === 'checkin' ? 'Checkin' : 'Checkout';
             return response()->json([
                 'success' => true,
-                'message' => "{$actionText} thành công!",
-                'checkin' => $checkin
+                'message' => "{$actionText} thành công tại phòng ban: {$department->name}!",
+                'checkin' => $checkin,
+                'department' => [
+                    'id' => $department->id,
+                    'name' => $department->name,
+                    'address' => $department->address,
+                    'radius_meters' => $department->radius_meters,
+                    'distance' => round($distance)
+                ]
             ]);
         } else {
             // Failed checkin/checkout - create GPS request
@@ -237,10 +308,17 @@ class CheckinController extends Controller
             $actionText = $action === 'checkin' ? 'checkin' : 'checkout';
             return response()->json([
                 'success' => false,
-                'message' => "Bạn đang ở ngoài khu vực điểm danh. Khoảng cách: " . round($distance) . "m (cho phép: " . $department->radius_meters . "m). Mã GPS: " . $gpsCode,
+                'message' => "Bạn đang ở ngoài khu vực điểm danh của phòng ban {$department->name}. Khoảng cách: " . round($distance) . "m (cho phép: " . $department->radius_meters . "m). Mã GPS: " . $gpsCode,
                 'gps_code' => $gpsCode,
                 'distance' => round($distance),
                 'allowed_distance' => $department->radius_meters,
+                'department' => [
+                    'id' => $department->id,
+                    'name' => $department->name,
+                    'address' => $department->address,
+                    'radius_meters' => $department->radius_meters,
+                    'distance' => round($distance)
+                ],
                 'coordinates' => [
                     'latitude' => $request->latitude,
                     'longitude' => $request->longitude,

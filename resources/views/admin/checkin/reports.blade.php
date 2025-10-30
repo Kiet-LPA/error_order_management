@@ -316,7 +316,7 @@ function exportReport() {
         export: 'excel'
     });
     
-    window.open(`{{ route('admin.checkin.reports') }}?${params.toString()}`, '_blank');
+    window.location.href = `{{ route('admin.checkin.reports') }}?${params.toString()}`;
 }
 </script>
 @endsection

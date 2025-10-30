@@ -445,10 +445,10 @@ class UserController extends Controller
             
             foreach ($request->file('contract_images') as $index => $image) {
                 $fileName = time() . '_contract_' . $user->id . '_' . ($index + 1) . '.' . $image->getClientOriginalExtension();
-                $image->storeAs('public/contracts', $fileName);
+                $image->storeAs('contracts', $fileName, 'public');
                 
                 $activeContract->images()->create([
-                    'image_path' => asset('storage/contracts/' . $fileName),
+                    'image_path' => 'contracts/' . $fileName,
                     'page_number' => $activeContract->images()->count() + $index + 1,
                 ]);
             }
@@ -594,17 +594,40 @@ class UserController extends Controller
             DB::table('task_followers')->where('user_id', $user->id)->delete();
             
             // 6. Xóa task forwards
-            DB::table('task_forwards')->where('user_id', $user->id)->delete();
-            
+            //DB::table('task_forwards')->where('user_id', $user->id)->delete();
+            // Xóa tất cả forward có liên quan đến user (người chuyển hoặc người nhận)
+            DB::table('task_forwards')
+            ->where('forwarded_by', $user->id)
+            ->orWhere('forwarded_to', $user->id)
+            ->delete();
+
             // 7. Xóa support requests
-            DB::table('support_requests')->where('user_id', $user->id)->delete();
-            
+            //DB::table('support_requests')->where('user_id', $user->id)->delete();
+            // Xóa tất cả support request có liên quan đến user (người gửi, người duyệt hoặc người chuyển tiếp)
+            DB::table('support_requests')
+            ->where('requester_id', $user->id)
+            ->orWhere('approver_id', $user->id)
+            ->orWhere('forwarded_by', $user->id)
+            ->delete();
+
             // 8. Xóa forward requests
-            DB::table('forward_requests')->where('user_id', $user->id)->delete();
-            
+            //DB::table('forward_requests')->where('user_id', $user->id)->delete();
+            // Xóa tất cả forward request có liên quan đến user (người gửi hoặc người nhận)
+            DB::table('forward_requests')
+            ->where('from_user_id', $user->id)
+            ->orWhere('to_user_id', $user->id)
+            ->delete();
+
             // 9. Xóa approval requests
-            DB::table('approval_requests')->where('user_id', $user->id)->delete();
-            
+            //DB::table('approval_requests')->where('user_id', $user->id)->delete();
+            // Xóa tất cả approval requests có liên quan đến user
+            DB::table('approval_requests')
+            ->where('created_by_id', $user->id)
+            ->orWhere('current_approver_id', $user->id)
+            ->orWhere('approved_by_id', $user->id)
+            ->orWhere('rejected_by_id', $user->id)
+            ->delete();
+
             // 10. Xóa approval actions
             DB::table('approval_actions')->where('user_id', $user->id)->delete();
             
@@ -620,19 +643,52 @@ class UserController extends Controller
             // 14. Xóa rentals
             DB::table('rentals')->where('user_id', $user->id)->delete();
             
-            // 15. Xóa user departments
+            // 15. Xóa task submissions (bảng mới)
+            DB::table('task_submissions')->where('user_id', $user->id)->delete();
+            
+            // 16. Xóa approval request approvers
+            DB::table('approval_request_approvers')->where('user_id', $user->id)->delete();
+            
+            // 17. Xóa approval request followers
+            DB::table('approval_request_followers')->where('user_id', $user->id)->delete();
+            
+            // 18. Xóa task activities
+            DB::table('task_activities')->where('user_id', $user->id)->delete();
+            
+            // 19. Xóa support request followers
+            DB::table('support_request_followers')->where('user_id', $user->id)->delete();
+            
+            // 20. Xóa support request comments
+            DB::table('support_request_comments')->where('user_id', $user->id)->delete();
+            
+            // 21. Xóa support request activities
+            DB::table('support_request_activities')->where('user_id', $user->id)->delete();
+            
+            // 22. Xóa sessions (đăng nhập)
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            
+            // 23. Xóa task checklist items (assignee)
+            DB::table('task_checklist_items')->where('assignee_id', $user->id)->delete();
+            
+            // 24. Xóa task subtasks (assignee)
+            DB::table('task_subtasks')->where('assignee_id', $user->id)->delete();
+            
+            // 25. Xóa tasks (assignee - set null)
+            DB::table('tasks')->where('assignee_id', $user->id)->update(['assignee_id' => null]);
+            
+            // 26. Xóa user departments
             $user->departments()->detach();
             
-            // 16. Xóa contracts và salaries
+            // 27. Xóa contracts và salaries
             $user->contracts()->delete();
             $user->salaries()->delete();
             
-            // 17. Xóa avatar nếu có
+            // 28. Xóa avatar nếu có
             if ($user->avatar && Storage::exists('public/' . $user->avatar)) {
                 Storage::delete('public/' . $user->avatar);
             }
             
-            // 18. Cuối cùng mới xóa user
+            // 29. Cuối cùng mới xóa user
             $user->delete();
             
             DB::commit();
@@ -651,5 +707,89 @@ class UserController extends Controller
             ]);
             return back()->with('error', 'Có lỗi xảy ra khi xóa người dùng: ' . $e->getMessage());
         }
+    }
+
+    public function deleteContractImage($imageId)
+    {
+        try {
+            $image = \App\Models\ContractImage::findOrFail($imageId);
+            
+            // Check if user has permission to delete this image
+            $user = auth()->user();
+            if (!$user->isAdmin() && !$user->isDirector()) {
+                return response()->json(['success' => false, 'message' => 'Không có quyền xóa ảnh'], 403);
+            }
+            
+            // Delete file from storage
+            if (Storage::exists('public/' . $image->image_path)) {
+                Storage::delete('public/' . $image->image_path);
+            }
+            
+            // Delete from database
+            $image->delete();
+            
+            return response()->json(['success' => true, 'message' => 'Đã xóa ảnh thành công']);
+            
+        } catch (\Exception $e) {
+            Log::error('Error deleting contract image: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra khi xóa ảnh'], 500);
+        }
+    }
+
+    public function viewContractImage($imageId)
+    {
+        try {
+            $image = \App\Models\ContractImage::findOrFail($imageId);
+            
+            // Check if user has permission to view this image
+            $user = auth()->user();
+            if (!$user->isAdmin() && !$user->isDirector()) {
+                abort(403, 'Không có quyền xem ảnh');
+            }
+            
+            // Check if file exists
+            $filePath = storage_path('app/public/' . $image->image_path);
+            if (!file_exists($filePath)) {
+                abort(404, 'File không tồn tại');
+            }
+            
+            return response()->file($filePath);
+            
+        } catch (\Exception $e) {
+            Log::error('Error viewing contract image: ' . $e->getMessage());
+            abort(404, 'Không thể hiển thị ảnh');
+        }
+    }
+
+    public function debugContractImages(User $user)
+    {
+        $debug = [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'has_active_contract' => $user->activeContract ? true : false,
+        ];
+
+        if ($user->activeContract) {
+            $contract = $user->activeContract;
+            $debug['contract'] = [
+                'id' => $contract->id,
+                'status' => $contract->status,
+                'images_count' => $contract->images->count(),
+                'images' => []
+            ];
+
+            foreach ($contract->images as $image) {
+                $filePath = storage_path('app/public/' . $image->image_path);
+                $debug['contract']['images'][] = [
+                    'id' => $image->id,
+                    'image_path' => $image->image_path,
+                    'full_path' => $filePath,
+                    'file_exists' => file_exists($filePath),
+                    'page_number' => $image->page_number,
+                ];
+            }
+        }
+
+        return response()->json($debug, 200, [], JSON_PRETTY_PRINT);
     }
 }

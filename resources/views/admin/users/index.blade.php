@@ -373,12 +373,11 @@
                                         </a>
                                     @endif
                                     @if($canDelete)
-                                        <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline" 
-                                              onsubmit="console.log('Form submit for user {{ $user->id }}'); return confirm('Bạn có chắc muốn xóa nhân viên này?');">
+                                        <form action="{{ route('users.destroy', $user) }}" method="POST" style="display: inline;" 
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên {{ $user->name }}?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa" 
-                                                    onclick="console.log('Delete button clicked for user {{ $user->id }}');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
@@ -477,4 +476,6 @@
         </div>
     @endif
 </div>
+
+
 @endsection

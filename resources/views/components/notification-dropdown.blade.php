@@ -903,13 +903,7 @@ window.addEventListener('resize', function() {
     }
 });
 
-// Debug click events
-document.addEventListener('click', function(e) {
-    console.log('Click detected on:', e.target);
-    console.log('Click target class:', e.target.className);
-    console.log('Click target id:', e.target.id);
-    console.log('Click target tag:', e.target.tagName);
-});
+// Debug click events - removed to prevent interference with form submissions
 
 // Load initial notification count
 document.addEventListener('DOMContentLoaded', function() {

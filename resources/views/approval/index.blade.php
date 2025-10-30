@@ -344,6 +344,15 @@
                                                         </button>
                                                     </div>
                                                 @endif
+                                                
+                                                {{-- Nút xóa cho người có quyền --}}
+                                                @if($request->canBeDeletedBy(auth()->user()))
+                                                    <div class="btn-group mt-1" role="group">
+                                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteRequest({{ $request->id }})" title="Xóa đề xuất">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -694,6 +703,33 @@ function cancelRequest(requestId) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/approval/${requestId}/cancel`;
+        
+        // Thêm CSRF token
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        form.appendChild(csrfToken);
+        
+        // Thêm method DELETE
+        const methodField = document.createElement('input');
+        methodField.type = 'hidden';
+        methodField.name = '_method';
+        methodField.value = 'DELETE';
+        form.appendChild(methodField);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Delete request
+function deleteRequest(requestId) {
+    if (confirm('Bạn có chắc chắn muốn XÓA HOÀN TOÀN đề xuất này?\n\n⚠️ Hành động này không thể hoàn tác!')) {
+        // Tạo form để gửi request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/approval/${requestId}`;
         
         // Thêm CSRF token
         const csrfToken = document.createElement('input');

@@ -114,6 +114,34 @@ class ApprovalRequest extends Model
         return $this->created_by_id === $userId;
     }
 
+    /**
+     * Kiểm tra xem user có thể xóa approval request này không
+     */
+    public function canBeDeletedBy($user)
+    {
+        if (!$user) return false;
+        
+        // Admin và Director có thể xóa bất kỳ approval request nào
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+        
+        // Manager có thể xóa approval request của Employee trong cùng phòng ban
+        if ($user->isManager()) {
+            $creator = $this->creator;
+            if ($creator && $creator->isEmployee() && $creator->department_id === $user->department_id) {
+                return true;
+            }
+        }
+        
+        // Người tạo có thể xóa approval request của chính mình (chỉ khi chưa được xử lý)
+        if ($this->created_by_id === $user->id && $this->approval_status === 'pending') {
+            return true;
+        }
+        
+        return false;
+    }
+
     public function getApprovalStatusText()
     {
         return match($this->approval_status) {

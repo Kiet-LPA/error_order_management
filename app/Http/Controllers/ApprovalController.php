@@ -204,6 +204,14 @@ class ApprovalController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
         
+        // Xử lý số tiền từ raw value trước khi validate
+        $formData = $request->input('form_data', []);
+        if ($request->has('amount_raw') && $request->input('amount_raw')) {
+            $formData['amount'] = $request->input('amount_raw');
+            // Cập nhật lại request để validation sử dụng giá trị đã xử lý
+            $request->merge(['form_data' => $formData]);
+        }
+        
         $request->validate([
             'form_data' => 'required|array',
             'form_data.title' => 'required|string|max:255',
@@ -213,16 +221,10 @@ class ApprovalController extends Controller
             'approvers' => 'required|array|min:1',
             'approvers.*' => 'exists:users,id'
         ]);
-        
-        // Xử lý số tiền từ raw value nếu có
-        $formData = $request->input('form_data');
-        if ($request->has('amount_raw') && $request->input('amount_raw')) {
-            $formData['amount'] = $request->input('amount_raw');
-        }
 
         // Lấy danh sách người phê duyệt được chọn
         $selectedApprovers = $request->input('approvers', []);
-        $selectedDepartmentId = data_get($request->input('form_data'), 'department');
+        $selectedDepartmentId = data_get($formData, 'department');
         
         // Lấy người phê duyệt đầu tiên làm current_approver_id
         $currentApproverId = !empty($selectedApprovers) ? $selectedApprovers[0] : null;
@@ -254,7 +256,9 @@ class ApprovalController extends Controller
 
     public function show($id)
     {
-        $approvalRequest = ApprovalRequest::with(['creator', 'currentApprover', 'approvalForm', 'comments.creator', 'forwardedRequests.forwardedBy', 'forwardedRequests.forwardedTo'])
+        $approvalRequest = ApprovalRequest::with(['creator', 'currentApprover', 'approvalForm', 'comments' => function($query) {
+            $query->with(['creator', 'attachments'])->orderBy('created_at', 'desc');
+        }, 'forwardedRequests.forwardedBy', 'forwardedRequests.forwardedTo'])
             ->findOrFail($id);
 
         $formConfig = ApprovalForm::where('form_type', $approvalRequest->form_type)
@@ -670,6 +674,68 @@ class ApprovalController extends Controller
 
         return redirect()->route('approval.index')
             ->with('success', 'Đã hủy yêu cầu thành công');
+    }
+
+    /**
+     * Xóa hoàn toàn approval request
+     */
+    public function destroy($id)
+    {
+        $approvalRequest = ApprovalRequest::findOrFail($id);
+        $user = auth()->user();
+        
+        // Kiểm tra quyền xóa
+        if (!$this->userCanDelete($approvalRequest, $user)) {
+            return redirect()->back()->with('error', 'Bạn không có quyền xóa đề xuất này');
+        }
+        
+        // Lưu thông tin để gửi thông báo trước khi xóa
+        $creator = $approvalRequest->creator;
+        $formType = $approvalRequest->form_type;
+        
+        // Xóa các bản ghi liên quan trước
+        $approvalRequest->comments()->delete();
+        $approvalRequest->approvalActions()->delete();
+        $approvalRequest->forwardedRequests()->delete();
+        
+        // Xóa approval request
+        $approvalRequest->delete();
+        
+        // Gửi thông báo cho người tạo (nếu không phải chính họ)
+        if ($creator && $creator->id !== $user->id) {
+            NotificationService::approvalRequestDeleted($approvalRequest, $user, $creator, $formType);
+        }
+        
+        return redirect()->route('approval.index')
+            ->with('success', 'Đã xóa đề xuất thành công');
+    }
+
+    /**
+     * Xác định user có quyền xóa approval request không
+     */
+    private function userCanDelete(ApprovalRequest $approvalRequest, $user): bool
+    {
+        if (!$user) return false;
+        
+        // Admin và Director có thể xóa bất kỳ approval request nào
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+        
+        // Manager có thể xóa approval request của Employee trong cùng phòng ban
+        if ($user->isManager()) {
+            $creator = $approvalRequest->creator;
+            if ($creator && $creator->isEmployee() && $creator->department_id === $user->department_id) {
+                return true;
+            }
+        }
+        
+        // Người tạo có thể xóa approval request của chính mình (chỉ khi chưa được xử lý)
+        if ($approvalRequest->created_by_id === $user->id && $approvalRequest->approval_status === 'pending') {
+            return true;
+        }
+        
+        return false;
     }
 
     public function getItemSuggestions(Request $request)

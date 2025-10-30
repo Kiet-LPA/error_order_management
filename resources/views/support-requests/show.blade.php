@@ -189,10 +189,13 @@
                         <div class="mt-4">
                             <h6 class="fw-bold mb-3">File đính kèm:</h6>
                             <div class="row">
-                                @foreach($supportRequest->attachments as $attachment)
+                                @foreach($supportRequest->attachments as $index => $attachment)
                                     <div class="col-md-6 mb-2">
-                                        <a href="{{ $attachment['url'] }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ route('support-requests.attachments.view', [$supportRequest->id, $index]) }}" target="_blank" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-file-earmark me-2"></i>{{ $attachment['name'] }}
+                                        </a>
+                                        <a href="{{ route('support-requests.attachments.download', [$supportRequest->id, $index]) }}" class="btn btn-outline-secondary btn-sm" title="Tải về">
+                                            <i class="bi bi-download"></i>
                                         </a>
                                         <small class="text-muted ms-2">{{ number_format($attachment['size'] / 1024, 2) }} KB</small>
                                     </div>

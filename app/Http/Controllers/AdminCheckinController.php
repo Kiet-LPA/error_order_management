@@ -212,13 +212,13 @@ class AdminCheckinController extends Controller
                         'department_id' => $gpsRequest->department_id,
                         'checkin_date' => $gpsRequest->request_date,
                         'session' => $gpsRequest->session, // Sử dụng session từ GPS request
-                        'checkin_time' => now(),
+                        'checkin_time' => $gpsRequest->created_at, // Sử dụng thời gian yêu cầu, không phải thời gian phê duyệt
                         'latitude' => $gpsRequest->latitude ?? 0,
                         'longitude' => $gpsRequest->longitude ?? 0,
                         'distance_meters' => $gpsRequest->distance_meters,
                         'ip_address' => request()->ip(),
                         'status' => 'success',
-                        'notes' => 'Được duyệt bởi ' . $user->name . ($request->admin_notes ? ' - ' . $request->admin_notes : '')
+                        'notes' => 'Được duyệt bởi ' . $user->name . ' lúc ' . now()->format('d/m/Y H:i') . ($request->admin_notes ? ' - ' . $request->admin_notes : '')
                     ]);
 
                     \Log::info('Checkin record created successfully', [
@@ -358,6 +358,76 @@ class AdminCheckinController extends Controller
             $query->whereHas('user', function($q) use ($departmentId) {
                 $q->where('department_id', $departmentId);
             });
+        }
+
+        // Nếu yêu cầu export Excel (CSV)
+        if ($request->get('export') === 'excel') {
+            // Chuẩn bị dataset chi tiết để xuất
+            $exportQuery = (clone $query)
+                ->orderBy('checkin_date', 'desc')
+                ->orderBy('checkin_time', 'desc');
+
+            $filenameParts = [
+                'checkin_report',
+                $dateFrom,
+                'to',
+                $dateTo
+            ];
+            if ($user->isManager()) {
+                $filenameParts[] = 'dept-' . ($user->department->name ?? 'unknown');
+            } elseif ($departmentId) {
+                $departmentName = optional(Department::find($departmentId))->name;
+                if ($departmentName) {
+                    $filenameParts[] = 'dept-' . $departmentName;
+                }
+            }
+            $safeFilename = preg_replace('/[^A-Za-z0-9_-]+/', '-', implode('_', $filenameParts)) . '.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $safeFilename . '"',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            ];
+
+            $callback = function() use ($exportQuery) {
+                $handle = fopen('php://output', 'w');
+                // BOM để Excel nhận diện UTF-8
+                fwrite($handle, "\xEF\xBB\xBF");
+
+                $delimiter = ';'; // Excel ở nhiều locale (vi_VN) kỳ vọng dấu ;
+
+                // Header
+                fputcsv($handle, [
+                    'Ngày', 'Phòng ban', 'Nhân viên', 'Ca', 'Trạng thái', 'Giờ', 'Khoảng cách (m)', 'Ghi chú'
+                ], $delimiter);
+
+                $exportQuery->chunk(500, function($rows) use ($handle, $delimiter) {
+                    foreach ($rows as $row) {
+                        $date = $row->checkin_date instanceof \Carbon\CarbonInterface
+                            ? $row->checkin_date->format('Y-m-d')
+                            : (string)$row->checkin_date;
+                        $time = $row->checkin_time instanceof \Carbon\CarbonInterface
+                            ? $row->checkin_time->format('H:i:s')
+                            : (string)$row->checkin_time;
+                        $notes = str_replace(["\r\n", "\r", "\n"], ' ', (string)$row->notes);
+
+                        fputcsv($handle, [
+                            $date,
+                            optional($row->department)->name,
+                            optional($row->user)->name,
+                            $row->session,
+                            $row->status,
+                            $time,
+                            (int)($row->distance_meters ?? 0),
+                            $notes,
+                        ], $delimiter);
+                    }
+                });
+
+                fclose($handle);
+            };
+
+            return response()->stream($callback, 200, $headers);
         }
 
         $reports = $this->generateReports($query, $dateFrom, $dateTo);

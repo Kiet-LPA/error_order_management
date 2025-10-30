@@ -24,6 +24,28 @@ Route::get('/', function () {
     return redirect()->route('kanban');
 });
 
+// Debug avatar route (tạm thời)
+Route::get('/debug-avatar', function () {
+    // Clear tất cả avatar cache
+    \App\Models\User::clearAllAvatarCache();
+    
+    // Lấy một vài users để test
+    $users = \App\Models\User::whereNotNull('avatar')->take(5)->get();
+    
+    $results = [];
+    foreach ($users as $user) {
+        $results[] = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'avatar_field' => $user->avatar,
+            'avatar_url' => $user->avatar_url,
+            'is_default' => strpos($user->avatar_url, 'data:image/svg+xml') === 0,
+        ];
+    }
+    
+    return response()->json($results, 200, [], JSON_PRETTY_PRINT);
+});
+
 // Route test trang 404 (chỉ trong development)
 Route::get('/test-404', function () {
     if (app()->environment('production')) {
@@ -71,6 +93,11 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except(['show']);
         // Nếu có DepartmentController thì thêm ở đây
         // Route::resource('departments', DepartmentController::class);
+        
+        // Contract image management
+        Route::delete('admin/contract-images/{image}', [UserController::class, 'deleteContractImage'])->name('contract-images.destroy');
+        Route::get('admin/contract-images/{image}', [UserController::class, 'viewContractImage'])->name('contract-images.show');
+        Route::get('admin/debug-contract-images/{user}', [UserController::class, 'debugContractImages'])->name('contract-images.debug');
     });
 
 
@@ -163,6 +190,9 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
         Route::get('/support-requests/{supportRequest}', [SupportRequestController::class, 'show'])->name('support-requests.show');
         Route::post('/support-requests/{supportRequest}/comment', [SupportRequestController::class, 'comment'])->name('support-requests.comment');
         
+        // Routes để xem và tải file đính kèm
+        Route::get('/support-requests/{supportRequest}/attachments/{index}/view', [SupportRequestController::class, 'viewAttachment'])->name('support-requests.attachments.view');
+        Route::get('/support-requests/{supportRequest}/attachments/{index}/download', [SupportRequestController::class, 'downloadAttachment'])->name('support-requests.attachments.download');
     });
 
     // Admin & Director & Manager: Approve/Reject/Forward support requests
@@ -341,6 +371,7 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::post('/approval/{id}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('approval.approve');
     Route::post('/approval/{id}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('approval.reject');
     Route::delete('/approval/{id}/cancel', [App\Http\Controllers\ApprovalController::class, 'cancel'])->name('approval.cancel');
+    Route::delete('/approval/{id}', [App\Http\Controllers\ApprovalController::class, 'destroy'])->name('approval.destroy');
     
     // Forward Requests
     Route::post('/approval/{id}/forward', [App\Http\Controllers\ApprovalController::class, 'forward'])->name('approval.forward');
@@ -356,6 +387,11 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     
     // Comments
     Route::post('/approval/{id}/comment', [App\Http\Controllers\CommentController::class, 'storeApprovalComment'])->name('approval.comment');
+    
+    // Approval Comment Attachments
+    Route::get('/approval/attachment/{attachment}/view', [App\Http\Controllers\CommentController::class, 'viewApprovalAttachment'])->name('approval.attachment.view');
+    Route::get('/approval/attachment/{attachment}/download', [App\Http\Controllers\CommentController::class, 'downloadApprovalAttachment'])->name('approval.attachment.download');
+    Route::delete('/approval/attachment/{attachment}/delete', [App\Http\Controllers\CommentController::class, 'deleteApprovalAttachment'])->name('approval.attachment.delete');
     
     // Autocomplete suggestions
     Route::get('/approval/suggestions/items', [App\Http\Controllers\ApprovalController::class, 'getItemSuggestions'])->name('approval.item-suggestions');

@@ -29,6 +29,9 @@
     border-radius: 15px;
     font-size: 0.8rem;
     font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+    min-width: fit-content;
 }
 
 .status-success {
@@ -39,6 +42,13 @@
 .status-failed {
     background: #f8d7da;
     color: #721c24;
+}
+
+/* Đảm bảo cột Trạng thái có đủ không gian */
+.table th:nth-child(7),
+.table td:nth-child(7) {
+    min-width: 120px;
+    width: 120px;
 }
 </style>
 
@@ -167,8 +177,76 @@
 
             <!-- Pagination -->
             @if($checkins->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $checkins->links() }}
+                <div class="card-footer bg-light border-0 mt-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            Hiển thị {{ $checkins->firstItem() ?? 0 }} - {{ $checkins->lastItem() ?? 0 }} 
+                            trong tổng số {{ $checkins->total() }} kết quả
+                        </div>
+                        
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination mb-0">
+                                @if ($checkins->onFirstPage())
+                                    <li class="page-item disabled">
+                                        <span class="page-link">« Previous</span>
+                                    </li>
+                                @else
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $checkins->previousPageUrl() }}" rel="prev">« Previous</a>
+                                    </li>
+                                @endif
+
+                                @php
+                                    $start = max(1, $checkins->currentPage() - 2);
+                                    $end = min($checkins->lastPage(), $checkins->currentPage() + 2);
+                                @endphp
+                                
+                                @if($start > 1)
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $checkins->url(1) }}">1</a>
+                                    </li>
+                                    @if($start > 2)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                @endif
+                                
+                                @for ($page = $start; $page <= $end; $page++)
+                                    @if ($page == $checkins->currentPage())
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ $page }}</span>
+                                        </li>
+                                    @else
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $checkins->url($page) }}">{{ $page }}</a>
+                                        </li>
+                                    @endif
+                                @endfor
+                                
+                                @if($end < $checkins->lastPage())
+                                    @if($end < $checkins->lastPage() - 1)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $checkins->url($checkins->lastPage()) }}">{{ $checkins->lastPage() }}</a>
+                                    </li>
+                                @endif
+
+                                @if ($checkins->hasMorePages())
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $checkins->nextPageUrl() }}" rel="next">Next »</a>
+                                    </li>
+                                @else
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next »</span>
+                                    </li>
+                                @endif
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
             @endif
         @else

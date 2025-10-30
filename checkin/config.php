@@ -115,20 +115,31 @@ function generateGPSCode($userId, $regionId) {
 }
 
 // Send GPS request notification
-function sendGPSRequest($userId, $regionId, $distance, $gpsCode) {
+function sendGPSRequest($userId, $regionId, $distance, $gpsCode, $latitude = null, $longitude = null, $session = null) {
     $db = getDB();
     
-    // Insert GPS request
+    // Lấy department_id từ region_id (nếu có mapping)
+    $departmentId = null;
+    if ($regionId) {
+        $stmt = $db->prepare("SELECT id FROM departments WHERE name = (SELECT name FROM regions WHERE id = ?)");
+        $stmt->execute([$regionId]);
+        $result = $stmt->fetch();
+        $departmentId = $result ? $result['id'] : null;
+    }
+    
+    // Insert GPS request với cấu trúc mới
     $stmt = $db->prepare("
-        INSERT INTO gps_requests (user_id, region_id, request_date, distance_meters, gps_code, status, created_at)
-        VALUES (?, ?, ?, ?, ?, 'pending', NOW())
+        INSERT INTO gps_requests (user_id, department_id, request_date, session, distance_meters, latitude, longitude, gps_code, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
         ON DUPLICATE KEY UPDATE 
         distance_meters = VALUES(distance_meters),
+        latitude = VALUES(latitude),
+        longitude = VALUES(longitude),
         gps_code = VALUES(gps_code),
         created_at = NOW()
     ");
     
-    $stmt->execute([$userId, $regionId, date('Y-m-d'), $distance, $gpsCode]);
+    $stmt->execute([$userId, $departmentId, date('Y-m-d'), $session, $distance, $latitude, $longitude, $gpsCode]);
     return $gpsCode;
 }
 ?>

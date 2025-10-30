@@ -363,38 +363,61 @@ class User extends Authenticatable
     public function getAvatarUrlAttribute()
     {
         if ($this->avatar) {
-            // Cache avatar URL để tránh kiểm tra file mỗi lần
-            $cacheKey = 'avatar_url_' . $this->id;
+            // Tạm thời bỏ cache để debug
+            // $cacheKey = 'avatar_url_' . $this->id;
             
-            return cache()->remember($cacheKey, 3600, function() {
-                // Kiểm tra file tồn tại trong storage - thử nhiều đường dẫn
-                $possiblePaths = [
-                    'avatars/' . $this->avatar,
-                    $this->avatar,
-                    'avatars/' . basename($this->avatar),
-                ];
-                
-                foreach ($possiblePaths as $storagePath) {
-                    if (\Storage::disk('public')->exists($storagePath)) {
-                        // Kiểm tra kích thước file - nếu quá lớn thì dùng default avatar
-                        $fileSize = \Storage::disk('public')->size($storagePath);
-                        if ($fileSize > 500000) { // Nếu > 500KB
-                            \Log::warning("Avatar too large ({$fileSize} bytes) for user {$this->id}, using default");
-                            return $this->generateDefaultAvatar();
-                        }
-                        return asset('storage/' . $storagePath);
+            // Kiểm tra file tồn tại trong storage - thử nhiều đường dẫn
+            $possiblePaths = [
+                'avatars/' . $this->avatar,
+                $this->avatar,
+                'avatars/' . basename($this->avatar),
+            ];
+            
+            foreach ($possiblePaths as $storagePath) {
+                if (\Storage::disk('public')->exists($storagePath)) {
+                    // Kiểm tra kích thước file - nếu quá lớn thì dùng default avatar
+                    $fileSize = \Storage::disk('public')->size($storagePath);
+                    if ($fileSize > 500000) { // Nếu > 500KB
+                        \Log::warning("Avatar too large ({$fileSize} bytes) for user {$this->id}, using default");
+                        return $this->generateDefaultAvatar();
                     }
+                    \Log::info("Avatar found for user {$this->id}: storage/app/public/{$storagePath}");
+                    return asset('storage/' . $storagePath);
                 }
-                
-                // Nếu không tìm thấy file, tạo default avatar
-                return $this->generateDefaultAvatar();
-            });
+            }
+            
+            // Log khi không tìm thấy file
+            \Log::warning("Avatar file not found for user {$this->id}, avatar field: {$this->avatar}");
+            return $this->generateDefaultAvatar();
         }
         
         // Tạo SVG avatar đẹp với chữ cái đầu
         return $this->generateDefaultAvatar();
     }
     
+    /**
+     * Clear avatar cache for this user
+     */
+    public function clearAvatarCache()
+    {
+        $cacheKey = 'avatar_url_' . $this->id;
+        \Cache::forget($cacheKey);
+        
+        $defaultCacheKey = 'default_avatar_' . $this->id;
+        \Cache::forget($defaultCacheKey);
+    }
+    
+    /**
+     * Clear avatar cache for all users
+     */
+    public static function clearAllAvatarCache()
+    {
+        $users = self::all();
+        foreach ($users as $user) {
+            $user->clearAvatarCache();
+        }
+    }
+
     /**
      * Generate beautiful SVG avatar with user's initial (with caching)
      */
@@ -444,6 +467,87 @@ class User extends Authenticatable
     public function getCheckinDepartment()
     {
         return $this->department;
+    }
+
+    /**
+     * Tìm phòng ban gần nhất có GPS trong số các phòng ban đã được assign cho user
+     * @param float $latitude Vĩ độ hiện tại của user
+     * @param float $longitude Kinh độ hiện tại của user
+     * @return Department|null Phòng ban gần nhất có GPS, null nếu không tìm thấy
+     */
+    public function getNearestDepartmentWithGps($latitude, $longitude)
+    {
+        // Lấy tất cả phòng ban mà user đã được assign (bao gồm cả department chính và departments phụ)
+        $assignedDepartments = collect();
+        
+        // Thêm department chính nếu có
+        if ($this->department) {
+            $assignedDepartments->push($this->department);
+        }
+        
+        // Thêm các departments từ bảng user_departments
+        $additionalDepartments = $this->departments()->get();
+        $assignedDepartments = $assignedDepartments->merge($additionalDepartments);
+        
+        // Loại bỏ duplicate và chỉ lấy những department có GPS
+        $departmentsWithGps = $assignedDepartments
+            ->unique('id')
+            ->filter(function ($department) {
+                return $department->hasGpsConfig();
+            });
+        
+        if ($departmentsWithGps->isEmpty()) {
+            return null;
+        }
+        
+        // Tính khoảng cách đến từng phòng ban và tìm phòng ban gần nhất
+        $nearestDepartment = null;
+        $minDistance = PHP_FLOAT_MAX;
+        
+        foreach ($departmentsWithGps as $department) {
+            $distance = $this->calculateDistance(
+                $latitude, 
+                $longitude, 
+                $department->latitude, 
+                $department->longitude
+            );
+            
+            if ($distance < $minDistance) {
+                $minDistance = $distance;
+                $nearestDepartment = $department;
+            }
+        }
+        
+        return $nearestDepartment;
+    }
+
+    /**
+     * Tính khoảng cách giữa hai điểm GPS (Haversine formula)
+     * @param float $lat1 Vĩ độ điểm 1
+     * @param float $lon1 Kinh độ điểm 1
+     * @param float $lat2 Vĩ độ điểm 2
+     * @param float $lon2 Kinh độ điểm 2
+     * @return float Khoảng cách tính bằng mét
+     */
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // meters
+        
+        $lat1Rad = deg2rad($lat1);
+        $lon1Rad = deg2rad($lon1);
+        $lat2Rad = deg2rad($lat2);
+        $lon2Rad = deg2rad($lon2);
+        
+        $deltaLat = $lat2Rad - $lat1Rad;
+        $deltaLon = $lon2Rad - $lon1Rad;
+        
+        $a = sin($deltaLat/2) * sin($deltaLat/2) +
+             cos($lat1Rad) * cos($lat2Rad) *
+             sin($deltaLon/2) * sin($deltaLon/2);
+        
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        
+        return $earthRadius * $c;
     }
 
     // Rental relationships

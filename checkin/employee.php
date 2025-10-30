@@ -62,7 +62,7 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'checkin') {
                 } else {
                     // FAILED: Don't save to database, just show error
                     $gpsCode = generateGPSCode($user['id'], $user['region_id']);
-                    sendGPSRequest($user['id'], $user['region_id'], $distance, $gpsCode);
+                    sendGPSRequest($user['id'], $user['region_id'], $distance, $gpsCode, $latitude, $longitude, $session);
                     
                     $message = "Điểm danh thất bại! Bạn đang ở ngoài phạm vi cho phép.<br>";
                     $message .= "Khoảng cách: " . round($distance, 2) . "m (Tối đa: {$maxDistance}m)<br>";

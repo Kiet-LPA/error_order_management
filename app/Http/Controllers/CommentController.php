@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalComment;
+use App\Models\ApprovalCommentAttachment;
 use App\Models\Task;
 use App\Models\Comment;
 use App\Models\CommentAttachment;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class CommentController extends Controller
 {
@@ -52,6 +54,7 @@ class CommentController extends Controller
     
     public function storeApprovalComment(Request $request, $approvalRequestId)
     {
+        
         $approvalRequest = ApprovalRequest::findOrFail($approvalRequestId);
         
         // Kiểm tra quyền comment
@@ -70,7 +73,8 @@ class CommentController extends Controller
         }
 
         $request->validate([
-            'comment' => 'required|string|max:1000'
+            'comment' => 'required|string|max:1000',
+            'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,avi,mov,wmv,flv,webm,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar|max:5242880' // 5MB
         ]);
 
         $comment = ApprovalComment::create([
@@ -78,6 +82,81 @@ class CommentController extends Controller
             'user_id' => Auth::id(),
             'comment' => $request->comment
         ]);
+
+        // Xử lý file upload
+        if ($request->hasFile('attachments')) {
+            
+            $totalSize = 0;
+            $maxTotalSize = 52428800; // 50MB tổng cộng
+            
+            foreach ($request->file('attachments') as $file) {
+                $totalSize += $file->getSize();
+                if ($totalSize > $maxTotalSize) {
+                    $comment->delete(); // Xóa comment nếu upload thất bại
+                    return redirect()->back()->withErrors(['attachments' => 'Tổng kích thước file vượt quá 50MB.']);
+                }
+            }
+            
+            foreach ($request->file('attachments') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $mimeType = $file->getMimeType();
+                $fileSize = $file->getSize();
+                
+                // Tạo tên file an toàn (tránh trùng lặp)
+                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                $safeName = $nameWithoutExt;
+                $counter = 1;
+                
+                // Kiểm tra xem file đã tồn tại chưa
+                while (file_exists(public_path('storage/approval-comments/' . $safeName . '.' . $extension))) {
+                    $safeName = $nameWithoutExt . '_' . $counter;
+                    $counter++;
+                }
+                
+                $fileName = $safeName . '.' . $extension;
+                $filePath = $file->storeAs('public/approval-comments', $fileName);
+                
+                // Đảm bảo thư mục public/storage tồn tại
+                $publicPath = public_path('storage/approval-comments');
+                if (!file_exists($publicPath)) {
+                    mkdir($publicPath, 0755, true);
+                }
+                
+                // Copy file từ storage sang public storage
+                $sourcePath = storage_path('app/public/approval-comments/' . $fileName);
+                $destPath = $publicPath . '/' . $fileName;
+                if (file_exists($sourcePath)) {
+                    copy($sourcePath, $destPath);
+                }
+                
+                // Tạo meta data cho file
+                $meta = [];
+                if (str_starts_with($mimeType, 'image/')) {
+                    try {
+                        $imageInfo = getimagesize($sourcePath);
+                        if ($imageInfo) {
+                            $meta['width'] = $imageInfo[0];
+                            $meta['height'] = $imageInfo[1];
+                        }
+                    } catch (\Exception $e) {
+                        // Ignore image processing errors
+                    }
+                }
+                
+                ApprovalCommentAttachment::create([
+                    'approval_comment_id' => $comment->id,
+                    'original_name' => $originalName,
+                    'file_name' => $fileName,
+                    'file_path' => $filePath,
+                    'file_url' => asset('storage/approval-comments/' . $fileName),
+                    'mime_type' => $mimeType,
+                    'file_size' => $fileSize,
+                    'file_extension' => $extension,
+                    'meta' => $meta
+                ]);
+            }
+        }
 
         // Gửi thông báo cho những người liên quan
         \App\Services\NotificationService::approvalRequestCommentAdded($comment, Auth::user());
@@ -312,5 +391,121 @@ class CommentController extends Controller
         }
         
         return $mimeType;
+    }
+    
+    public function viewApprovalAttachment(ApprovalCommentAttachment $attachment)
+    {
+        // Kiểm tra quyền xem attachment
+        $user = Auth::user();
+        $approvalRequest = $attachment->approvalComment->approvalRequest;
+        
+        // Kiểm tra quyền xem approval request
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            // Employee chỉ có thể xem nếu họ là creator hoặc current approver
+            if ($approvalRequest->created_by_id !== $user->id && 
+                $approvalRequest->current_approver_id !== $user->id) {
+                abort(403, 'Bạn không có quyền xem file này');
+            }
+        }
+
+        // Thử nhiều đường dẫn storage có thể
+        $possibleStoragePaths = [
+            $attachment->file_path, // Đường dẫn đầy đủ từ database
+            'public/' . $attachment->file_path, // Nếu file_path không có public/
+            'public/approval-comments/' . $attachment->file_name,
+            'public/approval-comments/' . $attachment->original_name,
+            'approval-comments/' . $attachment->file_name, // Không có public/
+        ];
+        
+        $storagePath = null;
+        foreach ($possibleStoragePaths as $path) {
+            if (\Storage::exists($path)) {
+                $storagePath = $path;
+                break;
+            }
+        }
+        
+        if (!$storagePath) {
+            abort(404, 'File không tồn tại trong storage. Tried paths: ' . implode(', ', $possibleStoragePaths));
+        }
+
+        // Sử dụng Storage để lấy file content
+        $fileContent = \Storage::get($storagePath);
+        
+        // Detect MIME type từ file thực tế
+        $detectedMimeType = $this->detectMimeTypeFromContent($fileContent, $attachment->original_name);
+        $mimeType = $detectedMimeType ?: $attachment->mime_type;
+        
+        return response($fileContent)
+            ->header('Content-Type', $mimeType)
+            ->header('Content-Disposition', 'inline; filename="' . $attachment->original_name . '"')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+    
+    public function downloadApprovalAttachment(ApprovalCommentAttachment $attachment)
+    {
+        // Kiểm tra quyền download attachment
+        $user = Auth::user();
+        $approvalRequest = $attachment->approvalComment->approvalRequest;
+        
+        // Kiểm tra quyền xem approval request
+        if (!$user->isAdmin() && !$user->isDirector() && !$user->isManager()) {
+            // Employee chỉ có thể xem nếu họ là creator hoặc current approver
+            if ($approvalRequest->created_by_id !== $user->id && 
+                $approvalRequest->current_approver_id !== $user->id) {
+                abort(403, 'Bạn không có quyền tải file này');
+            }
+        }
+
+        // Thử nhiều đường dẫn storage có thể
+        $possibleStoragePaths = [
+            $attachment->file_path, // Đường dẫn đầy đủ từ database
+            'public/' . $attachment->file_path, // Nếu file_path không có public/
+            'public/approval-comments/' . $attachment->file_name,
+            'public/approval-comments/' . $attachment->original_name,
+            'approval-comments/' . $attachment->file_name, // Không có public/
+        ];
+        
+        $storagePath = null;
+        foreach ($possibleStoragePaths as $path) {
+            if (\Storage::exists($path)) {
+                $storagePath = $path;
+                break;
+            }
+        }
+        
+        if (!$storagePath) {
+            abort(404, 'File không tồn tại trong storage. Tried paths: ' . implode(', ', $possibleStoragePaths));
+        }
+
+        // Sử dụng Storage để download file
+        return \Storage::download($storagePath, $attachment->original_name);
+    }
+
+    public function deleteApprovalAttachment(ApprovalCommentAttachment $attachment)
+    {
+        // Kiểm tra quyền xóa attachment
+        $user = Auth::user();
+        $comment = $attachment->approvalComment;
+        
+        // Chỉ cho phép người tạo comment hoặc admin/director xóa
+        if (!$user->isAdmin() && !$user->isDirector() && $comment->user_id !== $user->id) {
+            return redirect()->back()->with('error', 'Bạn không có quyền xóa file đính kèm này');
+        }
+
+        // Xóa file từ storage
+        if ($attachment->file_path && \Storage::exists($attachment->file_path)) {
+            \Storage::delete($attachment->file_path);
+        }
+
+        // Xóa file từ public storage
+        $publicPath = public_path('storage/approval-comments/' . $attachment->file_name);
+        if (file_exists($publicPath)) {
+            unlink($publicPath);
+        }
+
+        $attachment->delete();
+
+        return redirect()->back()->with('success', 'Đã xóa file đính kèm thành công');
     }
 }

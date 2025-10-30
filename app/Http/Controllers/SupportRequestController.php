@@ -746,4 +746,68 @@ class SupportRequestController extends Controller
         return redirect()->route('support-requests.index')
                         ->with('success', 'Yêu cầu hỗ trợ đã được xóa thành công.');
     }
+
+    /**
+     * Xem file đính kèm của support request
+     */
+    public function viewAttachment(SupportRequest $supportRequest, $index)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền xem
+        if (!$this->canViewSupportRequest($user, $supportRequest)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+        }
+        
+        // Kiểm tra attachment có tồn tại không
+        if (!isset($supportRequest->attachments[$index])) {
+            abort(404, 'File đính kèm không tồn tại.');
+        }
+        
+        $attachment = $supportRequest->attachments[$index];
+        
+        // Lấy đường dẫn file thực tế từ URL
+        $filePath = str_replace(asset('storage/'), '', $attachment['url']);
+        $fullPath = storage_path('app/public/' . $filePath);
+        
+        // Kiểm tra file có tồn tại không
+        if (!file_exists($fullPath)) {
+            abort(404, 'File không tồn tại trên hệ thống.');
+        }
+        
+        // Trả về file để xem trong trình duyệt
+        return response()->file($fullPath);
+    }
+
+    /**
+     * Tải file đính kèm của support request
+     */
+    public function downloadAttachment(SupportRequest $supportRequest, $index)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền xem
+        if (!$this->canViewSupportRequest($user, $supportRequest)) {
+            abort(403, 'Không đủ quyền thao tác, vui lòng gửi yêu cầu đến tài khoản cao hơn thực hiện');
+        }
+        
+        // Kiểm tra attachment có tồn tại không
+        if (!isset($supportRequest->attachments[$index])) {
+            abort(404, 'File đính kèm không tồn tại.');
+        }
+        
+        $attachment = $supportRequest->attachments[$index];
+        
+        // Lấy đường dẫn file thực tế từ URL
+        $filePath = str_replace(asset('storage/'), '', $attachment['url']);
+        $fullPath = storage_path('app/public/' . $filePath);
+        
+        // Kiểm tra file có tồn tại không
+        if (!file_exists($fullPath)) {
+            abort(404, 'File không tồn tại trên hệ thống.');
+        }
+        
+        // Trả về file để download với tên gốc
+        return response()->download($fullPath, $attachment['name']);
+    }
 }

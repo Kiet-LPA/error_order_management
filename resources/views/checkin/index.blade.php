@@ -195,12 +195,21 @@
 
         <div class="card">
             <div class="card-header">
-                📍 Khu vực: {{ $department->name }}
+                📍 Khu vực: <span id="currentDepartmentName">{{ $department->name }}</span>
             </div>
             <div class="card-body">
-                <div class="region-info">
+                <div class="region-info" id="regionInfo">
                     <strong>📍 Địa chỉ:</strong> {{ $department->address }}<br>
                     <strong>📏 Bán kính cho phép:</strong> {{ $department->radius_meters }}m
+                </div>
+                
+                <!-- Dynamic department info will be shown here -->
+                <div id="dynamicDepartmentInfo" class="alert alert-info" style="display: none;">
+                    <h6>🎯 Phòng ban được chọn tự động</h6>
+                    <p><strong>📍 Tên phòng ban:</strong> <span id="selectedDepartmentName"></span></p>
+                    <p><strong>📍 Địa chỉ:</strong> <span id="selectedDepartmentAddress"></span></p>
+                    <p><strong>📏 Bán kính cho phép:</strong> <span id="selectedDepartmentRadius"></span>m</p>
+                    <p><strong>📐 Khoảng cách hiện tại:</strong> <span id="currentDistance"></span>m</p>
                 </div>
 
                 <div class="status-grid">
@@ -435,6 +444,31 @@
         }
     }
 
+    function showSelectedDepartment(departmentData) {
+        // Cập nhật tên phòng ban trong header
+        const currentDepartmentName = document.getElementById('currentDepartmentName');
+        if (currentDepartmentName) {
+            currentDepartmentName.textContent = departmentData.name;
+        }
+        
+        // Hiển thị thông tin chi tiết phòng ban được chọn
+        const dynamicInfo = document.getElementById('dynamicDepartmentInfo');
+        if (dynamicInfo) {
+            document.getElementById('selectedDepartmentName').textContent = departmentData.name;
+            document.getElementById('selectedDepartmentAddress').textContent = departmentData.address || 'Chưa cập nhật';
+            document.getElementById('selectedDepartmentRadius').textContent = departmentData.radius_meters;
+            document.getElementById('currentDistance').textContent = departmentData.distance || 'N/A';
+            
+            dynamicInfo.style.display = 'block';
+        }
+        
+        // Ẩn thông tin phòng ban cũ
+        const regionInfo = document.getElementById('regionInfo');
+        if (regionInfo) {
+            regionInfo.style.display = 'none';
+        }
+    }
+
     function checkin(latitude, longitude, action, accuracy = null) {
         const btn = document.getElementById(action === 'checkin' ? 'checkinBtn' : 'checkoutBtn');
         btn.innerHTML = '⏳ Đang xử lý...';
@@ -456,9 +490,17 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Hiển thị thông tin phòng ban được chọn nếu có
+                if (data.department) {
+                    showSelectedDepartment(data.department);
+                }
                 alert(data.message);
                 location.reload();
             } else {
+                // Hiển thị thông tin phòng ban được chọn nếu có (kể cả khi thất bại)
+                if (data.department) {
+                    showSelectedDepartment(data.department);
+                }
                 alert(data.message);
                 btn.disabled = false;
                 btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout ';

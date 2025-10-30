@@ -1004,6 +1004,59 @@ class NotificationService
     }
 
     /**
+     * Gửi thông báo khi approval request bị xóa
+     */
+    public static function approvalRequestDeleted($approvalRequest, User $deleter, User $creator, $formType)
+    {
+        // Thông báo cho người tạo (nếu không phải chính họ xóa)
+        if ($creator && $creator->id !== $deleter->id) {
+            Notification::create([
+                'user_id' => $creator->id,
+                'type' => 'approval_request_deleted',
+                'title' => 'Đề xuất phê duyệt đã bị xóa',
+                'message' => "Đề xuất phê duyệt của bạn đã được {$deleter->name} xóa hoàn toàn",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'deleter_id' => $deleter->id,
+                    'deleter_name' => $deleter->name,
+                    'form_type' => $formType
+                ]
+            ]);
+        }
+
+        // Thông báo cho current approver (nếu có và không phải người xóa)
+        if ($approvalRequest->current_approver_id && $approvalRequest->current_approver_id !== $deleter->id) {
+            Notification::create([
+                'user_id' => $approvalRequest->current_approver_id,
+                'type' => 'approval_request_deleted',
+                'title' => 'Đề xuất phê duyệt đã bị xóa',
+                'message' => "Đề xuất phê duyệt đã được {$deleter->name} xóa hoàn toàn",
+                'data' => [
+                    'approval_request_id' => $approvalRequest->id,
+                    'deleter_id' => $deleter->id,
+                    'deleter_name' => $deleter->name,
+                    'form_type' => $formType
+                ]
+            ]);
+        }
+
+        // Thông báo cho Admin và Director có liên quan (trừ người xóa)
+        self::notifyRelevantAdminsAndDirectors(
+            'approval_request_deleted',
+            'Đề xuất phê duyệt đã bị xóa',
+            "Đề xuất phê duyệt đã được {$deleter->name} xóa hoàn toàn",
+            [
+                'approval_request_id' => $approvalRequest->id,
+                'deleter_id' => $deleter->id,
+                'deleter_name' => $deleter->name,
+                'form_type' => $formType
+            ],
+            [$deleter->id],
+            $approvalRequest
+        );
+    }
+
+    /**
      * Gửi thông báo khi approval request được phê duyệt (ApprovalRequest model)
      */
     public static function approvalRequestApprovedNew($approvalRequest, User $approver)

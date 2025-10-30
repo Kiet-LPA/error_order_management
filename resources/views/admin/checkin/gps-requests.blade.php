@@ -19,12 +19,15 @@
         margin-bottom: 1.5rem;
     }
 
-    .status-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 15px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+    min-width: fit-content;
+}
 
     .status-pending {
         background: #fff3cd;
@@ -36,10 +39,17 @@
         color: #155724;
     }
 
-    .status-rejected {
-        background: #f8d7da;
-        color: #721c24;
-    }
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Đảm bảo cột Trạng thái có đủ không gian */
+.table th:nth-child(7),
+.table td:nth-child(7) {
+    min-width: 120px;
+    width: 120px;
+}
     </style>
 
     <div class="card mb-4">
@@ -99,7 +109,6 @@
                                 <th>Loại</th>
                                 <th>Khoảng cách</th>
                                 <th>Vị trí GPS</th>
-                                <th>Mã GPS</th>
                                 <th>Trạng thái</th>
                                 <th>Thời gian tạo</th>
                                 <th>Ghi chú Admin</th>
@@ -136,16 +145,13 @@
                                             </small>
                                             <a href="{{ $gpsRequest->google_maps_url }}" 
                                             target="_blank" 
-                                            class="btn btn-sm btn-outline-primary btn-sm">
+                                            class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-map me-1"></i>Xem bản đồ
                                             </a>
                                         </div>
                                     @else
                                         <span class="text-muted">Không có dữ liệu</span>
                                     @endif
-                                </td>
-                                <td>
-                                    <code class="bg-light p-1 rounded">{{ $gpsRequest->gps_code }}</code>
                                 </td>
                                 <td>
                                     <span class="status-badge status-{{ $gpsRequest->status }}">
@@ -205,8 +211,76 @@
 
                 <!-- Pagination -->
                 @if($gpsRequests->hasPages())
-                    <div class="d-flex justify-content-center mt-4">
-                        {{ $gpsRequests->links() }}
+                    <div class="card-footer bg-light border-0 mt-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted">
+                                Hiển thị {{ $gpsRequests->firstItem() ?? 0 }} - {{ $gpsRequests->lastItem() ?? 0 }} 
+                                trong tổng số {{ $gpsRequests->total() }} kết quả
+                            </div>
+                            
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination mb-0">
+                                    @if ($gpsRequests->onFirstPage())
+                                        <li class="page-item disabled">
+                                            <span class="page-link">« Previous</span>
+                                        </li>
+                                    @else
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $gpsRequests->previousPageUrl() }}" rel="prev">« Previous</a>
+                                        </li>
+                                    @endif
+
+                                    @php
+                                        $start = max(1, $gpsRequests->currentPage() - 2);
+                                        $end = min($gpsRequests->lastPage(), $gpsRequests->currentPage() + 2);
+                                    @endphp
+                                    
+                                    @if($start > 1)
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $gpsRequests->url(1) }}">1</a>
+                                        </li>
+                                        @if($start > 2)
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        @endif
+                                    @endif
+                                    
+                                    @for ($page = $start; $page <= $end; $page++)
+                                        @if ($page == $gpsRequests->currentPage())
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ $page }}</span>
+                                            </li>
+                                        @else
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ $gpsRequests->url($page) }}">{{ $page }}</a>
+                                            </li>
+                                        @endif
+                                    @endfor
+                                    
+                                    @if($end < $gpsRequests->lastPage())
+                                        @if($end < $gpsRequests->lastPage() - 1)
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        @endif
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $gpsRequests->url($gpsRequests->lastPage()) }}">{{ $gpsRequests->lastPage() }}</a>
+                                        </li>
+                                    @endif
+
+                                    @if ($gpsRequests->hasMorePages())
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ $gpsRequests->nextPageUrl() }}" rel="next">Next »</a>
+                                        </li>
+                                    @else
+                                        <li class="page-item disabled">
+                                            <span class="page-link">Next »</span>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </nav>
+                        </div>
                     </div>
                 @endif
             @else
