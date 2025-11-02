@@ -441,7 +441,14 @@ function bulkApprove() {
                 comment: comment 
             })
         })
-        .then(response => response.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                await response.text();
+                throw new Error('Lỗi hệ thống hoặc đăng nhập hết hạn. Vui lòng tải lại trang!');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showAlert('success', data.message);
@@ -452,7 +459,7 @@ function bulkApprove() {
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', 'Có lỗi xảy ra khi phê duyệt hàng loạt');
+            showAlert('error', error.message || 'Có lỗi xảy ra khi phê duyệt hàng loạt');
         })
         .finally(() => {
             button.innerHTML = originalText;
@@ -493,7 +500,14 @@ function bulkReject() {
                 comment: comment 
             })
         })
-        .then(response => response.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                await response.text();
+                throw new Error('Lỗi hệ thống hoặc đăng nhập hết hạn. Vui lòng tải lại trang!');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showAlert('success', data.message);
@@ -504,7 +518,7 @@ function bulkReject() {
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', 'Có lỗi xảy ra khi từ chối hàng loạt');
+            showAlert('error', error.message || 'Có lỗi xảy ra khi từ chối hàng loạt');
         })
         .finally(() => {
             button.innerHTML = originalText;
@@ -540,8 +554,13 @@ function approveRequest(requestId) {
         },
         body: JSON.stringify({ comment: comment })
     })
-    .then(response => {
+    .then(async response => {
         console.log('Response status:', response.status);
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            await response.text();
+            throw new Error('Lỗi hệ thống hoặc đăng nhập hết hạn. Vui lòng tải lại trang!');
+        }
         return response.json();
     })
     .then(data => {
@@ -557,7 +576,7 @@ function approveRequest(requestId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('error', 'Có lỗi xảy ra khi phê duyệt');
+        showAlert('error', error.message || 'Có lỗi xảy ra khi phê duyệt');
     })
     .finally(() => {
         button.innerHTML = originalText;
@@ -589,8 +608,13 @@ function rejectRequest(requestId) {
         },
         body: JSON.stringify({ comment: comment })
     })
-    .then(response => {
+    .then(async response => {
         console.log('Response status:', response.status);
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            await response.text();
+            throw new Error('Lỗi hệ thống hoặc đăng nhập hết hạn. Vui lòng tải lại trang!');
+        }
         return response.json();
     })
     .then(data => {
@@ -606,7 +630,7 @@ function rejectRequest(requestId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('error', 'Có lỗi xảy ra khi từ chối');
+        showAlert('error', error.message || 'Có lỗi xảy ra khi từ chối');
     })
     .finally(() => {
         button.innerHTML = originalText;

@@ -243,7 +243,10 @@
                                                     @elseif($rental->status === 'completed') bg-secondary
                                                     @else bg-danger
                                                     @endif">
-                                                    {{ ucfirst($rental->status) }}
+                                                    @if($rental->status === 'active') Đang mượn
+                                                    @elseif($rental->status === 'completed') Hoàn thành
+                                                    @else {{ ucfirst($rental->status) }}
+                                                    @endif
                                                 </span>
                                             </div>
                                             <small class="text-muted">

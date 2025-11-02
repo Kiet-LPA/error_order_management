@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use App\Models\Car;
+use App\Models\Notification;
 use App\Models\Rental;
 use App\Models\RentalExtension;
 use App\Models\User;
@@ -17,8 +19,8 @@ class RentalCarController extends Controller
     public function index()
     {
         $user = auth()->user();
-        // Lấy tất cả xe với thông tin người mượn hiện tại
-        $allCars = Car::with(['activeRental.user'])->get();
+        // Chỉ lấy các xe có status = 'active' (loại bỏ xe inactive)
+        $allCars = Car::active()->with(['activeRental.user'])->get();
         $activeRental = $user->activeRental;
         $pendingExtension = $user->activeRental ? $user->activeRental->pendingExtension : null;
         $recentRentals = $user->rentals()->with('car')->latest()->take(5)->get();
@@ -106,6 +108,17 @@ class RentalCarController extends Controller
 
         $car = Car::findOrFail($request->car_id);
 
+        // Kiểm tra xe có status active không (không cho mượn xe inactive)
+        if ($car->status !== 'active') {
+            \Log::warning('Attempt to rent inactive car', [
+                'car_id' => $car->id,
+                'car_license' => $car->license_plate,
+                'car_status' => $car->status,
+                'user_id' => $user->id
+            ]);
+            return back()->with('error', 'Xe này hiện không khả dụng để mượn. Vui lòng chọn xe khác.');
+        }
+
         // Kiểm tra xe có thể thuê không
         if (!$car->canBeRented()) {
             return back()->with('error', 'Xe này hiện không thể thuê. Vui lòng chọn xe khác.');
@@ -129,7 +142,10 @@ class RentalCarController extends Controller
             // Create notification for managers
             $managers = \App\Models\User::where('can_manage_cars', true)->get();
             foreach ($managers as $manager) {
-                $manager->notifications()->create([
+                Notification::create([
+                    'user_id' => $manager->id,
+                    'notifiable_id' => $manager->id,
+                    'notifiable_type' => 'App\Models\User',
                     'type' => 'new_rental',
                     'data' => [
                         'rental_id' => $rental->id,
@@ -143,7 +159,7 @@ class RentalCarController extends Controller
                 ]);
             }
 
-            return redirect()->route('rental.my-rentals')->with('success', 'Mượn xe thành công!');
+            return redirect()->route('rental.my-rentals')->with('success', 'Bạn đã mượn thành công xe ' . $car->license_plate . ' (' . $car->car_type . ') từ ' . Carbon::parse($request->rental_start)->format('d/m/Y H:i') . ' đến ' . Carbon::parse($request->rental_end)->format('d/m/Y H:i') . '!');
         } catch (\Exception $e) {
             \Log::error('Error creating rental', ['error' => $e->getMessage()]);
             return back()->with('error', 'Có lỗi xảy ra khi mượn xe: ' . $e->getMessage());
@@ -205,7 +221,10 @@ class RentalCarController extends Controller
         // Create notification for managers
         $managers = \App\Models\User::where('can_manage_cars', true)->get();
         foreach ($managers as $manager) {
-            $manager->notifications()->create([
+            Notification::create([
+                'user_id' => $manager->id,
+                'notifiable_id' => $manager->id,
+                'notifiable_type' => 'App\Models\User',
                 'type' => 'extension_request',
                 'data' => [
                     'extension_id' => $extension->id,
@@ -220,7 +239,7 @@ class RentalCarController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Đã gửi yêu cầu gia hạn thành công!');
+        return back()->with('success', 'Bạn đã gửi yêu cầu gia hạn thành công cho xe ' . $rental->car->license_plate . ' (' . $rental->car->car_type . ')!');
     }
 
 
@@ -258,7 +277,10 @@ class RentalCarController extends Controller
             ]);
 
             // Create notification for rental user
-            $rental->user->notifications()->create([
+            Notification::create([
+                'user_id' => $rental->user_id,
+                'notifiable_id' => $rental->user_id,
+                'notifiable_type' => 'App\Models\User',
                 'type' => 'rental_completed_early',
                 'data' => [
                     'rental_id' => $rental->id,
@@ -271,7 +293,7 @@ class RentalCarController extends Controller
                 'message' => "Quản lý " . $user->name . " đã kết thúc mượn xe " . $rental->car->license_plate . " của bạn sớm. Lý do: " . $request->reason
             ]);
 
-            return redirect()->route('rental.admin')->with('success', 'Đã kết thúc mượn xe sớm thành công!');
+            return redirect()->route('rental.admin')->with('success', 'Bạn đã kết thúc mượn xe sớm thành công! Xe ' . $rental->car->license_plate . ' (' . $rental->car->car_type . ') đã được chuyển về trạng thái có sẵn.');
         } catch (\Exception $e) {
             \Log::error('Error completing rental early', ['error' => $e->getMessage()]);
             return back()->with('error', 'Có lỗi xảy ra khi kết thúc mượn xe: ' . $e->getMessage());
@@ -344,41 +366,53 @@ class RentalCarController extends Controller
                     'session_id' => session()->getId(),
                     'ip' => $request->ip()
                 ]);
-                return back()->with('error', 'Bạn cần đăng nhập để thực hiện thao tác này!');
+                return redirect()->route('rental.my-rentals')->with('error', 'Bạn cần đăng nhập để thực hiện thao tác này!');
             }
 
             // Get rental manually to ensure we have the right one
             $rental = Rental::findOrFail($rentalId);
             $user = auth()->user();
             
+            // Cast to int để đảm bảo so sánh chính xác
+            $rentalUserId = (int) $rental->user_id;
+            $authUserId = (int) $user->id;
+            
             // Debug logging with more details
             \Log::info('Return car attempt', [
                 'rental_id' => $rental->id,
-                'rental_user_id' => $rental->user_id,
+                'rental_user_id' => $rentalUserId,
+                'rental_user_id_raw' => $rental->user_id,
+                'rental_user_id_type' => gettype($rental->user_id),
                 'rental_user_name' => $rental->user->name ?? 'Unknown',
-                'auth_user_id' => $user->id,
+                'auth_user_id' => $authUserId,
+                'auth_user_id_raw' => $user->id,
+                'auth_user_id_type' => gettype($user->id),
                 'auth_user_name' => $user->name,
                 'auth_user_email' => $user->email,
                 'rental_status' => $rental->status,
                 'request_rental_id' => $rentalId,
                 'session_id' => session()->getId(),
                 'ip' => $request->ip(),
-                'user_agent' => $request->userAgent()
+                'user_agent' => $request->userAgent(),
+                'comparison_result' => $rentalUserId === $authUserId
             ]);
             
-            // Enhanced permission validation
-            if ($rental->user_id !== $user->id) {
+            // Enhanced permission validation - So sánh chặt chẽ với cast
+            if ($rentalUserId !== $authUserId) {
                 \Log::warning('Permission denied for car return', [
                     'rental_id' => $rental->id,
-                    'rental_user_id' => $rental->user_id,
+                    'rental_user_id' => $rentalUserId,
+                    'rental_user_id_raw' => $rental->user_id,
                     'rental_user_name' => $rental->user->name ?? 'Unknown',
-                    'auth_user_id' => $user->id,
+                    'auth_user_id' => $authUserId,
+                    'auth_user_id_raw' => $user->id,
                     'auth_user_name' => $user->name,
                     'auth_user_email' => $user->email,
                     'session_id' => session()->getId(),
-                    'ip' => $request->ip()
+                    'ip' => $request->ip(),
+                    'comparison_result' => $rentalUserId === $authUserId
                 ]);
-                return back()->with('error', 'Bạn không có quyền trả xe này! Chỉ người mượn xe mới có thể trả xe. (Xe được mượn bởi: ' . ($rental->user->name ?? 'Không xác định') . ')');
+                return redirect()->route('rental.my-rentals')->with('error', 'Bạn không có quyền trả xe này! Chỉ người mượn xe mới có thể trả xe. (Xe được mượn bởi: ' . ($rental->user->name ?? 'Không xác định') . ')');
             }
 
             if ($rental->status !== 'active') {
@@ -421,27 +455,54 @@ class RentalCarController extends Controller
             $rental->car->setAvailable();
             
 
-            // Create notification for managers
-            $managers = \App\Models\User::where('can_manage_cars', true)->get();
-            foreach ($managers as $manager) {
-                $manager->notifications()->create([
-                    'type' => 'rental_returned_early',
-                    'data' => [
-                        'rental_id' => $rental->id,
-                        'car_license' => $rental->car->license_plate,
-                        'user_name' => auth()->user()->name,
-                        'return_time' => $actualReturnTime->format('d/m/Y H:i'),
-                        'notes' => $request->return_notes
-                    ],
-                    'title' => 'Xe được trả sớm',
-                    'message' => "Nhân viên " . auth()->user()->name . " đã trả xe " . $rental->car->license_plate . " sớm hơn thời hạn."
+            // Create notification for managers (try-catch riêng để không làm fail request)
+            try {
+                $managers = \App\Models\User::where('can_manage_cars', true)->get();
+                foreach ($managers as $manager) {
+                    Notification::create([
+                        'user_id' => $manager->id,
+                        'notifiable_id' => $manager->id,
+                        'notifiable_type' => 'App\Models\User',
+                        'type' => 'rental_returned_early',
+                        'data' => [
+                            'rental_id' => $rental->id,
+                            'car_license' => $rental->car->license_plate,
+                            'user_name' => auth()->user()->name,
+                            'return_time' => $actualReturnTime->format('d/m/Y H:i'),
+                            'notes' => $request->return_notes
+                        ],
+                        'title' => 'Xe được trả sớm',
+                        'message' => "Nhân viên " . auth()->user()->name . " đã trả xe " . $rental->car->license_plate . " sớm hơn thời hạn."
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Log lỗi notification nhưng không làm fail request
+                \Log::warning('Failed to create notification for car return', [
+                    'rental_id' => $rental->id,
+                    'error' => $e->getMessage()
                 ]);
             }
 
-            return redirect()->route('rental.index')->with('success', 'Bạn đã trả xe thành công! Xe đã được chuyển về trạng thái có sẵn.');
+            \Log::info('Car returned successfully', [
+                'rental_id' => $rental->id,
+                'user_id' => $authUserId,
+                'car_id' => $rental->car_id
+            ]);
+
+            return redirect()->route('rental.my-rentals')->with('success', 'Bạn đã trả thành công xe ' . $rental->car->license_plate . ' (' . $rental->car->car_type . ')! Xe đã được chuyển về trạng thái có sẵn.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Validation error returning car', [
+                'rental_id' => $rentalId ?? 'unknown',
+                'errors' => $e->errors()
+            ]);
+            return redirect()->route('rental.my-rentals')->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            \Log::error('Error returning car', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Có lỗi xảy ra khi trả xe: ' . $e->getMessage());
+            \Log::error('Error returning car', [
+                'rental_id' => $rentalId ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->route('rental.my-rentals')->with('error', 'Có lỗi xảy ra khi trả xe: ' . $e->getMessage());
         }
     }
 }

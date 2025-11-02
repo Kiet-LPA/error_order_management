@@ -29,7 +29,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        // Luôn redirect về /kanban dù intended là gì
+        return redirect(\App\Providers\RouteServiceProvider::HOME);
     }
 
     /**
