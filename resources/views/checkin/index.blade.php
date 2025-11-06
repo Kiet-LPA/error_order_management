@@ -176,19 +176,19 @@
         @if($hasCheckin && $hasCheckout)
             <div class="alert alert-success">
                 <h4>✅ Hoàn thành ngày làm việc</h4>
-                <p><strong>Checkin:</strong> {{ $hasCheckin->checkin_time->format('H:i:s') }}</p>
-                <p><strong>Checkout:</strong> {{ $hasCheckout->checkin_time->format('H:i:s') }}</p>
+                <p><strong>Điểm danh:</strong> {{ $hasCheckin->checkin_time->format('H:i:s') }}</p>
+                <p><strong>Kết thúc ca:</strong> {{ $hasCheckout->checkin_time->format('H:i:s') }}</p>
                 <p><strong>Tổng giờ làm việc:</strong> {{ $totalWorkingHours }} giờ</p>
             </div>
         @elseif($hasCheckin && !$hasCheckout)
             <div class="alert alert-warning">
-                <h4> Đã checkin - Chờ checkout</h4>
-                <p><strong>Checkin:</strong> {{ $hasCheckin->checkin_time->format('H:i:s') }}</p>
+                <h4> ✅ Đã điểm danh - Chờ kết thúc ca</h4>
+                <p><strong>Điểm danh:</strong> {{ $hasCheckin->checkin_time->format('H:i:s') }}</p>
                 <p><strong>Thời gian làm việc hiện tại:</strong> <span id="current-working-time">--:--</span></p>
             </div>
         @else
             <div class="alert alert-info">
-                <h4> Chưa checkin</h4>
+                <h4> 📋 Chưa điểm danh</h4>
                 <p>Nhấn nút bên dưới để bắt đầu ngày làm việc.</p>
             </div>
         @endif
@@ -213,7 +213,7 @@
                 </div>
 
                 <div class="status-grid">
-                    <!-- Checkin Status -->
+                    <!-- Điểm danh Status -->
                     @if($hasCheckin)
                         <div class="status-card success">
                             <h4>Bắt đầu làm việc</h4>
@@ -222,23 +222,23 @@
                         </div>
                     @else
                         <div class="status-card info">
-                            <h4> Bắt đầu làm việc</h4>
-                            <p>Chưa điểm danh </p>
+                            <h4> 📋 Bắt đầu làm việc</h4>
+                            <p>Chưa điểm danh</p>
                             <small>Bắt đầu ngày làm việc</small>
                         </div>
                     @endif
 
-                    <!-- Checkout Status -->
+                    <!-- Kết thúc ca Status -->
                     @if($hasCheckout)
                         <div class="status-card success">
-                            <h4> Kết thúc ngày làm</h4>
-                            <p>Đã checkout</p>
+                            <h4> ✅ Kết thúc ngày làm</h4>
+                            <p>Đã kết thúc ca</p>
                             <small>{{ $hasCheckout->checkin_time->format('H:i:s') }}</small>
                         </div>
                     @else
                         <div class="status-card info">
-                            <h4> Kết thúc ngày làm</h4>
-                            <p>Chưa checkout</p>
+                            <h4> 🏁 Kết thúc ngày làm</h4>
+                            <p>Chưa kết thúc ca</p>
                             <small>Kết thúc ngày làm việc</small>
                         </div>
                     @endif
@@ -262,19 +262,19 @@
                     </div>
                 @endif
 
-                <!-- Checkin/Checkout Buttons -->
+                <!-- Điểm danh/Kết thúc ca Buttons -->
                 @if(!$hasCheckin)
                     <button id="checkinBtn" class="checkin-btn" onclick="getLocation('checkin')">
-                        📍 Checkin
+                        📍 Điểm danh
                     </button>
                 @elseif($hasCheckin && !$hasCheckout)
                     <button id="checkoutBtn" class="checkin-btn" onclick="getLocation('checkout')" style="background: #dc3545;">
-                        📍 Checkout
+                        📍 Kết thúc ca
                     </button>
                 @else
                     <div class="alert alert-success">
                         <h4>✅ Hoàn thành ngày làm việc</h4>
-                        <p>Bạn đã hoàn thành checkin và checkout hôm nay.</p>
+                        <p>Bạn đã hoàn thành điểm danh và kết thúc ca hôm nay.</p>
                     </div>
                 @endif
                     
@@ -328,7 +328,7 @@
                 // ✅ KIỂM TRA ĐỘ CHÍNH XÁC GPS
                 if (position.coords.accuracy > 100) {
                     btn.disabled = false;
-                    btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout';
+                    btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
                     
                     showGpsError(`
                         <h6>⚠️ GPS không đủ chính xác</h6>
@@ -351,7 +351,7 @@
             },
             function(error) {
                 btn.disabled = false;
-                btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout';
+                btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
                 hideGpsInstructions();
                 
                 let message = 'Không thể lấy vị trí GPS. ';
@@ -503,14 +503,14 @@
                 }
                 alert(data.message);
                 btn.disabled = false;
-                btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout ';
+                btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Có lỗi xảy ra khi điểm danh.');
             btn.disabled = false;
-            btn.innerHTML = action === 'checkin' ? '📍 Checkin ' : '📍 Checkout ';
+            btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
         });
     }
 

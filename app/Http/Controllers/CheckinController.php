@@ -175,12 +175,62 @@ class CheckinController extends Controller
     }
 
     /**
-     * Process checkin request (simplified - just checkin/checkout)
+     * Tìm phòng ban hợp lệ (trong bán kính) từ danh sách phòng ban của user
+     */
+    private function findValidDepartment($user, $latitude, $longitude)
+    {
+        // Lấy tất cả phòng ban mà user đã được assign
+        $assignedDepartments = collect();
+        
+        // Thêm department chính nếu có
+        if ($user->department) {
+            $assignedDepartments->push($user->department);
+        }
+        
+        // Thêm các departments từ bảng user_departments
+        $additionalDepartments = $user->departments()->get();
+        $assignedDepartments = $assignedDepartments->merge($additionalDepartments);
+        
+        // Loại bỏ duplicate và chỉ lấy những department có GPS
+        $departmentsWithGps = $assignedDepartments
+            ->unique('id')
+            ->filter(function ($department) {
+                return $department->hasGpsConfig();
+            });
+        
+        if ($departmentsWithGps->isEmpty()) {
+            return null;
+        }
+        
+        // Tìm phòng ban gần nhất và trong bán kính
+        $validDepartment = null;
+        $minDistance = PHP_FLOAT_MAX;
+        
+        foreach ($departmentsWithGps as $department) {
+            $distance = $this->calculateDistance(
+                $latitude, 
+                $longitude, 
+                $department->latitude, 
+                $department->longitude
+            );
+            
+            // Nếu trong bán kính và gần nhất
+            if ($distance <= $department->radius_meters && $distance < $minDistance) {
+                $minDistance = $distance;
+                $validDepartment = $department;
+            }
+        }
+        
+        return $validDepartment;
+    }
+
+    /**
+     * Process điểm danh/kết thúc ca request
      */
     public function checkin(Request $request)
     {
         try {
-            \Log::info('Checkin request received', [
+            \Log::info('Điểm danh request received', [
                 'user_id' => Auth::id(),
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
@@ -210,59 +260,57 @@ class CheckinController extends Controller
                     'message' => "GPS không đủ chính xác. Độ chính xác hiện tại: " . round($request->accuracy) . "m (yêu cầu < 100m). Vui lòng di chuyển đến nơi có tín hiệu GPS tốt hơn."
                 ], 400);
             }
-            
-            // Tìm phòng ban gần nhất có GPS trong số các phòng ban đã được assign
-            $department = $user->getNearestDepartmentWithGps($request->latitude, $request->longitude);
-            
-            \Log::info('Nearest department detection', [
-                'user_id' => $user->id,
-                'user_latitude' => $request->latitude,
-                'user_longitude' => $request->longitude,
-                'nearest_department_id' => $department ? $department->id : null,
-                'nearest_department_name' => $department ? $department->name : null,
-                'gps_accuracy' => $request->accuracy ?? 'not_provided'
-            ]);
         
-        if (!$department) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không tìm thấy phòng ban nào có cấu hình GPS trong số các phòng ban bạn được phân công.'
-            ], 400);
-        }
-
         $today = Carbon::today();
         $action = $request->action; // 'checkin' or 'checkout'
 
-        // Check if already performed this action today
+        // Kiểm tra đã thực hiện hành động này hôm nay chưa
         $existingCheckin = $user->checkins()
             ->where('checkin_date', $today)
             ->where('session', $action)
             ->first();
 
         if ($existingCheckin) {
-            $actionText = $action === 'checkin' ? 'checkin' : 'checkout';
+            $actionText = $action === 'checkin' ? 'điểm danh' : 'kết thúc ca';
             return response()->json([
                 'success' => false,
                 'message' => "Bạn đã {$actionText} hôm nay rồi!"
             ], 400);
         }
 
-        // Calculate distance
-        $distance = $this->calculateDistance(
-            $request->latitude,
-            $request->longitude,
-            $department->latitude,
-            $department->longitude
-        );
+        // Kiểm tra nếu là kết thúc ca thì phải đã điểm danh
+        if ($action === 'checkout') {
+            $hasCheckin = $user->checkins()
+                ->where('checkin_date', $today)
+                ->where('session', 'checkin')
+                ->first();
+            
+            if (!$hasCheckin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chưa điểm danh hôm nay. Vui lòng điểm danh trước khi kết thúc ca.'
+                ], 400);
+            }
+        }
+        
+        // Tìm phòng ban hợp lệ (trong bán kính) từ các phòng ban của user
+        $validDepartment = $this->findValidDepartment($user, $request->latitude, $request->longitude);
+        
+        if ($validDepartment) {
+            // Tính khoảng cách
+            $distance = $this->calculateDistance(
+                $request->latitude,
+                $request->longitude,
+                $validDepartment->latitude,
+                $validDepartment->longitude
+            );
 
-        // Check if within radius
-        if ($distance <= $department->radius_meters) {
-            // Successful checkin/checkout
+            // Thành công - điểm danh/kết thúc ca
             $checkin = Checkin::create([
                 'user_id' => $user->id,
-                'department_id' => $department->id,
+                'department_id' => $validDepartment->id,
                 'checkin_date' => $today,
-                'session' => $action, // 'checkin' or 'checkout'
+                'session' => $action,
                 'checkin_time' => now(),
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
@@ -271,32 +319,68 @@ class CheckinController extends Controller
                 'status' => 'success',
             ]);
 
-            $actionText = $action === 'checkin' ? 'Checkin' : 'Checkout';
+            $actionText = $action === 'checkin' ? 'Điểm danh' : 'Kết thúc ca';
             return response()->json([
                 'success' => true,
-                'message' => "{$actionText} thành công tại phòng ban: {$department->name}!",
+                'message' => "{$actionText} thành công tại phòng ban: {$validDepartment->name}!",
                 'checkin' => $checkin,
                 'department' => [
-                    'id' => $department->id,
-                    'name' => $department->name,
-                    'address' => $department->address,
-                    'radius_meters' => $department->radius_meters,
+                    'id' => $validDepartment->id,
+                    'name' => $validDepartment->name,
+                    'address' => $validDepartment->address,
+                    'radius_meters' => $validDepartment->radius_meters,
                     'distance' => round($distance)
                 ]
             ]);
         } else {
-            // Failed checkin/checkout - create GPS request
-            $gpsCode = $this->generateGPSCode($user->id, $department->id);
+            // Không có phòng ban hợp lệ trong bán kính
+            // Nếu là kết thúc ca, tìm phòng ban đã điểm danh để gửi GPS request
+            $targetDepartment = null;
+            
+            if ($action === 'checkout') {
+                // Tìm phòng ban đã điểm danh hôm nay
+                $todayCheckin = $user->checkins()
+                    ->where('checkin_date', $today)
+                    ->where('session', 'checkin')
+                    ->first();
+                
+                if ($todayCheckin && $todayCheckin->department) {
+                    $targetDepartment = $todayCheckin->department;
+                }
+            }
+            
+            // Nếu không tìm thấy phòng ban đã điểm danh, tìm phòng ban gần nhất
+            if (!$targetDepartment) {
+                $targetDepartment = $user->getNearestDepartmentWithGps($request->latitude, $request->longitude);
+            }
+            
+            if (!$targetDepartment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy phòng ban nào có cấu hình GPS trong số các phòng ban bạn được phân công.'
+                ], 400);
+            }
+            
+            // Tính khoảng cách đến phòng ban target
+            $distance = $this->calculateDistance(
+                $request->latitude,
+                $request->longitude,
+                $targetDepartment->latitude,
+                $targetDepartment->longitude
+            );
+            
+            // Tạo GPS request
+            $gpsCode = $this->generateGPSCode($user->id, $targetDepartment->id);
             
             GpsRequest::updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'request_date' => $today,
-                    'session' => $action, // 'checkin' or 'checkout'
+                    'session' => $action,
                 ],
                 [
-                    'department_id' => $department->id,
-                    'session' => $action, // 'checkin' or 'checkout'
+                    'department_id' => $targetDepartment->id,
+                    'session' => $action,
                     'distance_meters' => $distance,
                     'latitude' => $request->latitude,
                     'longitude' => $request->longitude,
@@ -305,18 +389,18 @@ class CheckinController extends Controller
                 ]
             );
 
-            $actionText = $action === 'checkin' ? 'checkin' : 'checkout';
+            $actionText = $action === 'checkin' ? 'điểm danh' : 'kết thúc ca';
             return response()->json([
                 'success' => false,
-                'message' => "Bạn đang ở ngoài khu vực điểm danh của phòng ban {$department->name}. Khoảng cách: " . round($distance) . "m (cho phép: " . $department->radius_meters . "m). Mã GPS: " . $gpsCode,
+                'message' => "Bạn đang ở ngoài khu vực điểm danh của phòng ban {$targetDepartment->name}. Khoảng cách: " . round($distance) . "m (cho phép: " . $targetDepartment->radius_meters . "m). Mã GPS: " . $gpsCode,
                 'gps_code' => $gpsCode,
                 'distance' => round($distance),
-                'allowed_distance' => $department->radius_meters,
+                'allowed_distance' => $targetDepartment->radius_meters,
                 'department' => [
-                    'id' => $department->id,
-                    'name' => $department->name,
-                    'address' => $department->address,
-                    'radius_meters' => $department->radius_meters,
+                    'id' => $targetDepartment->id,
+                    'name' => $targetDepartment->name,
+                    'address' => $targetDepartment->address,
+                    'radius_meters' => $targetDepartment->radius_meters,
                     'distance' => round($distance)
                 ],
                 'coordinates' => [
@@ -327,7 +411,7 @@ class CheckinController extends Controller
             ]);
         }
         } catch (\Exception $e) {
-            \Log::error('Checkin error', [
+            \Log::error('Điểm danh error', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
