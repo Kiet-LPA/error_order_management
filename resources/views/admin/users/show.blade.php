@@ -39,7 +39,7 @@
                         <div class="card-body">
                             <div class="row mb-3">
                                 <div class="col-sm-4 fw-bold">Họ tên:</div>
-                                <div class="col-sm-8">{{ $user->name }}</div>
+                                <div class="col-sm-8">{{ $user->display_name }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-sm-4 fw-bold">Email:</div>

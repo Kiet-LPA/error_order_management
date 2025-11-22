@@ -289,12 +289,12 @@
                             <td>
                                 <div class="d-flex align-items-center">
                                     <img src="{{ $user->avatar_url }}"
-                                         alt="{{ $user->name }}"
+                                         alt="{{ $user->display_name }}"
                                          class="rounded-circle me-2"
                                          width="40" height="40"
                                          loading="lazy"
                                          style="object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                    <div class="fw-semibold">{{ $user->name }}</div>
+                                    <div class="fw-semibold">{{ $user->display_name }}</div>
                                 </div>
                             </td>
                             <td>
@@ -374,7 +374,7 @@
                                     @endif
                                     @if($canDelete)
                                         <form action="{{ route('users.destroy', $user) }}" method="POST" style="display: inline;" 
-                                              onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên {{ $user->name }}?')">
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên {{ $user->display_name }}?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">

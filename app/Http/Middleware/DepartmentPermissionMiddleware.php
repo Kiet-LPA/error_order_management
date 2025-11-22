@@ -14,6 +14,11 @@ class DepartmentPermissionMiddleware
     {
         $user = $request->user();
         
+        // Nếu user chưa đăng nhập, cho phép tiếp tục (auth middleware sẽ xử lý)
+        if (!$user) {
+            return $next($request);
+        }
+        
         // Admin và Director có thể làm mọi thứ
         if ($user->isAdmin() || $user->isDirector()) {
             return $next($request);

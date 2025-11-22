@@ -109,6 +109,10 @@ function togglePasswordVisibility(inputId, buttonId, iconId) {
 }
 </script>
 
+<script>
+fetch('/test-cookie', { credentials: 'include' });
+</script>
+
 <style>
 .bg-gradient-primary {
     background: linear-gradient(135deg, #558EC1 0%, #5DA444 100%);

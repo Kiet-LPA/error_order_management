@@ -119,7 +119,7 @@
                             @foreach($gpsRequests as $gpsRequest)
                             <tr>
                                 <td>
-                                    <strong>{{ $gpsRequest->user->name }}</strong><br>
+                                    <strong>{{ $gpsRequest->user->display_name }}</strong><br>
                                     <small>{{ $gpsRequest->user->email }}</small>
                                 </td>
                                 <td>{{ $gpsRequest->department->name ?? 'N/A' }}</td>

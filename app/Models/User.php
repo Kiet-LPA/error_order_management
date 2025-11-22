@@ -20,6 +20,7 @@ class User extends Authenticatable
         'employee_type', // new, official
         'account_status', // active, inactive
         'position',
+        'job_title', // Chức vụ: Kỹ sư, Thư ký, Bảo vệ, etc.
         'social_insurance_number',
         'health_insurance_number',
         'personal_identification_number',
@@ -466,7 +467,15 @@ class User extends Authenticatable
      */
     public function getCheckinDepartment()
     {
-        return $this->department;
+        if ($this->department && $this->department->hasGpsConfig()) {
+            return $this->department;
+        }
+
+        return $this->departments
+            ->filter(function ($department) {
+                return $department->hasGpsConfig();
+            })
+            ->first() ?? $this->department;
     }
 
     /**
@@ -575,5 +584,16 @@ class User extends Authenticatable
     public function hasActiveRental(): bool
     {
         return $this->activeRental()->exists();
+    }
+
+    /**
+     * Get display name with job title: "Tên (Chức vụ)"
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if ($this->job_title) {
+            return $this->name . ' (' . $this->job_title . ')';
+        }
+        return $this->name;
     }
 }

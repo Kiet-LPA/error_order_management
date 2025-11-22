@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class Notification extends Model
 {
@@ -26,6 +27,19 @@ class Notification extends Model
         'is_read' => 'boolean',
         'read_at' => 'datetime'
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Notification $notification) {
+            if (is_null($notification->notifiable_type)) {
+                $notification->notifiable_type = User::class;
+            }
+
+            if (is_null($notification->notifiable_id) && !is_null($notification->user_id)) {
+                $notification->notifiable_id = $notification->user_id;
+            }
+        });
+    }
 
     // Relationships
     public function user()

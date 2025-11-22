@@ -328,7 +328,7 @@
                                                            {{ $shouldDisable ? 'disabled' : '' }}>
                                                     <label class="form-check-label {{ $shouldDisable ? 'text-muted' : '' }}" 
                                                            for="recipient_{{ $user->id }}">
-                                                        {{ $user->name }} ({{ $user->display_role }})
+                                                        {{ $user->display_name }} ({{ $user->display_role }})
                                                         @if($isDisabled)
                                                             <small class="text-warning"> - Đã tham gia</small>
                                                         @elseif(auth()->user()->isManager() && $user->isManager() && $user->department_id === auth()->user()->department_id)
@@ -427,7 +427,7 @@
                                 <div class="border-bottom pb-3 mb-3">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div>
-                                            <strong>{{ $comment->user->name }}</strong>
+                                            <strong>{{ $comment->user->display_name }}</strong>
                                             <small class="text-muted ms-2">{{ $comment->created_at->format('d/m/Y H:i') }}</small>
                                         </div>
                                     </div>
@@ -470,7 +470,7 @@
                                         </div>
                                         <div class="timeline-content">
                                             <div class="d-flex justify-content-between">
-                                                <strong>{{ $activity->user->name }}</strong>
+                                                <strong>{{ $activity->user->display_name }}</strong>
                                                 <small class="text-muted">{{ $activity->created_at->format('d/m/Y H:i') }}</small>
                                             </div>
                                             <p class="mb-1">

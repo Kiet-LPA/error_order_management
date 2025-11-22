@@ -141,7 +141,7 @@
                         @foreach($recentCheckins as $checkin)
                         <tr>
                             <td>
-                                <strong>{{ $checkin->user->name }}</strong><br>
+                                <strong>{{ $checkin->user->display_name }}</strong><br>
                                 <small>{{ $checkin->user->email }}</small>
                             </td>
                             <td>{{ $checkin->department->name ?? 'N/A' }}</td>
@@ -189,7 +189,7 @@
                     @foreach($pendingGpsRequests as $gpsRequest)
                     <tr>
                         <td>
-                            <strong>{{ $gpsRequest->user->name }}</strong><br>
+                            <strong>{{ $gpsRequest->user->display_name }}</strong><br>
                             <small>{{ $gpsRequest->user->email }}</small>
                         </td>
                         <td>{{ $gpsRequest->department->name ?? 'N/A' }}</td>

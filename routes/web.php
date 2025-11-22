@@ -24,6 +24,39 @@ Route::get('/', function () {
     return redirect()->route('kanban');
 });
 
+Route::get('/test-cookie', function () {
+    $domain = config('session.domain');
+    $secure = config('session.secure', config('app.env') === 'production');
+    $sameSite = config('session.same_site', 'lax');
+    $lifetime = config('session.lifetime', 120);
+
+    return response('cookie test')->cookie(
+        'XSRF-TOKEN',
+        csrf_token(),
+        $lifetime,
+        '/',
+        $domain,
+        $secure,
+        true,
+        false,
+        $sameSite
+    );
+});
+
+Route::get('/debug-session', function () {
+    return response()->json([
+        'app_url' => config('app.url'),
+        'session_driver' => config('session.driver'),
+        'session_domain' => config('session.domain'),
+        'session_secure' => config('session.secure'),
+        'session_same_site' => config('session.same_site'),
+        'request_secure' => request()->isSecure(),
+        'cookies_sent' => request()->cookies->all(),
+        'session_id' => session()->getId(),
+        'user_authenticated' => auth()->check(),
+    ]);
+});
+
 // Debug avatar route (tạm thời)
 Route::get('/debug-avatar', function () {
     // Clear tất cả avatar cache

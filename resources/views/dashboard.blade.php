@@ -325,7 +325,7 @@
             <!-- Welcome Message -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chào mừng bạn, {{ auth()->user()->name }}!</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chào mừng bạn, {{ auth()->user()->display_name }}!</h3>
                     <p class="text-gray-600">
                         @if(auth()->user()->isAdmin() || auth()->user()->isDirector())
                             Bạn có toàn quyền quản lý hệ thống. Hãy sử dụng các chức năng trên để quản lý hiệu quả.

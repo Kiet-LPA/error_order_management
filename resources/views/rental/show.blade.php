@@ -73,7 +73,7 @@
                                 <div class="col-md-6">
                                     <div class="info-row">
                                         <strong>Người mượn:</strong><br>
-                                        <span class="text-muted">{{ $rental->user->name }}</span>
+                                        <span class="text-muted">{{ $rental->user->display_name }}</span>
                                     </div>
                                     <div class="info-row">
                                         <strong>Vai trò:</strong><br>

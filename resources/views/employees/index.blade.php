@@ -523,11 +523,11 @@
               <td class="px-4 py-3">
                 <div class="d-flex align-items-center">
                   <img src="{{ $user->avatar_url }}" 
-                       alt="{{ $user->name }}" 
+                       alt="{{ $user->display_name }}" 
                        class="rounded-circle me-3" 
                        style="width: 45px; height: 45px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                   <div>
-                    <div class="fw-medium text-dark employee-name">{{ $user->name }}</div>
+                    <div class="fw-medium text-dark employee-name">{{ $user->display_name }}</div>
                     <small class="text-muted">ID: {{ $user->id }}</small>
                   </div>
                 </div>

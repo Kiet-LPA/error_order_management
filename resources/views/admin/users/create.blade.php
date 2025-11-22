@@ -80,6 +80,12 @@
                 @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="mb-3">
+                <label for="job_title" class="form-label">Chức vụ</label>
+                <input type="text" name="job_title" id="job_title" class="form-control @error('job_title') is-invalid @enderror" value="{{ old('job_title') }}" placeholder="Ví dụ: Kỹ sư, Thư ký, Bảo vệ...">
+                <div class="form-text">Chức vụ của nhân viên (tùy chọn)</div>
+                @error('job_title')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="mb-3">
                 <label for="email" class="form-label">Email <span class="text-muted">(tùy chọn nếu có số điện thoại)</span></label>
                 <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}">
                 @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -152,8 +158,87 @@
                 @error('department_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 @error('department_ids.*')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
-            <button type="submit" class="btn" style="background:#5DA444; color:#fff; border-color:#5DA444;">Lưu</button>
-            <a href="{{ route('users.index') }}" class="btn" style="background:#558EC1; color:#fff; border-color:#558EC1;">Quay lại</a>
+
+            <!-- Thông tin hợp đồng -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-file-earmark-text me-2"></i>Thông tin hợp đồng <span class="text-muted">(tùy chọn)</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="contract_salary" class="form-label">Lương hợp đồng</label>
+                                        <input type="number" name="contract_salary" id="contract_salary" class="form-control @error('contract_salary') is-invalid @enderror" value="{{ old('contract_salary') }}" min="0">
+                                        @error('contract_salary')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="contract_start_date" class="form-label">Ngày bắt đầu</label>
+                                        <input type="date" name="contract_start_date" id="contract_start_date" class="form-control @error('contract_start_date') is-invalid @enderror" value="{{ old('contract_start_date') }}">
+                                        @error('contract_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="contract_period" class="form-label">Thời gian hợp đồng (tháng)</label>
+                                        <select name="contract_period" id="contract_period" class="form-select @error('contract_period') is-invalid @enderror">
+                                            <option value="">-- Chọn thời gian --</option>
+                                            @for($i = 1; $i <= 60; $i++)
+                                                <option value="{{ $i }}" {{ old('contract_period') == $i ? 'selected' : '' }}>{{ $i }} tháng</option>
+                                            @endfor
+                                        </select>
+                                        @error('contract_period')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="contract_status" class="form-label">Trạng thái hợp đồng</label>
+                                        <select name="contract_status" id="contract_status" class="form-select @error('contract_status') is-invalid @enderror">
+                                            <option value="">-- Chọn trạng thái --</option>
+                                            <option value="active" {{ old('contract_status')=='active'?'selected':'' }}>Đang hoạt động</option>
+                                            <option value="completed" {{ old('contract_status')=='completed'?'selected':'' }}>Hoàn thành</option>
+                                            <option value="terminated" {{ old('contract_status')=='terminated'?'selected':'' }}>Chấm dứt</option>
+                                        </select>
+                                        @error('contract_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hình ảnh hợp đồng -->
+                            <div class="mt-4">
+                                <h6 class="text-info mb-3">
+                                    <i class="bi bi-images me-2"></i>Hình ảnh hợp đồng
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label for="contract_images" class="form-label">Tải lên hình ảnh hợp đồng</label>
+                                    <input type="file" class="form-control @error('contract_images.*') is-invalid @enderror" 
+                                           id="contract_images" name="contract_images[]" multiple 
+                                           accept="image/*">
+                                    <div class="form-text">Có thể chọn nhiều file. Hỗ trợ: JPG, PNG, GIF. Tối đa 2MB mỗi file.</div>
+                                    @error('contract_images.*')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div id="imagePreview" class="row g-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn mt-4" style="background:#5DA444; color:#fff; border-color:#5DA444;">Lưu</button>
+            <a href="{{ route('users.index') }}" class="btn mt-4" style="background:#558EC1; color:#fff; border-color:#558EC1;">Quay lại</a>
         </form>
     </div>
 </div>
@@ -178,5 +263,37 @@ function togglePasswordVisibility(inputId, buttonId, iconId) {
         button.classList.add('btn-outline-secondary');
     }
 }
+
+// Preview ảnh hợp đồng
+document.addEventListener('DOMContentLoaded', function() {
+    const contractImagesInput = document.getElementById('contract_images');
+    if (contractImagesInput) {
+        contractImagesInput.addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            
+            for (let i = 0; i < e.target.files.length; i++) {
+                const file = e.target.files[i];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-6 col-sm-6 col-6';
+                        col.innerHTML = `
+                            <div class="card">
+                                <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                                <div class="card-body p-2">
+                                    <small class="text-muted">Trang ${i + 1}</small>
+                                </div>
+                            </div>
+                        `;
+                        preview.appendChild(col);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+    }
+});
 </script>
 @endsection

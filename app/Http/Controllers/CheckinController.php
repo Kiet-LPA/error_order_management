@@ -118,6 +118,28 @@ class CheckinController extends Controller
     }
 
     /**
+     * Lấy danh sách tất cả phòng ban có GPS mà user được phân vào
+     */
+    private function getDepartmentsWithGps($user)
+    {
+        $assignedDepartments = collect();
+
+        if ($user->department) {
+            $assignedDepartments->push($user->department);
+        }
+
+        $additionalDepartments = $user->departments()->get();
+        $assignedDepartments = $assignedDepartments->merge($additionalDepartments);
+
+        return $assignedDepartments
+            ->unique('id')
+            ->filter(function ($department) {
+                return $department->hasGpsConfig();
+            })
+            ->values();
+    }
+
+    /**
      * Display checkin page for employee
      */
     public function index()
@@ -137,6 +159,21 @@ class CheckinController extends Controller
         if (!$department || !$department->hasGpsConfig()) {
             $department = $this->getFirstDepartmentWithGps($user);
         }
+
+        // Danh sách phòng ban có GPS để hiển thị trên front-end
+        $departmentsData = $this->getDepartmentsWithGps($user)
+            ->map(function ($dept) {
+                return [
+                    'id' => $dept->id,
+                    'name' => $dept->name,
+                    'address' => $dept->address,
+                    'latitude' => $dept->latitude,
+                    'longitude' => $dept->longitude,
+                    'radius_meters' => $dept->radius_meters,
+                ];
+            })
+            ->values()
+            ->toArray();
 
         $today = Carbon::today();
         
@@ -170,7 +207,8 @@ class CheckinController extends Controller
             'hasCheckin', 
             'hasCheckout', 
             'totalWorkingHours',
-            'gpsRequest'
+            'gpsRequest',
+            'departmentsData'
         ));
     }
 

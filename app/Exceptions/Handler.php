@@ -45,6 +45,7 @@ class Handler extends ExceptionHandler
             return $this->render403Error($request, $exception);
         }
 
+        // Luôn trả về response từ parent để xử lý các exception khác
         return parent::render($request, $exception);
     }
 

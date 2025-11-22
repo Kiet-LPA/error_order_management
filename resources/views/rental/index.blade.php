@@ -182,7 +182,7 @@
                                                     @if($car->activeRental)
                                                         <div class="alert alert-warning py-2 mb-3">
                                                             <small>
-                                                                <strong>Người mượn:</strong> {{ $car->activeRental->user->name }}<br>
+                                                                <strong>Người mượn:</strong> {{ $car->activeRental->user->display_name }}<br>
                                                                 <strong>Ngày mượn:</strong> {{ $car->activeRental->rental_start->format('d/m/Y H:i') }}<br>
                                                                 <strong>Ngày trả:</strong> {{ $car->activeRental->rental_end->format('d/m/Y H:i') }}
                                                             </small>

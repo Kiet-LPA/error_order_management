@@ -44,3 +44,11 @@ SHOW INDEX FROM `gps_requests` WHERE Key_name = 'unique_request';
 
 -- Done! Migration hoàn tất
 
+
+
+
+
+
+
+
+

@@ -140,7 +140,7 @@
                         @foreach($checkins as $checkin)
                         <tr>
                             <td>
-                                <strong>{{ $checkin->user->name }}</strong><br>
+                                <strong>{{ $checkin->user->display_name }}</strong><br>
                                 <small>{{ $checkin->user->email }}</small>
                             </td>
                             <td>{{ $checkin->department->name ?? 'N/A' }}</td>
@@ -282,7 +282,7 @@
                             @foreach($departments as $dept)
                                 <optgroup label="{{ $dept->name }}">
                                     @foreach($dept->users as $user)
-                                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                                        <option value="{{ $user->id }}">{{ $user->display_name }} ({{ $user->email }})</option>
                                     @endforeach
                                 </optgroup>
                             @endforeach

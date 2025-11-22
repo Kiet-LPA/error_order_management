@@ -103,6 +103,13 @@
                                 </div>
 
                                 <div class="mb-3">
+                                    <label for="job_title" class="form-label">Chức vụ</label>
+                                    <input type="text" name="job_title" id="job_title" class="form-control @error('job_title') is-invalid @enderror" value="{{ old('job_title', $user->job_title) }}" placeholder="Ví dụ: Kỹ sư, Thư ký, Bảo vệ...">
+                                    <div class="form-text">Chức vụ của nhân viên (tùy chọn)</div>
+                                    @error('job_title')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+
+                                <div class="mb-3">
                                     <label for="email" class="form-label">Email</label>
                                     <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}">
                                     @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror

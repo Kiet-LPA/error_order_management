@@ -136,16 +136,33 @@ class UserController extends Controller
             'department_ids'=>'nullable|array',
             'department_ids.*'=>'exists:departments,id',
             'position'=>'nullable|string|max:255',
+            'job_title'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
             'health_insurance_number'=>'nullable|string|max:50',
             'personal_identification_number'=>'nullable|string|max:50',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'can_manage_cars' => 'nullable|boolean',
+            // Thông tin hợp đồng
+            'contract_salary'=>'nullable|numeric|min:0',
+            'contract_period'=>'nullable|integer|min:1|max:60',
+            'contract_start_date'=>'nullable|date',
+            'contract_status'=>'nullable|in:active,completed,terminated',
+            'contract_images.*'=>'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
         
         // Kiểm tra ít nhất phải có email hoặc số điện thoại
         if (empty($data['email']) && empty($data['phone'])) {
             return back()->withErrors(['email'=>'Phải có ít nhất email hoặc số điện thoại.'])->withInput();
+        }
+        
+        // Kiểm tra thông tin hợp đồng
+        if ($request->filled('contract_start_date') && $request->filled('contract_period')) {
+            $startDate = \Carbon\Carbon::parse($request->contract_start_date);
+            $endDate = $startDate->copy()->addMonths($request->contract_period);
+            
+            if ($endDate->isPast()) {
+                return back()->withErrors(['contract_period'=>'Thời gian hợp đồng không hợp lệ. Ngày kết thúc không được trong quá khứ.'])->withInput();
+            }
         }
         
         // Bắt buộc department cho manager/employee
@@ -215,8 +232,72 @@ class UserController extends Controller
             }
             $newUser->departments()->attach($departmentsToAttach);
         }
+
+        // Xử lý tạo hợp đồng nếu có thông tin hợp đồng
+        $contractData = [];
         
-        return redirect()->route('users.index')->with('success','Tạo người dùng thành công.');
+        if ($request->filled('contract_salary')) {
+            $contractData['probation_salary'] = $request->contract_salary;
+        }
+        if ($request->filled('contract_period')) {
+            $contractData['probation_period'] = $request->contract_period;
+        }
+        if ($request->filled('contract_start_date')) {
+            $contractData['start_date'] = $request->contract_start_date;
+        }
+        if ($request->filled('contract_status')) {
+            $contractData['status'] = $request->contract_status;
+        } else {
+            // Mặc định là active nếu có thông tin hợp đồng
+            if (!empty($contractData)) {
+                $contractData['status'] = 'active';
+            }
+        }
+        
+        // Tính toán ngày kết thúc nếu có đủ thông tin
+        if ($request->filled('contract_start_date') && $request->filled('contract_period')) {
+            $contractData['end_date'] = \Carbon\Carbon::parse($request->contract_start_date)->addMonths($request->contract_period);
+        }
+        
+        // Tạo hợp đồng nếu có đủ thông tin
+        $activeContract = null;
+        if (!empty($contractData) && isset($contractData['probation_salary']) && isset($contractData['probation_period'])) {
+            // Đảm bảo có start_date
+            if (!isset($contractData['start_date'])) {
+                $contractData['start_date'] = now();
+            }
+            $activeContract = $newUser->contracts()->create($contractData);
+        }
+
+        // Xử lý upload hình ảnh hợp đồng
+        if ($request->hasFile('contract_images')) {
+            // Nếu chưa có hợp đồng active nhưng có hình ảnh, tạo hợp đồng mới
+            if (!$activeContract) {
+                $activeContract = $newUser->contracts()->create([
+                    'status' => 'active',
+                    'start_date' => now(),
+                    'probation_salary' => $request->filled('contract_salary') ? $request->contract_salary : 0,
+                    'probation_period' => $request->filled('contract_period') ? $request->contract_period : 12,
+                ]);
+            }
+            
+            foreach ($request->file('contract_images') as $index => $image) {
+                $fileName = time() . '_contract_' . $newUser->id . '_' . ($index + 1) . '.' . $image->getClientOriginalExtension();
+                $image->storeAs('contracts', $fileName, 'public');
+                
+                $activeContract->images()->create([
+                    'image_path' => 'contracts/' . $fileName,
+                    'page_number' => $activeContract->images()->count() + $index + 1,
+                ]);
+            }
+        }
+        
+        $message = 'Tạo người dùng thành công.';
+        if ($activeContract) {
+            $message = 'Tạo người dùng và hợp đồng thành công.';
+        }
+        
+        return redirect()->route('users.index')->with('success', $message);
     }
 
     public function edit(User $user)
@@ -306,6 +387,7 @@ class UserController extends Controller
             'department_ids'=>'nullable|array',
             'department_ids.*'=>'exists:departments,id',
             'position'=>'nullable|string|max:255',
+            'job_title'=>'nullable|string|max:255',
             'social_insurance_number'=>'nullable|string|max:50',
             'health_insurance_number'=>'nullable|string|max:50',
             'personal_identification_number'=>'nullable|string|max:50',

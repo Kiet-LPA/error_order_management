@@ -473,7 +473,7 @@
                                 @endif
                                 <small class="text-muted">
                                     <i class="bi bi-person me-1"></i>
-                                    {{ $subtask->assignedUser->name ?? 'Chưa phân công' }}
+                                    {{ $subtask->assignedUser->display_name ?? 'Chưa phân công' }}
                                 </small>
                             </div>
                             <div class="col-md-3">
@@ -502,7 +502,7 @@
                                 @else
                                     <small class="text-muted">
                                         @if($subtask->assignedUser)
-                                            {{ $subtask->assignedUser->name }} thực hiện
+                                            {{ $subtask->assignedUser->display_name }} thực hiện
                                         @else
                                             Chưa phân công
                                         @endif
@@ -701,11 +701,11 @@
                         <div class="d-flex align-items-center mb-2">
                             <div class="d-flex align-items-center">
                                 <img src="{{ $comment->user->avatar_url }}" 
-                                    alt="{{ $comment->user->name }}" 
+                                    alt="{{ $comment->user->display_name }}" 
                                     class="rounded-circle me-2" 
                                     style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #e9ecef;">
                                 <div>
-                                    <strong class="text-primary d-block">{{ $comment->user->name }}</strong>
+                                    <strong class="text-primary d-block">{{ $comment->user->display_name }}</strong>
                                     <small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
                                     @if($comment->is_edited)
                                         <small class="text-muted ms-2">(đã chỉnh sửa)</small>

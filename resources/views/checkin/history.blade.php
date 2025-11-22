@@ -167,7 +167,7 @@
         <div class="container">
             <div class="logo">🏢 HP Foods - Lịch sử điểm danh</div>
             <div class="user-info">
-                <span>Xin chào, {{ auth()->user()->name }}</span>
+                <span>Xin chào, {{ auth()->user()->display_name }}</span>
                 <a href="{{ route('checkin.index') }}" class="logout-btn">← Quay lại</a>
             </div>
         </div>

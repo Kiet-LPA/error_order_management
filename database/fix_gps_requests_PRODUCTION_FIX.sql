@@ -24,3 +24,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Bước 5: Kiểm tra kết quả
 SHOW INDEX FROM `gps_requests` WHERE Key_name = 'unique_request';
 
+
+
+
+
+
+
+
+

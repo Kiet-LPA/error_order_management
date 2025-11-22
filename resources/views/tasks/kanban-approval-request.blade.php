@@ -1,8 +1,8 @@
 @php
-    $creatorName = $approvalRequest->creator ? $approvalRequest->creator->name : 'Không xác định';
-    $currentApproverName = $approvalRequest->currentApprover ? $approvalRequest->currentApprover->name : 'Chưa giao';
-    $approvedByName = $approvalRequest->approvedBy ? $approvalRequest->approvedBy->name : null;
-    $rejectedByName = $approvalRequest->rejectedBy ? $approvalRequest->rejectedBy->name : null;
+    $creatorName = $approvalRequest->creator ? $approvalRequest->creator->display_name : 'Không xác định';
+    $currentApproverName = $approvalRequest->currentApprover ? $approvalRequest->currentApprover->display_name : 'Chưa giao';
+    $approvedByName = $approvalRequest->approvedBy ? $approvalRequest->approvedBy->display_name : null;
+    $rejectedByName = $approvalRequest->rejectedBy ? $approvalRequest->rejectedBy->display_name : null;
     
     // Lấy thông tin phòng ban từ creator
     $departmentName = $approvalRequest->creator && $approvalRequest->creator->department 

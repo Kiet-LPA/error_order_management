@@ -61,7 +61,7 @@
                                         <h6 class="text-muted mb-2">Người phê duyệt</h6>
                                         @if($approvalRequest->approved_by_id)
                                             {{-- Đã có người phê duyệt --}}
-                                            <div class="fw-bold">{{ $approvalRequest->approvedBy->name ?? 'N/A' }}</div>
+                                            <div class="fw-bold">{{ $approvalRequest->approvedBy->display_name ?? 'N/A' }}</div>
                                             <div class="text-muted small">
                                                 @if($approvalRequest->approvedBy->role === 'manager')
                                                     Quản lý
@@ -97,7 +97,7 @@
                                 <div class="col-md-6">
                                     <div class="text-center border p-3">
                                         <h6 class="text-muted mb-2">Người làm đơn</h6>
-                                        <div class="fw-bold">{{ $approvalRequest->creator->name }}</div>
+                                        <div class="fw-bold">{{ $approvalRequest->creator->display_name }}</div>
                                         <div class="text-muted small">
                                             @if($approvalRequest->creator->role === 'employee')
                                                 Nhân viên
@@ -462,7 +462,7 @@
                                         <div class="timeline-marker bg-{{ $action->getActionClass() }}"></div>
                                         <div class="timeline-content">
                                             <h6 class="timeline-title">
-                                                {{ $action->user->name }} - {{ $action->getActionText() }}
+                                                {{ $action->user->display_name }} - {{ $action->getActionText() }}
                                             </h6>
                                             <p class="timeline-text">{{ $action->action_at->format('d/m/Y H:i') }}</p>
                                             @if($action->note)
@@ -523,7 +523,7 @@
                                     @foreach($approvalRequest->comments as $comment)
                                         <div class="comment-item border-bottom pb-3 mb-3">
                                             <div class="comment-header">
-                                                <strong>{{ $comment->user->name }}</strong>
+                                                <strong>{{ $comment->user->display_name }}</strong>
                                                 <span class="text-muted small">{{ $comment->created_at->format('d/m/Y H:i') }}</span>
                                             </div>
                                             <div class="comment-body mt-2">{{ $comment->comment }}</div>

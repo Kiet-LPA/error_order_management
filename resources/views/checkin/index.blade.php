@@ -145,6 +145,11 @@
             background: #5a6268;
             color: white;
         }
+        #accuracyAdvice {
+            font-size: 0.95rem;
+            color: #495057;
+            margin-top: 0.5rem;
+        }
         @media (max-width: 768px) {
             .header .container {
                 flex-direction: column;
@@ -165,7 +170,7 @@
         <div class="container">
             <div class="logo">🏢 HP Foods - Điểm danh</div>
             <div class="user-info">
-                <span>Xin chào, {{ $user->name }}</span>
+                <span>Xin chào, {{ $user->display_name }}</span>
                 <a href="{{ route('kanban') }}" class="logout-btn">← Quay lại</a>
             </div>
         </div>
@@ -210,6 +215,8 @@
                     <p><strong>📍 Địa chỉ:</strong> <span id="selectedDepartmentAddress"></span></p>
                     <p><strong>📏 Bán kính cho phép:</strong> <span id="selectedDepartmentRadius"></span>m</p>
                     <p><strong>📐 Khoảng cách hiện tại:</strong> <span id="currentDistance"></span>m</p>
+                    <p><strong>🎯 Độ chính xác GPS:</strong> <span id="currentAccuracyValue">--</span></p>
+                    <p id="accuracyAdvice" style="display: none;"></p>
                 </div>
 
                 <div class="status-grid">
@@ -308,6 +315,122 @@
     </div>
 
     <script>
+    const departments = @json($departmentsData);
+    let lastKnownAccuracy = null;
+    let lastNearestDepartment = null;
+
+    function tryAutoDetectDepartment() {
+        if (!navigator.geolocation || !departments.length) {
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                lastKnownAccuracy = Math.round(position.coords.accuracy || 0);
+
+                const nearestDepartment = getNearestDepartment(latitude, longitude);
+                lastNearestDepartment = nearestDepartment;
+
+                if (nearestDepartment) {
+                    showSelectedDepartment(nearestDepartment);
+                    updateAccuracyInfo(lastKnownAccuracy, nearestDepartment.distance, nearestDepartment.radius_meters);
+                } else {
+                    updateAccuracyInfo(lastKnownAccuracy);
+                }
+            },
+            function(error) {
+                console.warn('Không thể tự động xác định phòng ban:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 60000,
+                timeout: 10000
+            }
+        );
+    }
+
+    function getNearestDepartment(latitude, longitude) {
+        if (!departments.length) {
+            return null;
+        }
+
+        let nearest = null;
+        let minDistance = Infinity;
+
+        departments.forEach(function(dept) {
+            if (dept.latitude === null || dept.longitude === null) {
+                return;
+            }
+
+            const distance = calculateDistanceJs(latitude, longitude, dept.latitude, dept.longitude);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearest = Object.assign({}, dept, { distance: Math.round(distance) });
+            }
+        });
+
+        return nearest;
+    }
+
+    function calculateDistanceJs(lat1, lon1, lat2, lon2) {
+        const earthRadius = 6371000; // meters
+
+        const lat1Rad = (lat1 * Math.PI) / 180;
+        const lon1Rad = (lon1 * Math.PI) / 180;
+        const lat2Rad = (lat2 * Math.PI) / 180;
+        const lon2Rad = (lon2 * Math.PI) / 180;
+
+        const deltaLat = lat2Rad - lat1Rad;
+        const deltaLon = lon2Rad - lon1Rad;
+
+        const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+            Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return earthRadius * c;
+    }
+
+    function updateAccuracyInfo(accuracy, distance = null, radius = null) {
+        const accuracyValueElement = document.getElementById('currentAccuracyValue');
+        if (accuracyValueElement) {
+            accuracyValueElement.textContent = accuracy ? `${accuracy}m` : 'N/A';
+        }
+
+        const accuracyAdviceElement = document.getElementById('accuracyAdvice');
+        if (!accuracyAdviceElement) {
+            return;
+        }
+
+        let message = '';
+
+        if (accuracy) {
+            if (accuracy <= 100) {
+                message = 'GPS đạt yêu cầu (< 100m). Bạn có thể điểm danh.';
+            } else {
+                message = 'GPS chưa đủ chính xác (< 100m). Vui lòng di chuyển để tín hiệu tốt hơn.';
+            }
+        }
+
+        if (distance !== null && radius !== null) {
+            message += (message ? ' ' : '') + `Khoảng cách đến phòng ban gần nhất: ${Math.round(distance)}m (cho phép ${radius}m).`;
+        }
+
+        if (message) {
+            accuracyAdviceElement.textContent = message;
+            accuracyAdviceElement.style.display = 'block';
+        } else {
+            accuracyAdviceElement.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        tryAutoDetectDepartment();
+    });
+
     function getLocation(action) {
         if (!navigator.geolocation) {
             showGpsError('Trình duyệt không hỗ trợ định vị GPS.');
@@ -327,6 +450,16 @@
                 
                 // ✅ KIỂM TRA ĐỘ CHÍNH XÁC GPS
                 if (position.coords.accuracy > 100) {
+                    lastKnownAccuracy = Math.round(position.coords.accuracy);
+
+                    const nearestDepartment = getNearestDepartment(position.coords.latitude, position.coords.longitude);
+                    if (nearestDepartment) {
+                        lastNearestDepartment = nearestDepartment;
+                        showSelectedDepartment(nearestDepartment);
+                        updateAccuracyInfo(lastKnownAccuracy, nearestDepartment.distance, nearestDepartment.radius_meters);
+                    } else {
+                        updateAccuracyInfo(lastKnownAccuracy);
+                    }
                     btn.disabled = false;
                     btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
                     
@@ -347,6 +480,22 @@
                     return;
                 }
                 
+                lastKnownAccuracy = Math.round(position.coords.accuracy);
+
+                const nearestDepartment = getNearestDepartment(position.coords.latitude, position.coords.longitude);
+                if (nearestDepartment) {
+                    lastNearestDepartment = nearestDepartment;
+                    showSelectedDepartment(nearestDepartment);
+                    updateAccuracyInfo(lastKnownAccuracy, nearestDepartment.distance, nearestDepartment.radius_meters);
+                } else {
+                    updateAccuracyInfo(lastKnownAccuracy);
+                }
+                if (lastNearestDepartment) {
+                    updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
+                } else {
+                    updateAccuracyInfo(lastKnownAccuracy);
+                }
+
                 checkin(position.coords.latitude, position.coords.longitude, action, position.coords.accuracy);
             },
             function(error) {
@@ -491,15 +640,23 @@
         .then(data => {
             if (data.success) {
                 // Hiển thị thông tin phòng ban được chọn nếu có
-                if (data.department) {
-                    showSelectedDepartment(data.department);
+                    if (data.department) {
+                        showSelectedDepartment(data.department);
+                        updateAccuracyInfo(lastKnownAccuracy, data.department.distance, data.department.radius_meters);
+                        lastNearestDepartment = data.department;
+                    } else if (lastNearestDepartment) {
+                        updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
                 }
                 alert(data.message);
                 location.reload();
             } else {
                 // Hiển thị thông tin phòng ban được chọn nếu có (kể cả khi thất bại)
-                if (data.department) {
-                    showSelectedDepartment(data.department);
+                    if (data.department) {
+                        showSelectedDepartment(data.department);
+                        updateAccuracyInfo(lastKnownAccuracy, data.department.distance, data.department.radius_meters);
+                        lastNearestDepartment = data.department;
+                    } else if (lastNearestDepartment) {
+                        updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
                 }
                 alert(data.message);
                 btn.disabled = false;

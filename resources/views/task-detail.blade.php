@@ -97,7 +97,7 @@
               @endif
               <small class="text-muted">
                 <i class="bi bi-person me-1"></i>
-                {{ $subtask->assignedUser->name ?? 'Chưa phân công' }}
+                {{ $subtask->assignedUser->display_name ?? 'Chưa phân công' }}
               </small>
             </div>
             <div class="col-md-3">
@@ -126,7 +126,7 @@
               @else
                 <small class="text-muted">
                   @if($subtask->assignedUser)
-                    {{ $subtask->assignedUser->name }} thực hiện
+                    {{ $subtask->assignedUser->display_name }} thực hiện
                   @else
                     Chưa phân công
                   @endif
@@ -458,7 +458,7 @@
       @forelse($task->activities as $act)
         <div class="comment-item">
           <div class="comment-header">
-            <strong>{{ $act->user->name }}</strong>
+            <strong>{{ $act->user->display_name }}</strong>
             <small class="text-muted ms-2">{{ $act->created_at->diffForHumans() }}</small>
           </div>
           <div class="comment-content">

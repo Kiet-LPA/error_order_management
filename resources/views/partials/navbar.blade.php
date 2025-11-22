@@ -104,10 +104,10 @@
       <div class="dropdown">
         <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
           <img src="{{ auth()->user()->avatar_url }}" 
-               alt="{{ auth()->user()->name }}" 
+               alt="{{ auth()->user()->display_name }}" 
                class="rounded-circle me-2" 
                style="width: 24px; height: 24px; object-fit: cover; border: 1px solid #dee2e6;">
-          {{ auth()->user()->name }}
+          {{ auth()->user()->display_name }}
         </button>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
           <li>
