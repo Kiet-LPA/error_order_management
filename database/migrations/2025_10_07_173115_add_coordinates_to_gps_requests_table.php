@@ -11,9 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('gps_requests')) {
+            return;
+        }
+
         Schema::table('gps_requests', function (Blueprint $table) {
-            $table->decimal('latitude', 10, 8)->nullable()->after('distance_meters');
-            $table->decimal('longitude', 11, 8)->nullable()->after('latitude');
+            if (!Schema::hasColumn('gps_requests', 'latitude')) {
+                $table->decimal('latitude', 10, 8)->nullable()->after('distance_meters');
+            }
+            if (!Schema::hasColumn('gps_requests', 'longitude')) {
+                $table->decimal('longitude', 11, 8)->nullable()->after('latitude');
+            }
         });
     }
 
@@ -22,8 +30,18 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('gps_requests')) {
+            return;
+        }
+
         Schema::table('gps_requests', function (Blueprint $table) {
-            $table->dropColumn(['latitude', 'longitude']);
+            $cols = array_values(array_filter([
+                Schema::hasColumn('gps_requests', 'latitude') ? 'latitude' : null,
+                Schema::hasColumn('gps_requests', 'longitude') ? 'longitude' : null,
+            ]));
+            if ($cols) {
+                $table->dropColumn($cols);
+            }
         });
     }
 };
