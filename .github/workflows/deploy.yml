@@ -1,10 +1,6 @@
 name: Laravel CI/CD (cPanel)
 
-# 2 subdomain = 2 hệ thống riêng, DB riêng → deploy lặp trên 2 path
-# Secrets:
-#   CPANEL_SSH_* , CPANEL_REPO_PATH (và tuỳ chọn CPANEL_REPO_PATH_2)
-#   CPANEL_APP_PATHS = path1,path2  (ưu tiên)
-#   hoặc CPANEL_APP_PATH + CPANEL_APP_PATH_2
+# Repo này chỉ deploy hệ thống workflow (không đụng stock)
 
 on:
   push:
@@ -12,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-cpanel-production
+  group: deploy-cpanel-workflow
   cancel-in-progress: false
 
 jobs:
@@ -62,10 +58,10 @@ jobs:
         run: php artisan test
 
   deploy:
-    name: Deploy to cPanel (multi-app)
+    name: Deploy workflow (cPanel)
     needs: laravel-tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Checkout source
@@ -83,8 +79,7 @@ jobs:
           ssh-keyscan -p "${{ secrets.CPANEL_SSH_PORT }}" -H "${{ secrets.CPANEL_SSH_HOST }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      # Push code vào (các) bare repo Git trên cPanel — mỗi subdomain có thể 1 repo
-      - name: Push to cPanel Git repository(ies)
+      - name: Push to cPanel Git repository
         env:
           SSHPASS: ${{ secrets.CPANEL_SSH_PASSWORD }}
         run: |
@@ -93,107 +88,58 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          push_repo () {
-            local name="$1"
-            local repo_path="$2"
-            if [ -z "$repo_path" ]; then
-              echo "Skip empty repo path ($name)"
-              return 0
-            fi
-            local url="ssh://${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_SSH_PORT }}${repo_path}"
-            echo "==> Push to $name: $repo_path"
-            if git remote | grep -qx "$name"; then
-              git remote set-url "$name" "$url"
-            else
-              git remote add "$name" "$url"
-            fi
-            GIT_SSH_COMMAND="sshpass -e ssh -o StrictHostKeyChecking=accept-new -p ${{ secrets.CPANEL_SSH_PORT }}" \
-              git push -f "$name" HEAD:main
-            echo "Push $name done."
-          }
+          CPANEL_URL="ssh://${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_SSH_PORT }}${{ secrets.CPANEL_REPO_PATH }}"
 
-          push_repo "cpanel" "${{ secrets.CPANEL_REPO_PATH }}"
-          push_repo "cpanel2" "${{ secrets.CPANEL_REPO_PATH_2 }}"
+          if git remote | grep -qx cpanel; then
+            git remote set-url cpanel "$CPANEL_URL"
+          else
+            git remote add cpanel "$CPANEL_URL"
+          fi
 
-      # Migrate + optimize trên TỪNG app path (mỗi path .env + DB riêng, KHÔNG ghi đè .env)
-      - name: Deploy artisan on each app path
+          echo "Pushing HEAD -> cpanel main (workflow only) ..."
+          GIT_SSH_COMMAND="sshpass -e ssh -o StrictHostKeyChecking=accept-new -p ${{ secrets.CPANEL_SSH_PORT }}" \
+            git push -f cpanel HEAD:main
+
+          echo "Git push done."
+
+      - name: Migrate + optimize on workflow app
         env:
           SSHPASS: ${{ secrets.CPANEL_SSH_PASSWORD }}
         run: |
           set -euo pipefail
 
-          # Ưu tiên CPANEL_APP_PATHS="path1,path2"
-          # Fallback: CPANEL_APP_PATH và CPANEL_APP_PATH_2
-          PATHS_RAW="${{ secrets.CPANEL_APP_PATHS }}"
-          if [ -z "$PATHS_RAW" ]; then
-            PATHS_RAW="${{ secrets.CPANEL_APP_PATH }}"
-            if [ -n "${{ secrets.CPANEL_APP_PATH_2 }}" ]; then
-              PATHS_RAW="${PATHS_RAW},${{ secrets.CPANEL_APP_PATH_2 }}"
-            fi
+          APP_PATH="${{ secrets.CPANEL_APP_PATH }}"
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH="/home/ipoubwkrhosting/workflow"
           fi
 
-          if [ -z "$PATHS_RAW" ]; then
-            echo "ERROR: set CPANEL_APP_PATHS or CPANEL_APP_PATH (+ CPANEL_APP_PATH_2)"
-            exit 1
-          fi
-
-          echo "App paths: $PATHS_RAW"
-
-          # Xuất list path ra server và chạy tuần tự
           sshpass -e ssh -o StrictHostKeyChecking=accept-new \
             -p "${{ secrets.CPANEL_SSH_PORT }}" \
             "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}" \
-            "PATHS_RAW='$PATHS_RAW' bash -s" <<'REMOTE'
-          set -euo pipefail
-
-          PHP_BIN=$(command -v php || true)
-          if [ -x /usr/local/bin/php ]; then PHP_BIN=/usr/local/bin/php; fi
-          if [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php; fi
-          if [ -x /opt/cpanel/ea-php81/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php81/root/usr/bin/php; fi
-          echo "Using PHP: $PHP_BIN"
-
-          IFS=',' read -ra APPS <<< "$PATHS_RAW"
-          for raw in "${APPS[@]}"; do
-            APP_PATH=$(echo "$raw" | xargs)
-            [ -z "$APP_PATH" ] && continue
-
-            echo ""
-            echo "############################################"
-            echo "## Deploy app: $APP_PATH"
-            echo "############################################"
-
-            if [ ! -d "$APP_PATH" ]; then
-              echo "ERROR: directory not found: $APP_PATH"
-              exit 1
-            fi
-            cd "$APP_PATH"
-
-            if [ ! -f artisan ]; then
-              echo "ERROR: artisan not found in $APP_PATH"
-              exit 1
-            fi
-            if [ ! -f .env ]; then
-              echo "ERROR: .env missing in $APP_PATH — create production .env once (DB riêng)"
-              exit 1
-            fi
-
-            # KHÔNG đụng .env — mỗi subdomain giữ DB/APP_URL riêng
-            echo "Keep existing .env (unique DB for this app)"
-
-            if command -v composer >/dev/null 2>&1; then
-              composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev || true
-            fi
-
-            $PHP_BIN artisan migrate --force --no-interaction
-            $PHP_BIN artisan optimize:clear
-            $PHP_BIN artisan config:cache || true
-            $PHP_BIN artisan route:cache || true
-            $PHP_BIN artisan view:cache || true
-            $PHP_BIN artisan storage:link 2>/dev/null || true
-
-            echo "OK: $APP_PATH"
-          done
-
-          echo ""
-          echo "All app paths deployed."
-          REMOTE
+            "set -e
+             APP_PATH='$APP_PATH'
+             cd \"\$APP_PATH\"
+             if [ ! -f artisan ]; then
+               echo \"ERROR: artisan not found in \$APP_PATH\"
+               exit 1
+             fi
+             if [ ! -f .env ]; then
+               echo \"ERROR: .env missing in \$APP_PATH\"
+               exit 1
+             fi
+             PHP_BIN=\$(command -v php || true)
+             if [ -x /usr/local/bin/php ]; then PHP_BIN=/usr/local/bin/php; fi
+             if [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php; fi
+             if [ -x /opt/cpanel/ea-php81/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php81/root/usr/bin/php; fi
+             echo \"Using PHP: \$PHP_BIN in \$APP_PATH\"
+             if command -v composer >/dev/null 2>&1; then
+               composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev || true
+             fi
+             # Không ghi đè .env
+             \$PHP_BIN artisan migrate --force --no-interaction
+             \$PHP_BIN artisan optimize:clear
+             \$PHP_BIN artisan config:cache || true
+             \$PHP_BIN artisan route:cache || true
+             \$PHP_BIN artisan view:cache || true
+             \$PHP_BIN artisan storage:link 2>/dev/null || true
+             echo 'Workflow deploy finished.'"
