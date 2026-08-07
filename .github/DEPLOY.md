@@ -1,48 +1,38 @@
-# CI/CD cPanel — chỉ app **workflow**
-
-Repo `error_order_management` deploy **một mình** vào:
-
-```text
-/home/ipoubwkrhosting/workflow
-```
-
-**`stock`** là source khác, người khác maintain — **không** đưa vào secrets/deploy này.
+# CI/CD cPanel — rsync vào **workflow** only
 
 ```
-push main → tests → git push cPanel repo → ssh migrate/cache trong workflow
+push main → unit test → rsync code → composer + migrate trên server
 ```
 
-## 6 secrets cần điền
+`stock` không đụng. **Không** dùng `git push` remote cPanel (dễ lỗi path).
 
-| # | Name | Secret |
-|---|------|--------|
-| 1 | `CPANEL_SSH_HOST` | `turboweb-032506.000nethost.com` |
-| 2 | `CPANEL_SSH_PORT` | `22` |
-| 3 | `CPANEL_SSH_USER` | `ipoubwkrhosting` |
-| 4 | `CPANEL_SSH_PASSWORD` | mật khẩu cPanel |
-| 5 | `CPANEL_APP_PATH` | `/home/ipoubwkrhosting/workflow` |
-| 6 | `CPANEL_REPO_PATH` | path bare Git của workflow (Git Version Control) |
+## Secrets (5 cái — đủ)
 
-### Không cần
+| Name | Secret |
+|------|--------|
+| `CPANEL_SSH_HOST` | `hpfoods.com.vn` |
+| `CPANEL_SSH_PORT` | `65333` |
+| `CPANEL_SSH_USER` | `ipoubwkrhosting` |
+| `CPANEL_SSH_PASSWORD` | mật khẩu cPanel / SSH |
+| `CPANEL_APP_PATH` | `/home/ipoubwkrhosting/workflow` |
 
-- `CPANEL_APP_PATHS`
-- `CPANEL_APP_PATH_2`
-- `CPANEL_REPO_PATH_2`
-- Bất kỳ secret liên quan `stock`
+### Không cần nữa
 
-Nếu đã tạo nhầm secret stock → **Actions secrets → Delete**.
+- `CPANEL_REPO_PATH` — có thể **Delete** trên GitHub
+- Git Version Control cPanel — không bắt buộc cho deploy kiểu rsync
 
-### `CPANEL_REPO_PATH` lấy ở đâu
+## Giữ trên server
 
-cPanel → **Git Version Control** → Create/Manage repo:
+Rsync **không** ghi đè:
 
-- **Deployment directory:** `/home/ipoubwkrhosting/workflow`
-- Copy **Repository Path** (vd `/home/ipoubwkrhosting/repositories/workflow.git`)
-- Dán vào secret `CPANEL_REPO_PATH` (chỉ path, bắt đầu bằng `/`)
+- `.env` (DB / APP_KEY)
+- `vendor/` (cài lại bằng composer trên server)
+- `storage` uploads & logs
+- `node_modules/`
 
 ## Checklist
 
-- [ ] 6 secrets như bảng trên  
-- [ ] Git cPanel gắn deploy path = `workflow`  
-- [ ] `.env` production còn trong `workflow`  
-- [ ] Push `main` / Run workflow  
+1. 5 secrets đúng (port **65333**, host **hpfoods.com.vn**)
+2. SSH Access bật trên cPanel
+3. Push `main` → Actions xanh
+4. Kiểm tra site live
