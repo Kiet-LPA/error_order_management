@@ -260,23 +260,22 @@
             </div>
         </div>
     </div>
-    <script src="{{ asset('js/location-name.js') }}"></script>
+    <script src="{{ asset('js/location-name.js') }}?v=2"></script>
     <script>
-    (function () {
-        // Compat: history cũ dùng class location-cell
-        document.querySelectorAll('.location-cell').forEach(function (cell) {
-            if (!cell.getAttribute('data-lat')) return;
-            const nameEl = cell.querySelector('.location-name');
-            if (nameEl && !nameEl.dataset.filled && window.LocationName && !cell.dataset.name) {
-                window.LocationName.resolve(cell.dataset.lat, cell.dataset.lng).then(function (name) {
-                    if (nameEl) nameEl.textContent = name || (cell.dataset.lat + ', ' + cell.dataset.lng);
-                    nameEl.dataset.filled = '1';
-                }).catch(function () {
-                    if (nameEl) nameEl.innerHTML = '<small>' + cell.dataset.lat + ', ' + cell.dataset.lng + '</small>';
-                });
-            }
-        });
-    })();
+    // History: resolve parallel (LocationName.fillElements)
+    document.querySelectorAll('.location-cell').forEach(function (cell) {
+        const nameEl = cell.querySelector('.location-name');
+        if (!nameEl || !cell.dataset.lat) return;
+        if (cell.dataset.name) {
+            nameEl.textContent = cell.dataset.name;
+            return;
+        }
+        nameEl.setAttribute('data-lat', cell.dataset.lat);
+        nameEl.setAttribute('data-lng', cell.dataset.lng);
+    });
+    if (window.LocationName) {
+        window.LocationName.fillElements(document);
+    }
     </script>
 </body>
 </html>

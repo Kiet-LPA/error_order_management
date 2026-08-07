@@ -419,5 +419,5 @@
             });
     }
     </script>
-    <script src="{{ asset('js/location-name.js') }}"></script>
+    <script src="{{ asset('js/location-name.js') }}?v=2"></script>
     @endsection

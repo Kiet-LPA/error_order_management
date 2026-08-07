@@ -227,7 +227,7 @@
 </div>
 @endif
 
-<script src="{{ asset('js/location-name.js') }}"></script>
+<script src="{{ asset('js/location-name.js') }}?v=2"></script>
 <script>
 // Get current location for Admin (to create regions)
 async function getCurrentLocationAdmin() {
@@ -288,15 +288,20 @@ async function getCurrentLocationAdmin() {
             </div>
         `;
 
+        // Không chặn UI: resolve tối đa ~2.5s, có cache local
+        const placeEl = document.getElementById('adminGpsPlaceName');
+        const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         if (window.LocationName && window.LocationName.resolve) {
-            try {
-                const name = await window.LocationName.resolve(lat, lng);
-                const el = document.getElementById('adminGpsPlaceName');
-                if (el) el.textContent = name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            } catch (e) {
-                const el = document.getElementById('adminGpsPlaceName');
-                if (el) el.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            }
+            Promise.race([
+                window.LocationName.resolve(lat, lng),
+                new Promise((resolve) => setTimeout(() => resolve(null), 2800)),
+            ]).then((name) => {
+                if (placeEl) placeEl.textContent = name || fallback;
+            }).catch(() => {
+                if (placeEl) placeEl.textContent = fallback;
+            });
+        } else {
+            if (placeEl) placeEl.textContent = fallback;
         }
         
     } catch (error) {
