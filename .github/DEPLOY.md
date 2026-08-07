@@ -1,84 +1,100 @@
-# CI/CD cPanel (Git + sshpass)
+# CI/CD cPanel — cấu hình cho server hiện tại
 
 Workflow: `.github/workflows/deploy.yml`
 
 ```
-push main → php artisan test (sqlite) → git push -f cPanel → ssh artisan migrate
+push main → php artisan test → git push -f cPanel → ssh migrate trong /home/ipoubwkrhosting/workflow
 ```
 
-Phù hợp hosting **cPanel Git Version Control** (SSH + password), đúng kiểu file workflow bạn đưa.
+## Thông tin server (từ cPanel File Manager)
 
-## Secrets (GitHub → Settings → Secrets and variables → Actions)
+| Mục | Giá trị |
+|-----|---------|
+| cPanel host | `turboweb-032506.000nethost.com` |
+| Home | `/home/ipoubwkrhosting` |
+| **App path** (có `artisan`, `.env`) | `/home/ipoubwkrhosting/workflow` |
+| SSH user (gần chắc) | `ipoubwkrhosting` |
 
-| Secret | Bắt buộc | Ví dụ / ghi chú |
-|--------|----------|------------------|
-| `CPANEL_SSH_HOST` | ✅ | `server.hpfoods.com` hoặc IP |
-| `CPANEL_SSH_PORT` | ✅ | Thường `22` hoặc `2222` (cPanel) |
-| `CPANEL_SSH_USER` | ✅ | Username cPanel (vd `hpfoods`) |
-| `CPANEL_SSH_PASSWORD` | ✅ | Mật khẩu SSH / cPanel |
-| `CPANEL_REPO_PATH` | ✅ | Path bare repo Git trên cPanel, **bắt đầu bằng `/`** — vd `/home/hpfoods/repositories/error_order_management.git` |
-| `CPANEL_APP_PATH` | ⭐ khuyên dùng | Thư mục app đã deploy (có file `artisan`) — vd `/home/hpfoods/work.hpfoods.com.vn` hoặc path deployment trong cPanel |
+## Điền GitHub Secrets
 
-### Lấy `CPANEL_REPO_PATH`
+Repo → **Settings → Secrets and variables → Actions → New repository secret**
 
-cPanel → **Git Version Control** → repo → **Clone URL / Repository Path**  
-Dạng: `/home/USER/repositories/TÊN_REPO.git`
+| Secret | Giá trị nên điền |
+|--------|------------------|
+| `CPANEL_SSH_HOST` | `turboweb-032506.000nethost.com` |
+| `CPANEL_SSH_PORT` | `22` (nếu fail thử `2222`) |
+| `CPANEL_SSH_USER` | `ipoubwkrhosting` |
+| `CPANEL_SSH_PASSWORD` | *(mật khẩu cPanel / SSH — bạn tự điền, không gửi cho AI)* |
+| `CPANEL_APP_PATH` | `/home/ipoubwkrhosting/workflow` |
+| `CPANEL_REPO_PATH` | Xem bên dưới ⬇️ |
 
-Workflow ghép thành:
+### `CPANEL_REPO_PATH` — bắt buộc tạo / lấy từ Git Version Control
+
+Trong File Manager hiện **chưa thấy** thư mục `repositories`. Cần cấu hình **Git Version Control** trong cPanel 1 lần:
+
+1. cPanel → tìm **Git Version Control** (hoặc *Version Control*)
+2. **Create** repository:
+   - **Repository Path**: gợi ý tạo trong home, ví dụ  
+     `/home/ipoubwkrhosting/repositories/workflow.git`  
+     (hoặc path cPanel gợi ý)
+   - **Repository Name**: `workflow` (tuỳ)
+   - Bật liên kết **Deploy / Clone** tới thư mục app:  
+     **`/home/ipoubwkrhosting/workflow`**
+3. Sau khi tạo, copy **Repository Path** chính xác (thường dạng  
+   `/home/ipoubwkrhosting/repositories/workflow.git`)  
+   → dán vào secret `CPANEL_REPO_PATH`  
+   (**phải bắt đầu bằng `/`**, **không** thêm `ssh://` hay host)
+
+Workflow sẽ push tới:
 
 ```text
-ssh://USER@HOST:PORT/home/USER/repositories/TÊN_REPO.git
+ssh://ipoubwkrhosting@turboweb-032506.000nethost.com:22/home/ipoubwkrhosting/repositories/workflow.git
 ```
 
-### Lấy `CPANEL_APP_PATH`
+### Deploy path trong cPanel Git
 
-cPanel Git → **Manage** → **Deployment Path** (nơi checkout code live).  
-Thư mục đó phải có `artisan`, `composer.json`, và file `.env` production (tạo tay 1 lần, không commit).
+Khi cPanel hỏi **Deployment / Checked-out directory**, chọn:
 
-## Cấu hình cPanel 1 lần
+```text
+/home/ipoubwkrhosting/workflow
+```
 
-1. Tạo Git repository trong cPanel, trỏ deployment path tới app Laravel
-2. Bật **Auto deploy** / deploy after push (nếu có)
-3. Clone 1 lần hoặc push từ local để seed repo
-4. Trên **APP_PATH**: tạo `.env` production, `php artisan key:generate` nếu cần
-5. Đảm bảo SSH Access bật, dùng đúng port
+Bật **automatically deploy** sau push nếu có.
 
-### Composer trên server (nếu cPanel chưa auto-install vendor)
+## Checklist trước lần deploy đầu
 
-Deploy hook của cPanel nên chạy `composer install --no-dev`.  
-Hoặc bổ sung bước SSH sau migrate (khi server có composer).
+- [ ] SSH Access bật trên cPanel (Shell Access)
+- [ ] Đã tạo Git repo + biết đúng `CPANEL_REPO_PATH`
+- [ ] 6 secrets đã lưu trên GitHub
+- [ ] File `.env` production còn nguyên trong `workflow` (push **không** xoá/over write nếu `.env` trong `.gitignore` — an toàn)
+- [ ] Domain document root trỏ `workflow/public` (nếu site live qua folder này)
 
-Thường trên shared host:
+## Sau khi điền secrets
 
 ```bash
-cd $HOME/path-to-app
-/usr/local/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader
+git push origin main
 ```
 
-Có thể thêm lệnh tương tự trong step “Run artisan migrate” nếu cần.
+Hoặc GitHub → **Actions → Laravel CI/CD (cPanel) → Run workflow**
 
-## Lưu ý quan trọng
+## Lỗi hay gặp
 
-| Chủ đề | Chi tiết |
-|--------|----------|
-| **Force push (`-f`)** | Đúng pattern cPanel khi working tree bẩn sau hook; chỉ push branch `main` |
-| **Password SSH** | Kém an toàn hơn key; nếu cPanel hỗ trợ key, nên chuyển `SSH_PRIVATE_KEY` sau |
-| **Test fail → không deploy** | Job `deploy` có `needs: laravel-tests` |
-| **ExampleTest** | `/` redirect login → test mặc định assert 200 có thể fail — đã/ sẽ chỉnh test |
-| **Vendor / node** | Git thường không chứa `vendor`/`public/build` → server phải `composer install` + (tuỳ) `npm run build` |
+| Lỗi | Cách xử lý |
+|-----|------------|
+| `Permission denied` / auth fail | Sai user/password hoặc port; thử port `2222` |
+| `Could not read from remote` | Sai `CPANEL_REPO_PATH` hoặc chưa tạo Git repo |
+| Tests fail, không deploy | Xem log job `laravel-tests`, sửa test trước |
+| App không đổi sau push | Chưa bật deploy path / deploy hook trong cPanel Git |
+| `artisan not found` | Sai `CPANEL_APP_PATH` (phải là `.../workflow`) |
+| Thiếu vendor sau push | Thêm `composer install --no-dev` vào deploy hook cPanel hoặc bước SSH |
 
-## Chạy thử
+## Lệnh kiểm tra tay (SSH / Terminal cPanel)
 
-1. Điền secrets  
-2. Push `main` **hoặc** Actions → **Laravel CI/CD (cPanel)** → **Run workflow**  
-3. Xem log: Tests → Push cPanel → Migrate  
-
-## Khác workflow SSH VPS cũ
-
-| | cPanel (file này) | VPS SSH trước đó |
-|--|-------------------|------------------|
-| Push code | `git push` remote cPanel | `ssh` + `git pull` trên server |
-| Auth | user + password (`sshpass`) | SSH private key |
-| Secrets | `CPANEL_*` | `SSH_*`, `DEPLOY_PATH` |
-
-Giữ `scripts/deploy.sh` nếu sau này chuyển VPS; workflow hiện tại **không** phụ thuộc file đó.
+```bash
+cd /home/ipoubwkrhosting/workflow
+pwd
+ls artisan .env
+php -v
+php artisan --version
+php artisan migrate:status
+```

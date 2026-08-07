@@ -113,27 +113,32 @@ jobs:
           set -euo pipefail
 
           if [ -z "${{ secrets.CPANEL_APP_PATH }}" ]; then
-            echo "WARN: CPANEL_APP_PATH not set — skip remote migrate/optimize"
-            echo "Set secret CPANEL_APP_PATH to the deployed Laravel root (contains artisan)."
-            exit 0
+            echo "WARN: CPANEL_APP_PATH empty — default /home/ipoubwkrhosting/workflow"
+          fi
+
+          APP_PATH="${{ secrets.CPANEL_APP_PATH }}"
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH="/home/ipoubwkrhosting/workflow"
           fi
 
           sshpass -e ssh -o StrictHostKeyChecking=accept-new \
             -p "${{ secrets.CPANEL_SSH_PORT }}" \
             "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}" \
             "set -e
-             cd '${{ secrets.CPANEL_APP_PATH }}'
+             cd '$APP_PATH'
              if [ ! -f artisan ]; then
-               echo 'ERROR: artisan not found in CPANEL_APP_PATH'
+               echo 'ERROR: artisan not found in APP_PATH='\"$APP_PATH\"
                exit 1
              fi
-             # cPanel đôi khi dùng php binary cụ thể — ưu tiên path nếu có
              PHP_BIN=\$(command -v php || true)
              if [ -x /usr/local/bin/php ]; then PHP_BIN=/usr/local/bin/php; fi
              if [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php; fi
              if [ -x /opt/cpanel/ea-php81/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php81/root/usr/bin/php; fi
-             echo \"Using PHP: \$PHP_BIN\"
+             echo \"Using PHP: \$PHP_BIN in $APP_PATH\"
              \$PHP_BIN -v
+             if command -v composer >/dev/null 2>&1; then
+               composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev || true
+             fi
              \$PHP_BIN artisan migrate --force --no-interaction
              \$PHP_BIN artisan optimize:clear
              \$PHP_BIN artisan config:cache || true
