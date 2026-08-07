@@ -1,6 +1,7 @@
 name: Laravel CI/CD (cPanel)
 
-# Repo này chỉ deploy hệ thống workflow (không đụng stock)
+# Chỉ deploy app workflow (error_order_management)
+# stock = source khác, người khác maintain — không đụng
 
 on:
   push:
@@ -8,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-cpanel-workflow
+  group: deploy-cpanel-production
   cancel-in-progress: false
 
 jobs:
@@ -58,7 +59,7 @@ jobs:
         run: php artisan test
 
   deploy:
-    name: Deploy workflow (cPanel)
+    name: Deploy workflow to cPanel
     needs: laravel-tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -100,7 +101,7 @@ jobs:
           GIT_SSH_COMMAND="sshpass -e ssh -o StrictHostKeyChecking=accept-new -p ${{ secrets.CPANEL_SSH_PORT }}" \
             git push -f cpanel HEAD:main
 
-          echo "Git push done."
+          echo "Git push to cPanel done."
 
       - name: Migrate + optimize on workflow app
         env:
@@ -113,29 +114,29 @@ jobs:
             APP_PATH="/home/ipoubwkrhosting/workflow"
           fi
 
+          echo "Deploy app path: $APP_PATH (stock is intentionally excluded)"
+
           sshpass -e ssh -o StrictHostKeyChecking=accept-new \
             -p "${{ secrets.CPANEL_SSH_PORT }}" \
             "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}" \
             "set -e
-             APP_PATH='$APP_PATH'
-             cd \"\$APP_PATH\"
+             cd '$APP_PATH'
              if [ ! -f artisan ]; then
-               echo \"ERROR: artisan not found in \$APP_PATH\"
+               echo 'ERROR: artisan not found in $APP_PATH'
                exit 1
              fi
              if [ ! -f .env ]; then
-               echo \"ERROR: .env missing in \$APP_PATH\"
+               echo 'ERROR: .env missing — keep production .env on server'
                exit 1
              fi
              PHP_BIN=\$(command -v php || true)
              if [ -x /usr/local/bin/php ]; then PHP_BIN=/usr/local/bin/php; fi
              if [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php; fi
              if [ -x /opt/cpanel/ea-php81/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php81/root/usr/bin/php; fi
-             echo \"Using PHP: \$PHP_BIN in \$APP_PATH\"
+             echo \"Using PHP: \$PHP_BIN\"
              if command -v composer >/dev/null 2>&1; then
                composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev || true
              fi
-             # Không ghi đè .env
              \$PHP_BIN artisan migrate --force --no-interaction
              \$PHP_BIN artisan optimize:clear
              \$PHP_BIN artisan config:cache || true
