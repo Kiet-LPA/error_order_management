@@ -260,45 +260,22 @@
             </div>
         </div>
     </div>
+    <script src="{{ asset('js/location-name.js') }}"></script>
     <script>
     (function () {
-        const cells = Array.from(document.querySelectorAll('.location-cell'));
-        if (!cells.length) return;
-
-        function formatLocation(data) {
-            const locality = data.locality || data.city || '';
-            const province = data.principalSubdivision || '';
-            const parts = [locality, province].filter(Boolean);
-            // Bỏ trùng (vd locality === province)
-            return [...new Set(parts)].join(', ') || null;
-        }
-
-        async function resolveCell(cell) {
-            if (cell.dataset.name) return;
-
-            const lat = cell.dataset.lat;
-            const lng = cell.dataset.lng;
+        // Compat: history cũ dùng class location-cell
+        document.querySelectorAll('.location-cell').forEach(function (cell) {
+            if (!cell.getAttribute('data-lat')) return;
             const nameEl = cell.querySelector('.location-name');
-            if (!lat || !lng || !nameEl) return;
-
-            try {
-                const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=vi`;
-                const res = await fetch(url);
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-                const name = formatLocation(data);
-                nameEl.textContent = name || `${lat}, ${lng}`;
-            } catch (e) {
-                nameEl.innerHTML = `<small>${lat}, ${lng}</small>`;
+            if (nameEl && !nameEl.dataset.filled && window.LocationName && !cell.dataset.name) {
+                window.LocationName.resolve(cell.dataset.lat, cell.dataset.lng).then(function (name) {
+                    if (nameEl) nameEl.textContent = name || (cell.dataset.lat + ', ' + cell.dataset.lng);
+                    nameEl.dataset.filled = '1';
+                }).catch(function () {
+                    if (nameEl) nameEl.innerHTML = '<small>' + cell.dataset.lat + ', ' + cell.dataset.lng + '</small>';
+                });
             }
-        }
-
-        // Giải mã lần lượt để tránh rate limit
-        (async function run() {
-            for (const cell of cells) {
-                await resolveCell(cell);
-            }
-        })();
+        });
     })();
     </script>
 </body>

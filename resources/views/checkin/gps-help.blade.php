@@ -255,16 +255,17 @@
         }
 
         navigator.geolocation.getCurrentPosition(
-            function(position) {
+            async function(position) {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 const accuracy = position.coords.accuracy;
-                
+
+                let placeName = 'Đang tải tên vị trí...';
                 resultDiv.innerHTML = `
                     <div class="alert alert-success">
                         <h6>✅ GPS hoạt động bình thường!</h6>
-                        <p><strong>Vĩ độ:</strong> ${lat.toFixed(6)}</p>
-                        <p><strong>Kinh độ:</strong> ${lng.toFixed(6)}</p>
+                        <p class="fs-5 fw-semibold mb-1" id="gpsHelpPlaceName">${placeName}</p>
+                        <p class="mb-1"><small class="text-muted">Vĩ độ: ${lat.toFixed(6)} · Kinh độ: ${lng.toFixed(6)}</small></p>
                         <p><strong>Độ chính xác:</strong> ±${Math.round(accuracy)}m</p>
                         <p><strong>Thời gian:</strong> ${new Date().toLocaleString('vi-VN')}</p>
                         ${accuracy > 50 ? '<p class="text-warning">⚠️ Độ chính xác thấp, thử di chuyển ra ngoài trời</p>' : ''}
@@ -276,6 +277,20 @@
                         </div>
                     </div>
                 `;
+
+                try {
+                    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=vi`;
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const locality = data.locality || data.city || '';
+                        const province = data.principalSubdivision || '';
+                        const name = [...new Set([locality, province].filter(Boolean))].join(', ');
+                        const el = document.getElementById('gpsHelpPlaceName');
+                        if (el) el.textContent = name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    }
+                } catch (e) {}
+
                 btn.disabled = false;
                 btn.innerHTML = '🧪 Kiểm tra lại GPS';
             },

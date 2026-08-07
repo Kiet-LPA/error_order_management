@@ -227,6 +227,7 @@
 </div>
 @endif
 
+<script src="{{ asset('js/location-name.js') }}"></script>
 <script>
 // Get current location for Admin (to create regions)
 async function getCurrentLocationAdmin() {
@@ -260,14 +261,17 @@ async function getCurrentLocationAdmin() {
         const accuracy = position.coords.accuracy;
         
         const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}&t=satellite&z=18`;
-        
+
+        let placeName = 'Đang tải tên vị trí...';
         resultDiv.innerHTML = `
             <div class="alert alert-success">
                 <h5>✅ Lấy GPS thành công!</h5>
-                <p><strong>Tọa độ hiện tại:</strong></p>
+                <p><strong>Vị trí hiện tại:</strong></p>
                 <div class="bg-light p-3 rounded mb-3">
-                    <strong>Vĩ độ:</strong> ${lat.toFixed(8)}<br>
-                    <strong>Kinh độ:</strong> ${lng.toFixed(8)}
+                    <div class="fs-5 fw-semibold mb-2" id="adminGpsPlaceName">${placeName}</div>
+                    <small class="text-muted">
+                        Vĩ độ: ${lat.toFixed(8)} · Kinh độ: ${lng.toFixed(8)}
+                    </small>
                 </div>
                 <p><strong>Độ chính xác:</strong> ±${Math.round(accuracy)}m</p>
                 <p><strong>Thời gian:</strong> ${new Date().toLocaleString('vi-VN')}</p>
@@ -283,6 +287,17 @@ async function getCurrentLocationAdmin() {
                 </div>
             </div>
         `;
+
+        if (window.LocationName && window.LocationName.resolve) {
+            try {
+                const name = await window.LocationName.resolve(lat, lng);
+                const el = document.getElementById('adminGpsPlaceName');
+                if (el) el.textContent = name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            } catch (e) {
+                const el = document.getElementById('adminGpsPlaceName');
+                if (el) el.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+        }
         
     } catch (error) {
         let message = 'Không thể lấy vị trí GPS';

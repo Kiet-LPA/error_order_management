@@ -66,6 +66,7 @@
 </div>
 
 @push('scripts')
+<script src="{{ asset('js/location-name.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('btnGetGps');
@@ -99,7 +100,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             latInput.value = latitude.toFixed(8);
             lngInput.value = longitude.toFixed(8);
-            statusEl.textContent = `Đã lấy vị trí (độ chính xác ~${roundedAcc}m)`;
+            statusEl.textContent = `Đã lấy vị trí (độ chính xác ~${roundedAcc}m)…`;
+            if (window.LocationName) {
+                window.LocationName.resolve(latitude, longitude).then(function(name) {
+                    statusEl.textContent = name
+                        ? `Đã lấy: ${name} (±${roundedAcc}m)`
+                        : `Đã lấy vị trí (độ chính xác ~${roundedAcc}m)`;
+                }).catch(function() {
+                    statusEl.textContent = `Đã lấy vị trí (độ chính xác ~${roundedAcc}m)`;
+                });
+            } else {
+                statusEl.textContent = `Đã lấy vị trí (độ chính xác ~${roundedAcc}m)`;
+            }
             btn.disabled = false;
         }, function(err) {
             alert('Không lấy được vị trí: ' + (err.message || 'Lỗi không xác định'));

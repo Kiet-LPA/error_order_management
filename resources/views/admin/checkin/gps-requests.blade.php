@@ -139,12 +139,17 @@
                                 <td>
                                     @if($gpsRequest->latitude && $gpsRequest->longitude)
                                         <div class="d-flex flex-column">
+                                            <span class="fw-semibold location-name-text"
+                                                  data-lat="{{ $gpsRequest->latitude }}"
+                                                  data-lng="{{ $gpsRequest->longitude }}">
+                                                Đang tải vị trí...
+                                            </span>
                                             <small class="text-muted mb-1">
                                                 <i class="bi bi-geo-alt me-1"></i>
                                                 {{ number_format($gpsRequest->latitude, 6) }}, {{ number_format($gpsRequest->longitude, 6) }}
                                             </small>
-                                            <a href="{{ $gpsRequest->google_maps_url }}" 
-                                            target="_blank" 
+                                            <a href="{{ $gpsRequest->google_maps_url }}"
+                                            target="_blank"
                                             class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-map me-1"></i>Xem bản đồ
                                             </a>
@@ -386,7 +391,8 @@
                             <p><strong>Mã GPS:</strong> <code>${data.gps_code}</code></p>
                             <p><strong>Trạng thái:</strong> <span class="badge bg-${data.status === 'pending' ? 'warning' : data.status === 'approved' ? 'success' : 'danger'}">${data.status}</span></p>
                             ${data.latitude && data.longitude ? `
-                            <p><strong>Vị trí GPS:</strong> 
+                            <p><strong>Vị trí GPS:</strong>
+                                <br><span class="fw-semibold" id="gpsDetailPlaceName">Đang tải vị trí...</span>
                                 <br><small class="text-muted">${parseFloat(data.latitude).toFixed(6)}, ${parseFloat(data.longitude).toFixed(6)}</small>
                                 <br><a href="https://www.google.com/maps?q=${data.latitude},${data.longitude}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
                                     <i class="bi bi-map me-1"></i>Xem trên Google Maps
@@ -399,6 +405,13 @@
                 
                 const modal = new bootstrap.Modal(document.getElementById('gpsRequestModal'));
                 modal.show();
+
+                if (data.latitude && data.longitude && window.LocationName) {
+                    window.LocationName.resolve(data.latitude, data.longitude).then(function(name) {
+                        const el = document.getElementById('gpsDetailPlaceName');
+                        if (el) el.textContent = name || (parseFloat(data.latitude).toFixed(5) + ', ' + parseFloat(data.longitude).toFixed(5));
+                    }).catch(function() {});
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -406,4 +419,5 @@
             });
     }
     </script>
+    <script src="{{ asset('js/location-name.js') }}"></script>
     @endsection

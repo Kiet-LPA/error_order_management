@@ -92,7 +92,11 @@
                                 <span class="badge bg-success text-white">
                                     <i class="bi bi-check-circle-fill me-1"></i>Đã cấu hình
                                 </span>
-                                <br><small class="text-dark fw-semibold">{{ $dept->latitude }}, {{ $dept->longitude }}</small>
+                                <br>
+                                <span class="text-dark fw-semibold d-block location-name-text"
+                                      data-lat="{{ $dept->latitude }}"
+                                      data-lng="{{ $dept->longitude }}">Đang tải vị trí...</span>
+                                <small class="text-muted">{{ $dept->latitude }}, {{ $dept->longitude }}</small>
                                 <br><small class="text-dark fw-semibold">Bán kính: {{ $dept->radius_meters }}m</small>
                             @else
                                 <span class="badge bg-danger text-white">
@@ -197,4 +201,5 @@
         </div>
     @endif
 </div>
+<script src="{{ asset('js/location-name.js') }}"></script>
 @endsection
