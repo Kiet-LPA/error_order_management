@@ -67,6 +67,5 @@ class Kernel extends HttpKernel
         'role'             => \App\Http\Middleware\RoleMiddleware::class,
         'department.permission' => \App\Http\Middleware\DepartmentPermissionMiddleware::class,
         'employee.type'    => \App\Http\Middleware\CheckEmployeeType::class,
-        'debug.session'    => \App\Http\Middleware\DebugSessionMiddleware::class,
     ];
 }

@@ -1,1 +1,0 @@
-Đây là file test để kiểm tra chức năng upload và xem file đính kèm.

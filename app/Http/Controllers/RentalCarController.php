@@ -301,59 +301,6 @@ class RentalCarController extends Controller
     }
 
     /**
-     * Debug method to check authentication
-     */
-    public function debugAuth()
-    {
-        $user = auth()->user();
-        $sessionId = session()->getId();
-        $sessionData = session()->all();
-        
-        return response()->json([
-            'user_id' => $user ? $user->id : null,
-            'user_name' => $user ? $user->name : null,
-            'user_email' => $user ? $user->email : null,
-            'session_id' => $sessionId,
-            'is_authenticated' => auth()->check(),
-            'active_rental' => $user ? $user->activeRental : null,
-            'session_driver' => config('session.driver'),
-            'session_lifetime' => config('session.lifetime'),
-            'session_data' => $sessionData,
-            'environment' => app()->environment(),
-            'app_url' => config('app.url'),
-            'session_secure' => config('session.secure'),
-            'session_http_only' => config('session.http_only'),
-            'session_same_site' => config('session.same_site')
-        ]);
-    }
-
-    /**
-     * Test session and authentication
-     */
-    public function testSession(Request $request)
-    {
-        $user = auth()->user();
-        $sessionId = session()->getId();
-        
-        // Test session write
-        session(['test_key' => 'test_value_' . time()]);
-        $testValue = session('test_key');
-        
-        return response()->json([
-            'success' => true,
-            'user_id' => $user ? $user->id : null,
-            'user_name' => $user ? $user->name : null,
-            'session_id' => $sessionId,
-            'is_authenticated' => auth()->check(),
-            'session_test' => $testValue,
-            'session_driver' => config('session.driver'),
-            'session_table' => config('session.table'),
-            'session_connection' => config('session.connection'),
-            'timestamp' => now()->toDateTimeString()
-        ]);
-    }
-
-    /**
      * User returns car early
      */
     public function returnCar(Request $request, $rentalId)

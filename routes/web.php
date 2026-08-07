@@ -467,15 +467,13 @@ Route::middleware(['auth', 'role:admin,director,manager'])->prefix('admin/checki
     Route::get('/manage', [\App\Http\Controllers\AdminCheckinController::class, 'manage'])->name('manage');
     Route::get('/gps-requests', [\App\Http\Controllers\AdminCheckinController::class, 'gpsRequests'])->name('gps-requests');
     Route::post('/gps-requests/{gpsRequest}/approve', [\App\Http\Controllers\AdminCheckinController::class, 'approveGpsRequest'])->name('approve-gps');
-    Route::get('/gps-requests/{gpsRequest}/test', [\App\Http\Controllers\AdminCheckinController::class, 'testGpsApproval'])->name('test-gps');
-    Route::get('/debug-database', [\App\Http\Controllers\AdminCheckinController::class, 'debugDatabaseStructure'])->name('debug-database');
     Route::post('/fix-attendance', [\App\Http\Controllers\AdminCheckinController::class, 'fixAttendance'])->name('fix-attendance');
     Route::delete('/{checkin}', [\App\Http\Controllers\AdminCheckinController::class, 'deleteCheckin'])->name('delete');
     Route::get('/reports', [\App\Http\Controllers\AdminCheckinController::class, 'reports'])->name('reports');
 });
 
 // Rental Car routes
-Route::middleware(['auth', 'employee.type', 'debug.session'])->prefix('rental')->name('rental.')->group(function () {
+Route::middleware(['auth', 'employee.type'])->prefix('rental')->name('rental.')->group(function () {
     // Public routes (all users can rent cars)
     Route::get('/', [\App\Http\Controllers\RentalCarController::class, 'index'])->name('index');
     Route::post('/rent', [\App\Http\Controllers\RentalCarController::class, 'rentCar'])->name('rent');
@@ -483,8 +481,6 @@ Route::middleware(['auth', 'employee.type', 'debug.session'])->prefix('rental')-
     Route::get('/rentals/{rental}', [\App\Http\Controllers\RentalCarController::class, 'showRental'])->name('show');
     Route::post('/rentals/{rental}/request-extension', [\App\Http\Controllers\RentalCarController::class, 'requestExtension'])->name('request-extension');
     Route::post('/rentals/{rentalId}/return-car', [\App\Http\Controllers\RentalCarController::class, 'returnCar'])->name('return-car');
-    Route::get('/debug-auth', [\App\Http\Controllers\RentalCarController::class, 'debugAuth'])->name('debug-auth');
-    Route::get('/test-session', [\App\Http\Controllers\RentalCarController::class, 'testSession'])->name('test-session');
     
     // Admin/Manager routes (users with can_manage_cars = true)
     Route::middleware(['auth'])->group(function () {
