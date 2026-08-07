@@ -1,0 +1,51 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 15m
+          envs: DEPLOY_PATH
+          script: |
+            set -euo pipefail
+
+            if [ -z "${DEPLOY_PATH:-}" ]; then
+              echo "ERROR: Secret DEPLOY_PATH is empty"
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            if [ ! -f artisan ]; then
+              echo "ERROR: artisan not found in $DEPLOY_PATH — check DEPLOY_PATH secret"
+              exit 1
+            fi
+
+            if [ -f scripts/deploy.sh ]; then
+              bash scripts/deploy.sh
+            else
+              echo "ERROR: scripts/deploy.sh missing — pull codebase first"
+              exit 1
+            fi
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}

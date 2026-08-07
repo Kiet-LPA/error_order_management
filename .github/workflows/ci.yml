@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, workfromhome]
+
+jobs:
+  validate:
+    name: Validate Laravel project
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, tokenizer, fileinfo
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-publish
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install JS dependencies & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare Laravel env for smoke checks
+        run: |
+          printf '%s\n' \
+            'APP_NAME=Laravel' \
+            'APP_ENV=testing' \
+            'APP_KEY=' \
+            'APP_DEBUG=true' \
+            'APP_URL=http://localhost' \
+            'DB_CONNECTION=sqlite' \
+            'DB_DATABASE=database/database.sqlite' \
+            'SESSION_DRIVER=array' \
+            'CACHE_DRIVER=array' \
+            'QUEUE_CONNECTION=sync' > .env
+          mkdir -p database
+          touch database/database.sqlite
+          php artisan key:generate --force
+
+      - name: Artisan bootstrap smoke
+        run: php artisan about
