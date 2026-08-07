@@ -97,9 +97,10 @@ jobs:
             git remote add cpanel "$CPANEL_URL"
           fi
 
-          echo "Pushing HEAD -> cpanel main (workflow only) ..."
+          echo "Pushing HEAD -> cpanel main + master (workflow) ..."
+          # cPanel thường nhận master; GitHub dùng main — push cả hai ref
           GIT_SSH_COMMAND="sshpass -e ssh -o StrictHostKeyChecking=accept-new -p ${{ secrets.CPANEL_SSH_PORT }}" \
-            git push -f cpanel HEAD:main
+            git push -f cpanel HEAD:main HEAD:master
 
           echo "Git push to cPanel done."
 
