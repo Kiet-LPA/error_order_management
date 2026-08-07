@@ -7,9 +7,9 @@ use App\Models\Checkin;
 use App\Models\CheckinRegion;
 use App\Models\GpsRequest;
 use App\Models\User;
+use App\Services\LocationNameService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
 class CheckinController extends Controller
@@ -242,45 +242,10 @@ class CheckinController extends Controller
      */
     private function reverseGeocode($latitude, $longitude)
     {
-        try {
-            $response = Http::timeout(5)
-                ->withHeaders(['User-Agent' => 'HPFoods-Checkin/1.0'])
-                ->get('https://api.bigdatacloud.net/data/reverse-geocode-client', [
-                    'latitude' => $latitude,
-                    'longitude' => $longitude,
-                    'localityLanguage' => 'vi',
-                ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                $locality = $data['locality'] ?? null;
-                $city = $data['city'] ?? null;
-                $province = $data['principalSubdivision'] ?? null;
-
-                $parts = [];
-                if ($locality) {
-                    $parts[] = $locality;
-                } elseif ($city) {
-                    $parts[] = $city;
-                }
-
-                if ($province && !in_array($province, $parts, true)) {
-                    $parts[] = $province;
-                }
-
-                if (!empty($parts)) {
-                    return implode(', ', $parts);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Reverse geocode failed', [
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return null;
+        return app(LocationNameService::class)->resolve(
+            $latitude !== null ? (float) $latitude : null,
+            $longitude !== null ? (float) $longitude : null
+        );
     }
 
     /**

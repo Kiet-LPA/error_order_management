@@ -141,8 +141,11 @@
                                         <div class="d-flex flex-column">
                                             <span class="fw-semibold location-name-text"
                                                   data-lat="{{ $gpsRequest->latitude }}"
-                                                  data-lng="{{ $gpsRequest->longitude }}">
-                                                Đang tải vị trí...
+                                                  data-lng="{{ $gpsRequest->longitude }}"
+                                                  @if(!empty($gpsRequest->resolved_location_name))
+                                                      data-name="{{ $gpsRequest->resolved_location_name }}"
+                                                  @endif>
+                                                {{ $gpsRequest->resolved_location_name ?: 'Đang tải vị trí...' }}
                                             </span>
                                             <small class="text-muted mb-1">
                                                 <i class="bi bi-geo-alt me-1"></i>
@@ -419,5 +422,5 @@
             });
     }
     </script>
-    <script src="{{ asset('js/location-name.js') }}?v=2"></script>
+    <script src="{{ asset('js/location-name.js') }}?v=3"></script>
     @endsection

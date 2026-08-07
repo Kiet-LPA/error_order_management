@@ -1,14 +1,15 @@
 /**
- * Reverse geocode → tên địa điểm (nhanh: cache + parallel + timeout)
+ * Reverse geocode → tên địa điểm.
+ * Ưu tiên API cùng domain (server có cache + BigDataCloud + Nominatim),
+ * fallback BigDataCloud từ browser nếu server lỗi.
  */
 (function (global) {
-  var CACHE_PREFIX = 'locname:v1:';
+  var CACHE_PREFIX = 'locname:v2:';
   var CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 ngày
-  var FETCH_TIMEOUT_MS = 2500;
+  var FETCH_TIMEOUT_MS = 8000;
   var inFlight = {};
 
   function cacheKey(lat, lng) {
-    // ~11m precision — đủ cho tên phường/xã
     return Number(lat).toFixed(4) + ',' + Number(lng).toFixed(4);
   }
 
@@ -35,7 +36,7 @@
         JSON.stringify({ n: name, t: Date.now() })
       );
     } catch (e) {
-      // quota full — bỏ qua
+      // quota full
     }
   }
 
@@ -59,13 +60,29 @@
     return Number(lat).toFixed(5) + ', ' + Number(lng).toFixed(5);
   }
 
+  function apiUrl(lat, lng) {
+    return (
+      '/api/location-name?lat=' +
+      encodeURIComponent(lat) +
+      '&lng=' +
+      encodeURIComponent(lng)
+    );
+  }
+
   async function fetchWithTimeout(url, ms) {
     var controller = new AbortController();
     var timer = setTimeout(function () {
       controller.abort();
     }, ms);
     try {
-      return await fetch(url, { signal: controller.signal });
+      return await fetch(url, {
+        signal: controller.signal,
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
     } finally {
       clearTimeout(timer);
     }
@@ -83,14 +100,27 @@
     var cached = readCache(key);
     if (cached) return cached;
 
-    // Deduplicate concurrent requests for same coords
     if (inFlight[key]) {
       return inFlight[key];
     }
 
     inFlight[key] = (async function () {
+      // 1) Same-origin Laravel API (ổn định nhất trên production)
       try {
-        // BigDataCloud trước (nhanh, CORS OK)
+        var res = await fetchWithTimeout(apiUrl(latN, lngN), FETCH_TIMEOUT_MS);
+        if (res.ok) {
+          var json = await res.json();
+          if (json && json.name) {
+            writeCache(key, json.name);
+            return json.name;
+          }
+        }
+      } catch (e) {
+        // server timeout / network
+      }
+
+      // 2) Browser → BigDataCloud (fallback)
+      try {
         var url =
           'https://api.bigdatacloud.net/data/reverse-geocode-client' +
           '?latitude=' +
@@ -98,19 +128,19 @@
           '&longitude=' +
           encodeURIComponent(lngN) +
           '&localityLanguage=vi';
-
-        var res = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
-        if (res.ok) {
-          var data = await res.json();
+        var res2 = await fetchWithTimeout(url, 3000);
+        if (res2.ok) {
+          var data = await res2.json();
           var name = formatLocationName(data);
           if (name) {
             writeCache(key, name);
             return name;
           }
         }
-      } catch (e) {
-        // timeout / network
+      } catch (e2) {
+        // ignore
       }
+
       return null;
     })();
 
@@ -127,9 +157,14 @@
     el.dataset.name = text;
   }
 
-  /**
-   * Fill all [data-lat][data-lng] in parallel (không chờ từng cái).
-   */
+  function shouldSkip(el) {
+    var existing = (el.dataset.name || el.textContent || '').trim();
+    if (!existing) return false;
+    if (existing.indexOf('Đang tải') === 0) return false;
+    // đã có tên thật (server prefill)
+    return true;
+  }
+
   async function fillLocationElements(root) {
     var scope = root || document;
     var cells = Array.prototype.slice.call(
@@ -139,8 +174,8 @@
 
     await Promise.all(
       cells.map(async function (el) {
-        if (el.dataset.name && el.dataset.name !== 'Đang tải vị trí...' && el.dataset.name !== 'Đang tải tên vị trí...') {
-          if (!el.textContent.trim() || el.textContent.indexOf('Đang tải') === 0) {
+        if (shouldSkip(el)) {
+          if (el.dataset.name && el.textContent.indexOf('Đang tải') === 0) {
             el.textContent = el.dataset.name;
           }
           return;
@@ -150,7 +185,6 @@
         var lng = el.dataset.lng;
         if (!lat || !lng) return;
 
-        // Hiển thị cache ngay nếu có (không chờ network)
         var key = cacheKey(lat, lng);
         var cached = readCache(key);
         if (cached) {

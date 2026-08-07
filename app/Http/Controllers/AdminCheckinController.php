@@ -7,6 +7,7 @@ use App\Models\Checkin;
 use App\Models\GpsRequest;
 use App\Models\User;
 use App\Models\Department;
+use App\Services\LocationNameService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -138,6 +139,53 @@ class AdminCheckinController extends Controller
 
         $gpsRequests = $query->orderBy('created_at', 'desc')->paginate(20);
 
+        // Prefill từ cache nếu có; còn lại JS gọi /api/location-name (tránh treo page load)
+        $locations = app(LocationNameService::class);
+        $resolvedByKey = [];
+        $misses = [];
+
+        foreach ($gpsRequests as $gpsRequest) {
+            if ($gpsRequest->latitude === null || $gpsRequest->longitude === null) {
+                $gpsRequest->resolved_location_name = null;
+                continue;
+            }
+            $lat = (float) $gpsRequest->latitude;
+            $lng = (float) $gpsRequest->longitude;
+            $key = sprintf('%.4f:%.4f', $lat, $lng);
+
+            if (!array_key_exists($key, $resolvedByKey)) {
+                // peek cache only first
+                $cacheKey = sprintf('geo:v1:%.4f:%.4f', $lat, $lng);
+                $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+                if (is_string($cached) && $cached !== '') {
+                    $resolvedByKey[$key] = $cached;
+                } else {
+                    $resolvedByKey[$key] = null;
+                    $misses[$key] = [$lat, $lng];
+                }
+            }
+
+            $gpsRequest->resolved_location_name = $resolvedByKey[$key];
+        }
+
+        // Resolve tối đa 8 tọa độ unique còn thiếu (warm cache cho lần sau)
+        $n = 0;
+        foreach ($misses as $key => [$lat, $lng]) {
+            if ($n >= 8) {
+                break;
+            }
+            $resolvedByKey[$key] = $locations->resolve($lat, $lng);
+            $n++;
+        }
+
+        foreach ($gpsRequests as $gpsRequest) {
+            if ($gpsRequest->latitude === null || $gpsRequest->longitude === null) {
+                continue;
+            }
+            $key = sprintf('%.4f:%.4f', (float) $gpsRequest->latitude, (float) $gpsRequest->longitude);
+            $gpsRequest->resolved_location_name = $resolvedByKey[$key] ?? null;
+        }
+
         return view('admin.checkin.gps-requests', compact('gpsRequests', 'user'));
     }
 
@@ -209,28 +257,10 @@ class AdminCheckinController extends Controller
                 try {
                     $locationName = null;
                     if ($gpsRequest->latitude && $gpsRequest->longitude) {
-                        try {
-                            $geoResponse = \Illuminate\Support\Facades\Http::timeout(5)
-                                ->withHeaders(['User-Agent' => 'HPFoods-Checkin/1.0'])
-                                ->get('https://api.bigdatacloud.net/data/reverse-geocode-client', [
-                                    'latitude' => $gpsRequest->latitude,
-                                    'longitude' => $gpsRequest->longitude,
-                                    'localityLanguage' => 'vi',
-                                ]);
-
-                            if ($geoResponse->successful()) {
-                                $geo = $geoResponse->json();
-                                $parts = array_filter([
-                                    $geo['locality'] ?? $geo['city'] ?? null,
-                                    $geo['principalSubdivision'] ?? null,
-                                ]);
-                                $locationName = !empty($parts) ? implode(', ', $parts) : null;
-                            }
-                        } catch (\Exception $geoEx) {
-                            \Log::warning('Reverse geocode on GPS approve failed', [
-                                'error' => $geoEx->getMessage(),
-                            ]);
-                        }
+                        $locationName = app(LocationNameService::class)->resolve(
+                            (float) $gpsRequest->latitude,
+                            (float) $gpsRequest->longitude
+                        );
                     }
 
                     $checkin = Checkin::create([

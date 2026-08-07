@@ -456,6 +456,10 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     })->name('checkin.csrf-token');
 });
 
+// Reverse geocode qua server — auth any role (admin/manager/employee)
+Route::middleware(['auth'])->get('/api/location-name', [\App\Http\Controllers\LocationNameController::class, 'show'])
+    ->name('api.location-name');
+
 
 // Admin/Director/Manager Checkin Management routes
 Route::middleware(['auth', 'role:admin,director,manager'])->prefix('admin/checkin')->name('admin.checkin.')->group(function () {

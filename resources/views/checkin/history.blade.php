@@ -260,7 +260,7 @@
             </div>
         </div>
     </div>
-    <script src="{{ asset('js/location-name.js') }}?v=2"></script>
+    <script src="{{ asset('js/location-name.js') }}?v=3"></script>
     <script>
     // History: resolve parallel (LocationName.fillElements)
     document.querySelectorAll('.location-cell').forEach(function (cell) {

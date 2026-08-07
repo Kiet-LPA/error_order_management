@@ -227,7 +227,7 @@
 </div>
 @endif
 
-<script src="{{ asset('js/location-name.js') }}?v=2"></script>
+<script src="{{ asset('js/location-name.js') }}?v=3"></script>
 <script>
 // Get current location for Admin (to create regions)
 async function getCurrentLocationAdmin() {

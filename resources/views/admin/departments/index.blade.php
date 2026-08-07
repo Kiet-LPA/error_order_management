@@ -201,5 +201,5 @@
         </div>
     @endif
 </div>
-<script src="{{ asset('js/location-name.js') }}?v=2"></script>
+<script src="{{ asset('js/location-name.js') }}?v=3"></script>
 @endsection
