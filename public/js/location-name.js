@@ -61,8 +61,11 @@
   }
 
   function apiUrl(lat, lng) {
+    var base =
+      (global.LOCATION_NAME_API || '/api/location-name').split('?')[0];
     return (
-      '/api/location-name?lat=' +
+      base +
+      '?lat=' +
       encodeURIComponent(lat) +
       '&lng=' +
       encodeURIComponent(lng)

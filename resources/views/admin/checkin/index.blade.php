@@ -227,7 +227,10 @@
 </div>
 @endif
 
-<script src="{{ asset('js/location-name.js') }}?v=4"></script>
+<script>
+window.LOCATION_NAME_API = @json(route('api.location-name'));
+</script>
+<script src="{{ asset('js/location-name.js') }}?v=5"></script>
 <script>
 // Get current location for Admin (to create regions)
 async function getCurrentLocationAdmin() {
@@ -288,20 +291,28 @@ async function getCurrentLocationAdmin() {
             </div>
         `;
 
-        // Không chặn UI: resolve tối đa ~2.5s, có cache local
+        // Tên địa điểm: chờ reverse-geocode đủ lâu (API server ~8s), tọa độ chỉ là phụ
         const placeEl = document.getElementById('adminGpsPlaceName');
         const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        const apiBase = window.LOCATION_NAME_API || @json(route('api.location-name'));
+
+        function setPlaceName(name) {
+            if (placeEl) placeEl.textContent = name || fallback;
+        }
+
         if (window.LocationName && window.LocationName.resolve) {
-            Promise.race([
-                window.LocationName.resolve(lat, lng),
-                new Promise((resolve) => setTimeout(() => resolve(null), 2800)),
-            ]).then((name) => {
-                if (placeEl) placeEl.textContent = name || fallback;
-            }).catch(() => {
-                if (placeEl) placeEl.textContent = fallback;
+            window.LocationName.resolve(lat, lng).then(setPlaceName).catch(function () {
+                setPlaceName(null);
             });
         } else {
-            if (placeEl) placeEl.textContent = fallback;
+            const url = apiBase.split('?')[0] + '?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng);
+            fetch(url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (json) { setPlaceName(json && json.name); })
+                .catch(function () { setPlaceName(null); });
         }
         
     } catch (error) {
