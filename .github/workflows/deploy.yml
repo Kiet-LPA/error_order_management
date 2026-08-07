@@ -1,7 +1,7 @@
 name: Laravel CI/CD (cPanel)
 
-# Deploy code workflow qua rsync/SSH (không git push remote cPanel — hay lỗi path/auth)
-# stock = source khác — không đụng
+# Deploy workflow via rsync/SSH (1 session shared — tránh timeout SSH lần 2)
+# stock = không đụng
 
 on:
   push:
@@ -53,49 +53,96 @@ jobs:
     name: Deploy workflow to cPanel
     needs: laravel-tests
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install sshpass + rsync
+      - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y sshpass rsync
 
-      - name: Add cPanel host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -p "${{ secrets.CPANEL_SSH_PORT }}" -H "${{ secrets.CPANEL_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || \
-          ssh-keyscan -p "${{ secrets.CPANEL_SSH_PORT }}" "${{ secrets.CPANEL_SSH_HOST }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      # Đồng bộ code vào APP_PATH; giữ nguyên .env / storage uploads / vendor (composer trên server)
-      - name: Rsync code to workflow (preserve .env)
+      - name: Rsync + remote deploy (shared SSH)
         env:
           SSHPASS: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          USER: ${{ secrets.CPANEL_SSH_USER }}
+          PORT: ${{ secrets.CPANEL_SSH_PORT }}
+          APP_PATH: ${{ secrets.CPANEL_APP_PATH }}
         run: |
           set -euo pipefail
 
-          HOST="${{ secrets.CPANEL_SSH_HOST }}"
-          USER="${{ secrets.CPANEL_SSH_USER }}"
-          PORT="${{ secrets.CPANEL_SSH_PORT }}"
-          APP_PATH="${{ secrets.CPANEL_APP_PATH }}"
-
-          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$PORT" ]; then
-            echo "ERROR: thiếu CPANEL_SSH_HOST / USER / PORT"
+          if [ -z "${HOST:-}" ] || [ -z "${USER:-}" ] || [ -z "${PORT:-}" ]; then
+            echo "ERROR: thiếu secrets HOST / USER / PORT"
             exit 1
           fi
-          if [ -z "$APP_PATH" ]; then
+          if [ -z "${APP_PATH:-}" ]; then
             APP_PATH="/home/ipoubwkrhosting/workflow"
           fi
+          if [ -z "${SSHPASS:-}" ]; then
+            echo "ERROR: thiếu CPANEL_SSH_PASSWORD"
+            exit 1
+          fi
 
-          echo "Rsync -> ${USER}@${HOST}:${APP_PATH}/ (port ${PORT})"
-          echo "Preserving: .env, storage content, vendor, node_modules"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          CONTROL_PATH="$HOME/.ssh/cm-${USER}@${HOST}:${PORT}"
+          rm -f "$CONTROL_PATH" 2>/dev/null || true
 
-          # Không --delete để tránh xóa file production (upload/.env/vendor)
+          # Shared persistent SSH connection (tránh 2 TCP riêng → timeout)
+          SSH_BASE=(
+            -o StrictHostKeyChecking=accept-new
+            -o UserKnownHostsFile=~/.ssh/known_hosts
+            -o ConnectTimeout=60
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=6
+            -o ControlMaster=auto
+            -o ControlPath="$CONTROL_PATH"
+            -o ControlPersist=300
+            -p "$PORT"
+          )
+
+          ssh_cmd() {
+            sshpass -e ssh "${SSH_BASE[@]}" "$@"
+          }
+
+          # known_hosts với retry
+          for i in 1 2 3; do
+            if ssh-keyscan -p "$PORT" -T 30 "$HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+              break
+            fi
+            echo "ssh-keyscan retry $i ..."
+            sleep 5
+          done
+          chmod 644 ~/.ssh/known_hosts
+
+          echo "==> Open multiplexed SSH to ${USER}@${HOST}:${PORT}"
+          # Mở master connection (retry nếu timeout)
+          OPENED=0
+          for i in 1 2 3 4 5; do
+            if ssh_cmd -o ControlMaster=yes -fN "${USER}@${HOST}"; then
+              OPENED=1
+              echo "SSH master OK (attempt $i)"
+              break
+            fi
+            echo "SSH master failed attempt $i — wait ${i}0s"
+            sleep "${i}0"
+            rm -f "$CONTROL_PATH" 2>/dev/null || true
+          done
+          if [ "$OPENED" != "1" ]; then
+            echo "ERROR: không mở được SSH sau nhiều lần thử"
+            exit 1
+          fi
+
+          cleanup() {
+            sshpass -e ssh "${SSH_BASE[@]}" -O exit "${USER}@${HOST}" 2>/dev/null || true
+            rm -f "$CONTROL_PATH" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          echo "==> Rsync code -> ${APP_PATH}/ (giữ .env, vendor, storage uploads)"
           rsync -az \
-            -e "sshpass -e ssh -o StrictHostKeyChecking=accept-new -p ${PORT}" \
+            -e "sshpass -e ssh ${SSH_BASE[*]}" \
             --exclude '.env' \
             --exclude '.env.*' \
             --exclude '.git/' \
@@ -113,57 +160,51 @@ jobs:
 
           echo "Rsync done."
 
-      - name: Composer + migrate + cache on server
-        env:
-          SSHPASS: ${{ secrets.CPANEL_SSH_PASSWORD }}
-        run: |
+          echo "==> Remote: composer + migrate + cache"
+          # Dùng connection đã mở (ControlMaster)
+          ssh_cmd "${USER}@${HOST}" "APP_PATH=$(printf %q "$APP_PATH") bash -s" <<'REMOTE'
           set -euo pipefail
-
-          APP_PATH="${{ secrets.CPANEL_APP_PATH }}"
-          if [ -z "$APP_PATH" ]; then
-            APP_PATH="/home/ipoubwkrhosting/workflow"
-          fi
-
-          sshpass -e ssh -o StrictHostKeyChecking=accept-new \
-            -p "${{ secrets.CPANEL_SSH_PORT }}" \
-            "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}" \
-            bash -s <<REMOTE
-          set -euo pipefail
-          APP_PATH='$APP_PATH'
-          cd "\$APP_PATH"
+          cd "$APP_PATH"
+          echo "PWD=$(pwd)"
 
           if [ ! -f artisan ]; then
-            echo "ERROR: artisan not found in \$APP_PATH"
+            echo "ERROR: artisan not found"
             ls -la
             exit 1
           fi
           if [ ! -f .env ]; then
-            echo "ERROR: .env missing — phải giữ .env production trên server"
+            echo "ERROR: .env missing"
             exit 1
           fi
 
-          PHP_BIN=\$(command -v php || true)
+          PHP_BIN=$(command -v php || true)
           if [ -x /usr/local/bin/php ]; then PHP_BIN=/usr/local/bin/php; fi
-          for p in /opt/cpanel/ea-php82/root/usr/bin/php /opt/cpanel/ea-php81/root/usr/bin/php /opt/cpanel/ea-php83/root/usr/bin/php; do
-            if [ -x "\$p" ]; then PHP_BIN="\$p"; fi
+          for p in \
+            /opt/cpanel/ea-php82/root/usr/bin/php \
+            /opt/cpanel/ea-php83/root/usr/bin/php \
+            /opt/cpanel/ea-php81/root/usr/bin/php
+          do
+            if [ -x "$p" ]; then PHP_BIN="$p"; fi
           done
-          echo "PHP: \$PHP_BIN"
-          "\$PHP_BIN" -v | head -1
+          echo "PHP=$PHP_BIN"
+          "$PHP_BIN" -v | head -1
 
           if command -v composer >/dev/null 2>&1; then
             composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
           elif [ -f composer.phar ]; then
-            "\$PHP_BIN" composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            "$PHP_BIN" composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev
           else
-            echo "WARN: composer not found — skip install (dùng vendor hiện có)"
+            echo "WARN: composer not found — keep existing vendor"
           fi
 
-          "\$PHP_BIN" artisan migrate --force --no-interaction
-          "\$PHP_BIN" artisan optimize:clear
-          "\$PHP_BIN" artisan config:cache || true
-          "\$PHP_BIN" artisan route:cache || true
-          "\$PHP_BIN" artisan view:cache || true
-          "\$PHP_BIN" artisan storage:link 2>/dev/null || true
+          "$PHP_BIN" artisan migrate --force --no-interaction
+          "$PHP_BIN" artisan optimize:clear
+          "$PHP_BIN" artisan config:cache || true
+          "$PHP_BIN" artisan route:cache || true
+          "$PHP_BIN" artisan view:cache || true
+          "$PHP_BIN" artisan storage:link 2>/dev/null || true
 
-          echo "Deploy finished for \$APP_PATH"
+          echo "Deploy finished."
           REMOTE
+
+          echo "==> All deploy steps OK"
