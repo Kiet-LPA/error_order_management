@@ -203,11 +203,36 @@
                                         </span>
                                     </td>
                                     <td>{{ $checkin->checkin_time->format('H:i:s') }}</td>
-                                    <td>{{ $checkin->department->name }}</td>
+                                    <td>{{ $checkin->display_department_name ?? (optional($checkin->department)->name ?? 'N/A') }}</td>
                                     <td>
-                                        <small>{{ $checkin->latitude }}, {{ $checkin->longitude }}</small>
+                                        @if($checkin->latitude && $checkin->longitude)
+                                            <div class="location-cell"
+                                                 data-lat="{{ $checkin->latitude }}"
+                                                 data-lng="{{ $checkin->longitude }}"
+                                                 data-name="{{ $checkin->location_name }}">
+                                                <div class="location-name">
+                                                    @if($checkin->location_name)
+                                                        {{ $checkin->location_name }}
+                                                    @else
+                                                        <span class="location-loading">Đang tải tên vị trí...</span>
+                                                    @endif
+                                                </div>
+                                                <a href="https://www.google.com/maps?q={{ $checkin->latitude }},{{ $checkin->longitude }}"
+                                                   target="_blank" rel="noopener"
+                                                   style="color:#0d6efd;font-size:0.8rem;">
+                                                    🗺️ Xem bản đồ
+                                                </a>
+                                            </div>
+                                        @else
+                                            <small class="text-muted">Không có tọa độ</small>
+                                        @endif
                                     </td>
-                                    <td>{{ round($checkin->distance_meters) }}m</td>
+                                    <td>
+                                        @php
+                                            $displayDistance = $checkin->display_distance ?? $checkin->distance_meters;
+                                        @endphp
+                                        {{ $displayDistance !== null ? round($displayDistance) . 'm' : 'N/A' }}
+                                    </td>
                                     <td>
                                         @if($checkin->status === 'success')
                                             <span class="status-badge status-success">✅ Thành công</span>
@@ -235,5 +260,46 @@
             </div>
         </div>
     </div>
+    <script>
+    (function () {
+        const cells = Array.from(document.querySelectorAll('.location-cell'));
+        if (!cells.length) return;
+
+        function formatLocation(data) {
+            const locality = data.locality || data.city || '';
+            const province = data.principalSubdivision || '';
+            const parts = [locality, province].filter(Boolean);
+            // Bỏ trùng (vd locality === province)
+            return [...new Set(parts)].join(', ') || null;
+        }
+
+        async function resolveCell(cell) {
+            if (cell.dataset.name) return;
+
+            const lat = cell.dataset.lat;
+            const lng = cell.dataset.lng;
+            const nameEl = cell.querySelector('.location-name');
+            if (!lat || !lng || !nameEl) return;
+
+            try {
+                const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=vi`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const name = formatLocation(data);
+                nameEl.textContent = name || `${lat}, ${lng}`;
+            } catch (e) {
+                nameEl.innerHTML = `<small>${lat}, ${lng}</small>`;
+            }
+        }
+
+        // Giải mã lần lượt để tránh rate limit
+        (async function run() {
+            for (const cell of cells) {
+                await resolveCell(cell);
+            }
+        })();
+    })();
+    </script>
 </body>
 </html>

@@ -450,6 +450,10 @@ Route::middleware(['auth', 'employee.type'])->group(function () {
     Route::get('/checkin/gps-help', function() {
         return view('checkin.gps-help');
     })->name('checkin.gps-help');
+    // Route để lấy CSRF token mới (dùng khi token hết hạn)
+    Route::get('/checkin/csrf-token', function() {
+        return response()->json(['token' => csrf_token()]);
+    })->name('checkin.csrf-token');
 });
 
 

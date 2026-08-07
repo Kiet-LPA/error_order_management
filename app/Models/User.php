@@ -482,52 +482,74 @@ class User extends Authenticatable
      * Tìm phòng ban gần nhất có GPS trong số các phòng ban đã được assign cho user
      * @param float $latitude Vĩ độ hiện tại của user
      * @param float $longitude Kinh độ hiện tại của user
+     * @param float|null $distanceOut Nhận khoảng cách (mét) tới phòng ban gần nhất nếu truyền vào
      * @return Department|null Phòng ban gần nhất có GPS, null nếu không tìm thấy
      */
-    public function getNearestDepartmentWithGps($latitude, $longitude)
+    public function getNearestDepartmentWithGps($latitude, $longitude, &$distanceOut = null)
     {
-        // Lấy tất cả phòng ban mà user đã được assign (bao gồm cả department chính và departments phụ)
+        $result = $this->resolveNearestDepartmentWithGps($latitude, $longitude);
+
+        if (!$result) {
+            $distanceOut = null;
+            return null;
+        }
+
+        $distanceOut = $result['distance'];
+        return $result['department'];
+    }
+
+    /**
+     * Tìm phòng ban gần nhất có GPS + khoảng cách (mét)
+     * So sánh với TẤT CẢ phòng ban được gán (không lấy mặc định).
+     *
+     * @return array{department: Department, distance: float}|null
+     */
+    public function resolveNearestDepartmentWithGps($latitude, $longitude)
+    {
         $assignedDepartments = collect();
-        
-        // Thêm department chính nếu có
+
         if ($this->department) {
             $assignedDepartments->push($this->department);
         }
-        
-        // Thêm các departments từ bảng user_departments
+
         $additionalDepartments = $this->departments()->get();
         $assignedDepartments = $assignedDepartments->merge($additionalDepartments);
-        
-        // Loại bỏ duplicate và chỉ lấy những department có GPS
+
         $departmentsWithGps = $assignedDepartments
             ->unique('id')
             ->filter(function ($department) {
                 return $department->hasGpsConfig();
             });
-        
+
         if ($departmentsWithGps->isEmpty()) {
             return null;
         }
-        
-        // Tính khoảng cách đến từng phòng ban và tìm phòng ban gần nhất
+
         $nearestDepartment = null;
         $minDistance = PHP_FLOAT_MAX;
-        
+
         foreach ($departmentsWithGps as $department) {
             $distance = $this->calculateDistance(
-                $latitude, 
-                $longitude, 
-                $department->latitude, 
+                $latitude,
+                $longitude,
+                $department->latitude,
                 $department->longitude
             );
-            
+
             if ($distance < $minDistance) {
                 $minDistance = $distance;
                 $nearestDepartment = $department;
             }
         }
-        
-        return $nearestDepartment;
+
+        if (!$nearestDepartment) {
+            return null;
+        }
+
+        return [
+            'department' => $nearestDepartment,
+            'distance' => $minDistance,
+        ];
     }
 
     /**

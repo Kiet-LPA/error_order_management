@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Điểm danh - HP Foods</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <style>
@@ -618,57 +619,152 @@
         }
     }
 
-    function checkin(latitude, longitude, action, accuracy = null) {
+    // Hàm lấy CSRF token từ meta tag hoặc cookie
+    function getCsrfToken() {
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        if (metaTag) {
+            return metaTag.getAttribute('content');
+        }
+        // Fallback: lấy từ cookie XSRF-TOKEN
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'XSRF-TOKEN') {
+                return decodeURIComponent(value);
+            }
+        }
+        return null;
+    }
+
+    // Hàm refresh CSRF token bằng cách gọi API endpoint
+    async function refreshCsrfToken() {
+        try {
+            const response = await fetch('{{ route("checkin.csrf-token") }}', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.token) {
+                    // Cập nhật meta tag
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.setAttribute('content', data.token);
+                    }
+                    return data.token;
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing CSRF token:', error);
+        }
+        return null;
+    }
+
+    async function checkin(latitude, longitude, action, accuracy = null, retryCount = 0) {
         const btn = document.getElementById(action === 'checkin' ? 'checkinBtn' : 'checkoutBtn');
         btn.innerHTML = '⏳ Đang xử lý...';
         
-        fetch('{{ route("checkin.checkin") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                latitude: latitude,
-                longitude: longitude,
-                action: action,
-                accuracy: accuracy
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            alert('Lỗi: Không thể lấy CSRF token. Vui lòng tải lại trang.');
+            btn.disabled = false;
+            btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
+            return;
+        }
+        
+        try {
+            const response = await fetch('{{ route("checkin.checkin") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude,
+                    action: action,
+                    accuracy: accuracy
+                })
+            });
+
+            // Xử lý lỗi 419 (CSRF token mismatch)
+            if (response.status === 419) {
+                if (retryCount < 1) {
+                    // Thử refresh token và retry một lần
+                    const newToken = await refreshCsrfToken();
+                    if (newToken) {
+                        console.log('CSRF token refreshed, retrying request...');
+                        return checkin(latitude, longitude, action, accuracy, retryCount + 1);
+                    } else {
+                        // Nếu không refresh được, yêu cầu reload trang
+                        alert('Phiên đăng nhập đã hết hạn. Vui lòng tải lại trang và thử lại.');
+                        location.reload();
+                        return;
+                    }
+                } else {
+                    alert('Phiên đăng nhập đã hết hạn. Vui lòng tải lại trang và thử lại.');
+                    location.reload();
+                    return;
+                }
+            }
+
+            // Kiểm tra nếu response không phải JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                if (response.status === 419 || text.includes('CSRF token mismatch')) {
+                    if (retryCount < 1) {
+                        const newToken = await refreshCsrfToken();
+                        if (newToken) {
+                            return checkin(latitude, longitude, action, accuracy, retryCount + 1);
+                        }
+                    }
+                    alert('Phiên đăng nhập đã hết hạn. Vui lòng tải lại trang và thử lại.');
+                    location.reload();
+                    return;
+                }
+                throw new Error('Lỗi hệ thống. Vui lòng thử lại.');
+            }
+
+            const data = await response.json();
+            
             if (data.success) {
                 // Hiển thị thông tin phòng ban được chọn nếu có
-                    if (data.department) {
-                        showSelectedDepartment(data.department);
-                        updateAccuracyInfo(lastKnownAccuracy, data.department.distance, data.department.radius_meters);
-                        lastNearestDepartment = data.department;
-                    } else if (lastNearestDepartment) {
-                        updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
+                if (data.department) {
+                    showSelectedDepartment(data.department);
+                    updateAccuracyInfo(lastKnownAccuracy, data.department.distance, data.department.radius_meters);
+                    lastNearestDepartment = data.department;
+                } else if (lastNearestDepartment) {
+                    updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
                 }
                 alert(data.message);
                 location.reload();
             } else {
                 // Hiển thị thông tin phòng ban được chọn nếu có (kể cả khi thất bại)
-                    if (data.department) {
-                        showSelectedDepartment(data.department);
-                        updateAccuracyInfo(lastKnownAccuracy, data.department.distance, data.department.radius_meters);
-                        lastNearestDepartment = data.department;
-                    } else if (lastNearestDepartment) {
-                        updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
+                if (data.department) {
+                    showSelectedDepartment(data.department);
+                    updateAccuracyInfo(lastKnownAccuracy, data.department.distance, data.department.radius_meters);
+                    lastNearestDepartment = data.department;
+                } else if (lastNearestDepartment) {
+                    updateAccuracyInfo(lastKnownAccuracy, lastNearestDepartment.distance, lastNearestDepartment.radius_meters);
                 }
                 alert(data.message);
                 btn.disabled = false;
                 btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
             }
-        })
-        .catch(error => {
+        } catch (error) {
             console.error('Error:', error);
-            alert('Có lỗi xảy ra khi điểm danh.');
+            alert('Có lỗi xảy ra khi điểm danh: ' + error.message);
             btn.disabled = false;
             btn.innerHTML = action === 'checkin' ? '📍 Điểm danh' : '📍 Kết thúc ca';
-        });
+        }
     }
 
     // Update current working time if checked in

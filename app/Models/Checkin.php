@@ -19,6 +19,7 @@ class Checkin extends Model
         'checkin_time',
         'latitude',
         'longitude',
+        'location_name',
         'distance_meters',
         'ip_address',
         'status',

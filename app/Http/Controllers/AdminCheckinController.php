@@ -207,6 +207,32 @@ class AdminCheckinController extends Controller
             // Nếu approved, tạo checkin record
             if ($request->status === 'approved') {
                 try {
+                    $locationName = null;
+                    if ($gpsRequest->latitude && $gpsRequest->longitude) {
+                        try {
+                            $geoResponse = \Illuminate\Support\Facades\Http::timeout(5)
+                                ->withHeaders(['User-Agent' => 'HPFoods-Checkin/1.0'])
+                                ->get('https://api.bigdatacloud.net/data/reverse-geocode-client', [
+                                    'latitude' => $gpsRequest->latitude,
+                                    'longitude' => $gpsRequest->longitude,
+                                    'localityLanguage' => 'vi',
+                                ]);
+
+                            if ($geoResponse->successful()) {
+                                $geo = $geoResponse->json();
+                                $parts = array_filter([
+                                    $geo['locality'] ?? $geo['city'] ?? null,
+                                    $geo['principalSubdivision'] ?? null,
+                                ]);
+                                $locationName = !empty($parts) ? implode(', ', $parts) : null;
+                            }
+                        } catch (\Exception $geoEx) {
+                            \Log::warning('Reverse geocode on GPS approve failed', [
+                                'error' => $geoEx->getMessage(),
+                            ]);
+                        }
+                    }
+
                     $checkin = Checkin::create([
                         'user_id' => $gpsRequest->user_id,
                         'department_id' => $gpsRequest->department_id,
@@ -215,6 +241,7 @@ class AdminCheckinController extends Controller
                         'checkin_time' => $gpsRequest->created_at, // Sử dụng thời gian yêu cầu, không phải thời gian phê duyệt
                         'latitude' => $gpsRequest->latitude ?? 0,
                         'longitude' => $gpsRequest->longitude ?? 0,
+                        'location_name' => $locationName,
                         'distance_meters' => $gpsRequest->distance_meters,
                         'ip_address' => request()->ip(),
                         'status' => 'success',
