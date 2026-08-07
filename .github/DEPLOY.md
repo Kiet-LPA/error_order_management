@@ -1,109 +1,84 @@
-# CI/CD — Tự động deploy (GitHub Actions)
+# CI/CD cPanel (Git + sshpass)
 
-Khi push / merge vào nhánh `main`, GitHub Actions SSH vào server production và chạy script deploy (git pull → composer → npm build → migrate → cache).
+Workflow: `.github/workflows/deploy.yml`
 
-## Yêu cầu trên server
+```
+push main → php artisan test (sqlite) → git push -f cPanel → ssh artisan migrate
+```
 
-1. **Git clone** sẵn repo vào một thư mục (ví dụ `/var/www/error_order_management`)
-2. Server có: `php` (≥ 8.1), `composer`, `git`, `npm` (khuyên dùng Node 18+)
-3. File `.env` production **đã cấu hình** (không commit `.env`)
-4. Deploy user có quyền ghi `storage/`, `bootstrap/cache/`
-5. Remote `origin` trên server **có thể `git fetch`** (Deploy Key hoặc HTTPS token)
+Phù hợp hosting **cPanel Git Version Control** (SSH + password), đúng kiểu file workflow bạn đưa.
 
-### Lần đầu setup server
+## Secrets (GitHub → Settings → Secrets and variables → Actions)
+
+| Secret | Bắt buộc | Ví dụ / ghi chú |
+|--------|----------|------------------|
+| `CPANEL_SSH_HOST` | ✅ | `server.hpfoods.com` hoặc IP |
+| `CPANEL_SSH_PORT` | ✅ | Thường `22` hoặc `2222` (cPanel) |
+| `CPANEL_SSH_USER` | ✅ | Username cPanel (vd `hpfoods`) |
+| `CPANEL_SSH_PASSWORD` | ✅ | Mật khẩu SSH / cPanel |
+| `CPANEL_REPO_PATH` | ✅ | Path bare repo Git trên cPanel, **bắt đầu bằng `/`** — vd `/home/hpfoods/repositories/error_order_management.git` |
+| `CPANEL_APP_PATH` | ⭐ khuyên dùng | Thư mục app đã deploy (có file `artisan`) — vd `/home/hpfoods/work.hpfoods.com.vn` hoặc path deployment trong cPanel |
+
+### Lấy `CPANEL_REPO_PATH`
+
+cPanel → **Git Version Control** → repo → **Clone URL / Repository Path**  
+Dạng: `/home/USER/repositories/TÊN_REPO.git`
+
+Workflow ghép thành:
+
+```text
+ssh://USER@HOST:PORT/home/USER/repositories/TÊN_REPO.git
+```
+
+### Lấy `CPANEL_APP_PATH`
+
+cPanel Git → **Manage** → **Deployment Path** (nơi checkout code live).  
+Thư mục đó phải có `artisan`, `composer.json`, và file `.env` production (tạo tay 1 lần, không commit).
+
+## Cấu hình cPanel 1 lần
+
+1. Tạo Git repository trong cPanel, trỏ deployment path tới app Laravel
+2. Bật **Auto deploy** / deploy after push (nếu có)
+3. Clone 1 lần hoặc push từ local để seed repo
+4. Trên **APP_PATH**: tạo `.env` production, `php artisan key:generate` nếu cần
+5. Đảm bảo SSH Access bật, dùng đúng port
+
+### Composer trên server (nếu cPanel chưa auto-install vendor)
+
+Deploy hook của cPanel nên chạy `composer install --no-dev`.  
+Hoặc bổ sung bước SSH sau migrate (khi server có composer).
+
+Thường trên shared host:
 
 ```bash
-# Ví dụ
-cd /var/www
-git clone git@github.com:Kiet-LPA/error_order_management.git
-cd error_order_management
-
-# Tạo .env production (APP_KEY, DB_*, SESSION_DRIVER=database, APP_DEBUG=false)
-nano .env
-
-composer install --no-dev --optimize-autoloader
-php artisan key:generate   # nếu chưa có APP_KEY
-php artisan migrate --force
-php artisan storage:link
-chmod -R ug+rwx storage bootstrap/cache
+cd $HOME/path-to-app
+/usr/local/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader
 ```
 
-### Deploy Key (để server pull code)
+Có thể thêm lệnh tương tự trong step “Run artisan migrate” nếu cần.
 
-1. Trên server: `ssh-keygen -t ed25519 -C "deploy-server" -f ~/.ssh/deploy_github -N ""`
-2. GitHub repo → **Settings → Deploy keys → Add deploy key** (read-only) → dán `~/.ssh/deploy_github.pub`
-3. Cấu hình `~/.ssh/config`:
+## Lưu ý quan trọng
 
-```
-Host github.com
-  HostName github.com
-  User git
-  IdentityFile ~/.ssh/deploy_github
-  IdentitiesOnly yes
-```
+| Chủ đề | Chi tiết |
+|--------|----------|
+| **Force push (`-f`)** | Đúng pattern cPanel khi working tree bẩn sau hook; chỉ push branch `main` |
+| **Password SSH** | Kém an toàn hơn key; nếu cPanel hỗ trợ key, nên chuyển `SSH_PRIVATE_KEY` sau |
+| **Test fail → không deploy** | Job `deploy` có `needs: laravel-tests` |
+| **ExampleTest** | `/` redirect login → test mặc định assert 200 có thể fail — đã/ sẽ chỉnh test |
+| **Vendor / node** | Git thường không chứa `vendor`/`public/build` → server phải `composer install` + (tuỳ) `npm run build` |
 
-4. Test: `cd /var/www/error_order_management && git fetch origin`
+## Chạy thử
 
-## Secrets trên GitHub
+1. Điền secrets  
+2. Push `main` **hoặc** Actions → **Laravel CI/CD (cPanel)** → **Run workflow**  
+3. Xem log: Tests → Push cPanel → Migrate  
 
-Repo → **Settings → Secrets and variables → Actions → New repository secret**
+## Khác workflow SSH VPS cũ
 
-| Secret | Mô tả | Ví dụ |
-|--------|--------|--------|
-| `SSH_HOST` | IP hoặc domain server | `123.45.67.89` |
-| `SSH_USER` | User SSH | `deploy` / `ubuntu` |
-| `SSH_PRIVATE_KEY` | Private key **máy CI** dùng để SSH vào server (full PEM, gồm `BEGIN`/`END`) | nội dung `id_ed25519` |
-| `SSH_PORT` | (tuỳ chọn) Port SSH, mặc định `22` | `22` |
-| `DEPLOY_PATH` | Đường dẫn absolute đến project trên server | `/var/www/error_order_management` |
+| | cPanel (file này) | VPS SSH trước đó |
+|--|-------------------|------------------|
+| Push code | `git push` remote cPanel | `ssh` + `git pull` trên server |
+| Auth | user + password (`sshpass`) | SSH private key |
+| Secrets | `CPANEL_*` | `SSH_*`, `DEPLOY_PATH` |
 
-### Tạo key cho GitHub Actions → server
-
-Trên máy local hoặc server:
-
-```bash
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f gha_deploy -N ""
-```
-
-- Nội dung `gha_deploy` (private) → secret `SSH_PRIVATE_KEY`
-- Nội dung `gha_deploy.pub` → append vào `~/.ssh/authorized_keys` của user deploy trên server
-
-```bash
-# trên server
-echo "ssh-ed25519 AAAA... github-actions-deploy" >> ~/.ssh/authorized_keys
-chmod 600 ~/.ssh/authorized_keys
-```
-
-## Workflow
-
-| File | Khi chạy | Việc làm |
-|------|----------|----------|
-| `.github/workflows/ci.yml` | push / PR | Validate composer, build assets, smoke artisan |
-| `.github/workflows/deploy.yml` | push `main` + manual | SSH deploy production |
-
-### Chạy deploy thủ công
-
-GitHub → **Actions → Deploy Production → Run workflow**
-
-## Script trên server
-
-`scripts/deploy.sh` — logic deploy chính. Có thể test tay:
-
-```bash
-cd /var/www/error_order_management
-bash scripts/deploy.sh
-```
-
-## Checklist sau lần setup đầu
-
-- [ ] Secrets đã điền đủ
-- [ ] Server `git fetch` được
-- [ ] `.env` production đủ (DB, APP_KEY, `APP_DEBUG=false`)
-- [ ] Push một commit test lên `main` hoặc Run workflow
-- [ ] Kiểm tra trang production + log Actions
-
-## Lưu ý an toàn
-
-- **Không** đưa password/DB vào workflow YAML
-- **Không** commit private key hoặc `.env`
-- Deploy chỉ từ `main`; feature branch dùng PR + CI
-- Lần đầu nên chạy manual (`workflow_dispatch`) trước khi tin auto-deploy
+Giữ `scripts/deploy.sh` nếu sau này chuyển VPS; workflow hiện tại **không** phụ thuộc file đó.

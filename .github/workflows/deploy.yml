@@ -1,51 +1,143 @@
-name: Deploy Production
+name: Laravel CI/CD (cPanel)
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
   workflow_dispatch:
 
 concurrency:
-  group: deploy-production
+  group: deploy-cpanel-production
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy to production
+  # ---------- GIAI ĐOẠN 1: CI (test) ----------
+  laravel-tests:
+    name: Laravel tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script_stop: true
-          command_timeout: 15m
-          envs: DEPLOY_PATH
-          script: |
-            set -euo pipefail
+          php-version: "8.2"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_sqlite, pdo_mysql, bcmath, tokenizer, fileinfo, sqlite3
+          coverage: none
+          tools: composer:v2
 
-            if [ -z "${DEPLOY_PATH:-}" ]; then
-              echo "ERROR: Secret DEPLOY_PATH is empty"
-              exit 1
-            fi
+      - name: Install Composer dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
-            cd "$DEPLOY_PATH"
+      - name: Prepare environment
+        run: |
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+          php artisan key:generate --force
+          mkdir -p database
+          touch database/database.sqlite
 
-            if [ ! -f artisan ]; then
-              echo "ERROR: artisan not found in $DEPLOY_PATH — check DEPLOY_PATH secret"
-              exit 1
-            fi
-
-            if [ -f scripts/deploy.sh ]; then
-              bash scripts/deploy.sh
-            else
-              echo "ERROR: scripts/deploy.sh missing — pull codebase first"
-              exit 1
-            fi
+      - name: Run migrations (sqlite test DB)
         env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
+          SESSION_DRIVER: array
+          CACHE_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: php artisan migrate --force --no-interaction
+
+      - name: Execute tests
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
+          SESSION_DRIVER: array
+          CACHE_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: php artisan test
+
+  # ---------- GIAI ĐOẠN 2: CD (push cPanel + migrate) ----------
+  deploy:
+    name: Deploy to cPanel
+    needs: laravel-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Add cPanel host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p "${{ secrets.CPANEL_SSH_PORT }}" -H "${{ secrets.CPANEL_SSH_HOST }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Push to cPanel Git repository
+        env:
+          SSHPASS: ${{ secrets.CPANEL_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Remote dạng: ssh://user@host:port/home/user/repositories/app.git
+          # Secret CPANEL_REPO_PATH phải bắt đầu bằng / (vd: /home/xxx/repositories/error_order_management.git)
+          CPANEL_URL="ssh://${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_SSH_PORT }}${{ secrets.CPANEL_REPO_PATH }}"
+
+          if git remote | grep -qx cpanel; then
+            git remote set-url cpanel "$CPANEL_URL"
+          else
+            git remote add cpanel "$CPANEL_URL"
+          fi
+
+          echo "Pushing HEAD -> cpanel main ..."
+          # Force push: cPanel hay có unstaged/local changes sau deploy hook
+          GIT_SSH_COMMAND="sshpass -e ssh -o StrictHostKeyChecking=accept-new -p ${{ secrets.CPANEL_SSH_PORT }}" \
+            git push -f cpanel HEAD:main
+
+          echo "Git push to cPanel done."
+
+      # Chạy migrate + clear cache trên thư mục app thật (public_html / subdomain path)
+      - name: Run artisan migrate on cPanel app
+        env:
+          SSHPASS: ${{ secrets.CPANEL_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${{ secrets.CPANEL_APP_PATH }}" ]; then
+            echo "WARN: CPANEL_APP_PATH not set — skip remote migrate/optimize"
+            echo "Set secret CPANEL_APP_PATH to the deployed Laravel root (contains artisan)."
+            exit 0
+          fi
+
+          sshpass -e ssh -o StrictHostKeyChecking=accept-new \
+            -p "${{ secrets.CPANEL_SSH_PORT }}" \
+            "${{ secrets.CPANEL_SSH_USER }}@${{ secrets.CPANEL_SSH_HOST }}" \
+            "set -e
+             cd '${{ secrets.CPANEL_APP_PATH }}'
+             if [ ! -f artisan ]; then
+               echo 'ERROR: artisan not found in CPANEL_APP_PATH'
+               exit 1
+             fi
+             # cPanel đôi khi dùng php binary cụ thể — ưu tiên path nếu có
+             PHP_BIN=\$(command -v php || true)
+             if [ -x /usr/local/bin/php ]; then PHP_BIN=/usr/local/bin/php; fi
+             if [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php; fi
+             if [ -x /opt/cpanel/ea-php81/root/usr/bin/php ]; then PHP_BIN=/opt/cpanel/ea-php81/root/usr/bin/php; fi
+             echo \"Using PHP: \$PHP_BIN\"
+             \$PHP_BIN -v
+             \$PHP_BIN artisan migrate --force --no-interaction
+             \$PHP_BIN artisan optimize:clear
+             \$PHP_BIN artisan config:cache || true
+             \$PHP_BIN artisan route:cache || true
+             \$PHP_BIN artisan view:cache || true
+             \$PHP_BIN artisan storage:link 2>/dev/null || true
+             echo 'Remote deploy commands finished.'"
