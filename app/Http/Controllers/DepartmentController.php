@@ -3,7 +3,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\User;
+use App\Services\LocationNameService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DepartmentController extends Controller
 {
@@ -22,6 +24,30 @@ class DepartmentController extends Controller
         }
         
         $departments = Department::orderBy('name')->paginate(15);
+
+        // Resolve tên vị trí GPS trên server (không phụ thuộc BigDataCloud từ browser)
+        $locations = app(LocationNameService::class);
+        $resolvedByKey = [];
+        foreach ($departments as $dept) {
+            if (!$dept->latitude || !$dept->longitude) {
+                $dept->resolved_location_name = null;
+                continue;
+            }
+            $lat = (float) $dept->latitude;
+            $lng = (float) $dept->longitude;
+            $key = sprintf('%.4f:%.4f', $lat, $lng);
+            if (!array_key_exists($key, $resolvedByKey)) {
+                $cacheKey = sprintf('geo:v1:%.4f:%.4f', $lat, $lng);
+                $cached = Cache::get($cacheKey);
+                if (is_string($cached) && $cached !== '') {
+                    $resolvedByKey[$key] = $cached;
+                } else {
+                    $resolvedByKey[$key] = $locations->resolve($lat, $lng);
+                }
+            }
+            $dept->resolved_location_name = $resolvedByKey[$key];
+        }
+
         return view('admin.departments.index', compact('departments'));
     }
 

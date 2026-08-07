@@ -95,7 +95,12 @@
                                 <br>
                                 <span class="text-dark fw-semibold d-block location-name-text"
                                       data-lat="{{ $dept->latitude }}"
-                                      data-lng="{{ $dept->longitude }}">Đang tải vị trí...</span>
+                                      data-lng="{{ $dept->longitude }}"
+                                      @if(!empty($dept->resolved_location_name))
+                                          data-name="{{ $dept->resolved_location_name }}"
+                                      @endif>
+                                    {{ $dept->resolved_location_name ?: 'Đang tải vị trí...' }}
+                                </span>
                                 <small class="text-muted">{{ $dept->latitude }}, {{ $dept->longitude }}</small>
                                 <br><small class="text-dark fw-semibold">Bán kính: {{ $dept->radius_meters }}m</small>
                             @else
@@ -201,5 +206,5 @@
         </div>
     @endif
 </div>
-<script src="{{ asset('js/location-name.js') }}?v=3"></script>
+<script src="{{ asset('js/location-name.js') }}?v=4"></script>
 @endsection

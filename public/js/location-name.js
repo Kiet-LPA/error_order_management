@@ -210,7 +210,17 @@
   };
 
   function boot() {
-    fillLocationElements(document);
+    fillLocationElements(document).finally(function () {
+      // An toàn: không để vĩnh viễn "Đang tải..."
+      var stuck = document.querySelectorAll('[data-lat][data-lng]');
+      for (var i = 0; i < stuck.length; i++) {
+        var el = stuck[i];
+        var t = (el.textContent || '').trim();
+        if (t.indexOf('Đang tải') === 0) {
+          setElName(el, fallbackLabel(el.dataset.lat, el.dataset.lng));
+        }
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

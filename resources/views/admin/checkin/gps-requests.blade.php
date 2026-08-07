@@ -422,5 +422,5 @@
             });
     }
     </script>
-    <script src="{{ asset('js/location-name.js') }}?v=3"></script>
+    <script src="{{ asset('js/location-name.js') }}?v=4"></script>
     @endsection

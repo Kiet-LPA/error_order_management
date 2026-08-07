@@ -73,7 +73,7 @@
 </div>
 
 @push('scripts')
-<script src="{{ asset('js/location-name.js') }}"></script>
+<script src="{{ asset('js/location-name.js') }}?v=4"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('btnGetGps');
