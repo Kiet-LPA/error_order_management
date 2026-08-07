@@ -11,9 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('approval_requests', function (Blueprint $table) {
-            $table->json('approvers')->nullable()->after('current_approver_id');
-        });
+        if (!Schema::hasTable('approval_requests')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('approval_requests', 'approvers')) {
+            Schema::table('approval_requests', function (Blueprint $table) {
+                if (Schema::hasColumn('approval_requests', 'current_approver_id')) {
+                    $table->json('approvers')->nullable()->after('current_approver_id');
+                } else {
+                    $table->json('approvers')->nullable();
+                }
+            });
+        }
     }
 
     /**
@@ -21,8 +31,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('approval_requests', function (Blueprint $table) {
-            $table->dropColumn('approvers');
-        });
+        if (Schema::hasTable('approval_requests') && Schema::hasColumn('approval_requests', 'approvers')) {
+            Schema::table('approval_requests', function (Blueprint $table) {
+                $table->dropColumn('approvers');
+            });
+        }
     }
 };

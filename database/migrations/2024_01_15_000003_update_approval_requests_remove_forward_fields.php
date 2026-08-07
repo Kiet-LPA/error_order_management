@@ -11,13 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('approval_requests')) {
+            return;
+        }
+
         Schema::table('approval_requests', function (Blueprint $table) {
-            // Remove forward-related fields since we're replacing with multi-approver system
-            // Keep current_approver_id for backward compatibility but it will be used differently
-            
-            // Add new fields for multi-approver system
-            $table->enum('approval_type', ['single', 'multiple', 'all_required'])->default('single')->after('approval_status');
-            $table->boolean('require_all_approvals')->default(false)->after('approval_type');
+            if (!Schema::hasColumn('approval_requests', 'approval_type')) {
+                $table->enum('approval_type', ['single', 'multiple', 'all_required'])->default('single');
+            }
+            if (!Schema::hasColumn('approval_requests', 'require_all_approvals')) {
+                $table->boolean('require_all_approvals')->default(false);
+            }
         });
     }
 
@@ -26,8 +30,21 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('approval_requests')) {
+            return;
+        }
+
         Schema::table('approval_requests', function (Blueprint $table) {
-            $table->dropColumn(['approval_type', 'require_all_approvals']);
+            $cols = [];
+            if (Schema::hasColumn('approval_requests', 'approval_type')) {
+                $cols[] = 'approval_type';
+            }
+            if (Schema::hasColumn('approval_requests', 'require_all_approvals')) {
+                $cols[] = 'require_all_approvals';
+            }
+            if ($cols) {
+                $table->dropColumn($cols);
+            }
         });
     }
 };
