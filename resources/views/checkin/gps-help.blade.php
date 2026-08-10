@@ -83,6 +83,8 @@
             padding: 1rem;
             border-radius: 8px;
             margin-bottom: 1rem;
+            display: block;
+            overflow: hidden;
         }
         .alert-danger {
             background: #f8d7da;
@@ -94,7 +96,51 @@
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
+        .alert-success {
+            background: #d1e7dd;
+            border: 1px solid #badbcc;
+            color: #0f5132;
+        }
+        .alert-success h6 {
+            margin: 0 0 0.75rem;
+            font-size: 1.05rem;
+        }
+        .alert-success p {
+            margin: 0 0 0.5rem;
+        }
+        .alert-success p:last-child {
+            margin-bottom: 0;
+        }
+        .gps-result-box {
+            margin-top: 0.5rem;
+            clear: both;
+        }
+        .gps-result-meta {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            margin: 0.25rem 0 0.75rem;
+        }
+        .gps-result-place {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0.35rem 0 0.5rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .gps-result-warn {
+            color: #856404;
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            margin: 0.75rem 0;
+        }
+        .gps-result-actions {
+            margin-top: 1rem;
+            padding-top: 0.25rem;
+        }
         .test-btn {
+            display: block;
             background: #198754;
             color: white;
             border: none;
@@ -104,22 +150,35 @@
             cursor: pointer;
             width: 100%;
             margin: 1rem 0;
-            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.2s ease, box-shadow 0.2s ease;
         }
         .test-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+            background: #157347;
+            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);
         }
         .test-btn:disabled {
             background: #6c757d;
             cursor: not-allowed;
-            transform: none;
+            box-shadow: none;
+        }
+        .test-btn-secondary {
+            background: #0d6efd;
+        }
+        .test-btn-secondary:hover {
+            background: #0b5ed7;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
         }
         @media (max-width: 768px) {
             .header .container {
                 flex-direction: column;
                 gap: 0.5rem;
                 text-align: center;
+            }
+            .test-btn {
+                padding: 0.85rem 1rem;
+                font-size: 1rem;
             }
         }
     </style>
@@ -208,11 +267,11 @@
             <div class="card-body">
                 <p>Nhấn nút bên dưới để kiểm tra xem GPS đã hoạt động chưa:</p>
                 
-                <button id="testGpsBtn" class="test-btn" onclick="testGPS()">
+                <button type="button" id="testGpsBtn" class="test-btn" onclick="testGPS()">
                     🧪 Kiểm tra GPS
                 </button>
                 
-                <div id="gpsTestResult" style="display: none;"></div>
+                <div id="gpsTestResult" class="gps-result-box" style="display: none;"></div>
             </div>
         </div>
 
@@ -238,6 +297,10 @@
     </div>
 
     <script>
+    window.LOCATION_NAME_API = @json(route('api.location-name'));
+    </script>
+    <script src="{{ asset('js/location-name.js') }}?v=5"></script>
+    <script>
     function testGPS() {
         const btn = document.getElementById('testGpsBtn');
         const resultDiv = document.getElementById('gpsTestResult');
@@ -255,41 +318,39 @@
         }
 
         navigator.geolocation.getCurrentPosition(
-            async function(position) {
+            function(position) {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 const accuracy = position.coords.accuracy;
+                const checkinUrl = @json(route('checkin.index'));
 
-                let placeName = 'Đang tải tên vị trí...';
                 resultDiv.innerHTML = `
                     <div class="alert alert-success">
                         <h6>✅ GPS hoạt động bình thường!</h6>
-                        <p class="fs-5 fw-semibold mb-1" id="gpsHelpPlaceName">${placeName}</p>
-                        <p class="mb-1"><small class="text-muted">Vĩ độ: ${lat.toFixed(6)} · Kinh độ: ${lng.toFixed(6)}</small></p>
+                        <div class="gps-result-place" id="gpsHelpPlaceName">Đang tải tên vị trí...</div>
+                        <p class="gps-result-meta">Vĩ độ: ${lat.toFixed(6)} · Kinh độ: ${lng.toFixed(6)}</p>
                         <p><strong>Độ chính xác:</strong> ±${Math.round(accuracy)}m</p>
                         <p><strong>Thời gian:</strong> ${new Date().toLocaleString('vi-VN')}</p>
-                        ${accuracy > 50 ? '<p class="text-warning">⚠️ Độ chính xác thấp, thử di chuyển ra ngoài trời</p>' : ''}
-                        
-                        <div class="mt-3">
-                            <a href="{{ route('checkin.index') }}" class="test-btn" style="background: #007bff;">
-                                🏠 Quay lại điểm danh
-                            </a>
+                        ${accuracy > 50
+                            ? '<div class="gps-result-warn">⚠️ Độ chính xác thấp, hãy di chuyển ra ngoài trời</div>'
+                            : ''}
+                        <div class="gps-result-actions">
+                            <a href="${checkinUrl}" class="test-btn test-btn-secondary">🏠 Quay lại điểm danh</a>
                         </div>
                     </div>
                 `;
 
-                try {
-                    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=vi`;
-                    const res = await fetch(url);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const locality = data.locality || data.city || '';
-                        const province = data.principalSubdivision || '';
-                        const name = [...new Set([locality, province].filter(Boolean))].join(', ');
-                        const el = document.getElementById('gpsHelpPlaceName');
-                        if (el) el.textContent = name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                    }
-                } catch (e) {}
+                const placeEl = document.getElementById('gpsHelpPlaceName');
+                const fallback = lat.toFixed(5) + ', ' + lng.toFixed(5);
+                if (window.LocationName && window.LocationName.resolve) {
+                    window.LocationName.resolve(lat, lng).then(function (name) {
+                        if (placeEl) placeEl.textContent = name || fallback;
+                    }).catch(function () {
+                        if (placeEl) placeEl.textContent = fallback;
+                    });
+                } else if (placeEl) {
+                    placeEl.textContent = fallback;
+                }
 
                 btn.disabled = false;
                 btn.innerHTML = '🧪 Kiểm tra lại GPS';
