@@ -9,6 +9,7 @@ use App\Models\GpsRequest;
 use App\Models\User;
 use App\Services\LocationNameService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -432,6 +433,9 @@ class CheckinController extends Controller
             ->orderBy('checkin_time', 'desc')
             ->paginate(20);
 
+        $locations = app(LocationNameService::class);
+        $resolvedByKey = [];
+
         // Tính lại khu vực gần nhất + khoảng cách theo tọa độ lúc điểm danh
         foreach ($checkins as $checkin) {
             $nearestDeptName = optional($checkin->department)->name ?? 'N/A';
@@ -447,6 +451,35 @@ class CheckinController extends Controller
                     $nearestDeptName = $nearest['department']->name;
                     $nearestDistance = $nearest['distance'];
                 }
+
+                // Tên vị trí: DB → cache → reverse geocode (persist nếu lấy được)
+                $placeName = $checkin->location_name;
+                if (!$placeName) {
+                    $lat = (float) $checkin->latitude;
+                    $lng = (float) $checkin->longitude;
+                    $key = sprintf('%.4f:%.4f', $lat, $lng);
+
+                    if (!array_key_exists($key, $resolvedByKey)) {
+                        $cacheKey = sprintf('geo:v1:%.4f:%.4f', $lat, $lng);
+                        $cached = Cache::get($cacheKey);
+                        if (is_string($cached) && $cached !== '') {
+                            $resolvedByKey[$key] = $cached;
+                        } else {
+                            $resolvedByKey[$key] = $locations->resolve($lat, $lng);
+                        }
+                    }
+
+                    $placeName = $resolvedByKey[$key];
+
+                    if ($placeName) {
+                        // Lưu lại để lần sau không phải reverse geocode
+                        $checkin->forceFill(['location_name' => $placeName])->saveQuietly();
+                    }
+                }
+
+                $checkin->resolved_location_name = $placeName;
+            } else {
+                $checkin->resolved_location_name = null;
             }
 
             $checkin->display_department_name = $nearestDeptName;

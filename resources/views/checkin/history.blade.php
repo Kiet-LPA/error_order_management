@@ -206,16 +206,15 @@
                                     <td>{{ $checkin->display_department_name ?? (optional($checkin->department)->name ?? 'N/A') }}</td>
                                     <td>
                                         @if($checkin->latitude && $checkin->longitude)
-                                            <div class="location-cell"
-                                                 data-lat="{{ $checkin->latitude }}"
-                                                 data-lng="{{ $checkin->longitude }}"
-                                                 data-name="{{ $checkin->location_name }}">
-                                                <div class="location-name">
-                                                    @if($checkin->location_name)
-                                                        {{ $checkin->location_name }}
-                                                    @else
-                                                        <span class="location-loading">Đang tải tên vị trí...</span>
-                                                    @endif
+                                            @php
+                                                $placeName = $checkin->resolved_location_name ?? $checkin->location_name;
+                                            @endphp
+                                            <div class="location-cell">
+                                                <div class="location-name fw-semibold"
+                                                     data-lat="{{ $checkin->latitude }}"
+                                                     data-lng="{{ $checkin->longitude }}"
+                                                     @if($placeName) data-name="{{ $placeName }}" @endif>
+                                                    {{ $placeName ?: 'Đang tải tên vị trí...' }}
                                                 </div>
                                                 <a href="https://www.google.com/maps?q={{ $checkin->latitude }},{{ $checkin->longitude }}"
                                                    target="_blank" rel="noopener"
@@ -260,19 +259,12 @@
             </div>
         </div>
     </div>
-    <script src="{{ asset('js/location-name.js') }}?v=4"></script>
     <script>
-    // History: resolve parallel (LocationName.fillElements)
-    document.querySelectorAll('.location-cell').forEach(function (cell) {
-        const nameEl = cell.querySelector('.location-name');
-        if (!nameEl || !cell.dataset.lat) return;
-        if (cell.dataset.name) {
-            nameEl.textContent = cell.dataset.name;
-            return;
-        }
-        nameEl.setAttribute('data-lat', cell.dataset.lat);
-        nameEl.setAttribute('data-lng', cell.dataset.lng);
-    });
+    window.LOCATION_NAME_API = @json(route('api.location-name'));
+    </script>
+    <script src="{{ asset('js/location-name.js') }}?v=5"></script>
+    <script>
+    // Fallback client nếu server chưa resolve được (bản ghi cũ)
     if (window.LocationName) {
         window.LocationName.fillElements(document);
     }
